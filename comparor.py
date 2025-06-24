@@ -14,6 +14,7 @@ from tree_sitter import Parser, Language
 import tree_sitter_nix as ts_nix
 import argparse
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,42 @@ def print_node_structure(node, code, indent=0):
                 logger.debug(" " * (indent + 6) + f"Binding {binding_idx}: {binding.type}")
 
 
+# Convert Nix value to appropriate Python type
+def convert_value(value_str):
+    """Convert Nix value string to appropriate Python type."""
+    # Handle string literals (remove quotes)
+    if (value_str.startswith('"') and value_str.endswith('"')) or \
+       (value_str.startswith("'") and value_str.endswith("'")):
+        return value_str[1:-1]
+    
+    # Handle boolean values
+    if value_str.lower() == "true":
+        return True
+    if value_str.lower() == "false":
+        return False
+    
+    # Handle integer values
+    if re.match(r'^-?\d+$', value_str):
+        return int(value_str)
+    
+    # Handle float values
+    if re.match(r'^-?\d+\.\d+$', value_str):
+        return float(value_str)
+    
+    # Handle null
+    if value_str.lower() == "null":
+        return None
+    
+    # Handle simple array patterns like [ "trl" ]
+    simple_array_pattern = r'^\[\s*"([^"]+)"\s*\]$'
+    simple_array_match = re.match(simple_array_pattern, value_str)
+    if simple_array_match:
+        return [simple_array_match.group(1)]
+    
+    # Return original value if no conversion applies
+    return value_str
+
+
 # Helper to detect and convert Nix lists to Python lists
 def process_value(value_str):
     """Process a value string, converting Nix lists to Python lists."""
@@ -60,9 +97,12 @@ def process_value(value_str):
             # Remove trailing bracket if it's part of an item
             if item.endswith("]"):
                 item = item.rstrip("]").strip()
-            cleaned_items.append(item)
+            # Convert each item to appropriate type
+            cleaned_items.append(convert_value(item))
         return cleaned_items
-    return value_str
+    
+    # If not a multiline list, try to convert to appropriate type
+    return convert_value(value_str)
 
 
 # ───────────────────── recursive traversal ───────────────────
@@ -209,4 +249,5 @@ if __name__ == "__main__":
         else:
             print(f"\nFound {len(attrs)} attributes")
             for k in sorted(attrs):
-                print(f"{k}: {attrs[k]}")
+                processed_value = process_value(attrs[k])
+                print(f"{k}: {processed_value}")
