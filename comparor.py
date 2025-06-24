@@ -42,6 +42,29 @@ def print_node_structure(node, code, indent=0):
                 logger.debug(" " * (indent + 6) + f"Binding {binding_idx}: {binding.type}")
 
 
+# Helper to detect and convert Nix lists to Python lists
+def process_value(value_str):
+    """Process a value string, converting Nix lists to Python lists."""
+    # Check if it's a list pattern [items]
+    list_pattern = r'^\[\s*\n(\s+[^\n]+\n)+\s*\]$'
+    if re.match(list_pattern, value_str):
+        # Extract items from the list
+        items = re.findall(r'\s+([^\s][^\n]*)', value_str)
+        # Clean up items and check for closing bracket as a separate item
+        cleaned_items = []
+        for item in items:
+            item = item.strip()
+            # Skip if the item is just a closing bracket
+            if item == "]":
+                continue
+            # Remove trailing bracket if it's part of an item
+            if item.endswith("]"):
+                item = item.rstrip("]").strip()
+            cleaned_items.append(item)
+        return cleaned_items
+    return value_str
+
+
 # ───────────────────── recursive traversal ───────────────────
 def walk_expr(node, code: bytes, prefix: list[str], out: dict[str, str]):
     t = node.type
@@ -175,7 +198,14 @@ if __name__ == "__main__":
     else:
         if args.output == "json":
             import json
-            print(json.dumps(attrs, indent=2))
+            
+            # Process values before outputting to JSON
+            processed_attrs = {}
+            for key, value in attrs.items():
+                processed_value = process_value(value)
+                processed_attrs[key] = processed_value
+                
+            print(json.dumps(processed_attrs, indent=2))
         else:
             print(f"\nFound {len(attrs)} attributes")
             for k in sorted(attrs):
