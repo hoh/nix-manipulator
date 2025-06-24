@@ -24,7 +24,17 @@ def extract_text(node, code: bytes) -> str:
 
 
 def normalize_function_name(node, code: bytes) -> str:
-    """Normalize whitespace in function expressions."""
+    """Normalize whitespace in function expressions and handle select expressions."""
+    if node.type == "select_expression":
+        # For select expressions like stdenv.mkDerivation, combine them
+        base = node.child_by_field_name("expression")
+        attrpath = node.child_by_field_name("attrpath")
+        
+        if base and attrpath:
+            base_text = extract_text(base, code)
+            attr_text = extract_text(attrpath, code)
+            return f"{base_text}.{attr_text}"
+    
     return re.sub(r"\s+", "", extract_text(node, code))
 
 
@@ -76,17 +86,36 @@ def extract_attributes(node, code: bytes, path_prefix: list[str], results: dict[
         return
 
     if node_type == "function_expression":
+        # Skip the parameter and go to the body
         body = node.child_by_field_name("body")
         if body:
             extract_attributes(body, code, path_prefix, results)
+
+    elif node_type == "parenthesized_expression":
+        # Skip parentheses and process the inner expression
+        for child in node.children:
+            if child.type not in ["(", ")"]:
+                extract_attributes(child, code, path_prefix, results)
 
     elif node_type == "apply_expression":
         function_node = node.child_by_field_name("function")
         argument_node = node.child_by_field_name("argument")
 
         if function_node and argument_node:
-            function_name = normalize_function_name(function_node, code)
-            extract_attributes(argument_node, code, path_prefix + [function_name], results)
+            # Handle select_expression (like stdenv.mkDerivation)
+            if function_node.type == "select_expression":
+                function_name = normalize_function_name(function_node, code).replace(".", "")
+            else:
+                function_name = normalize_function_name(function_node, code)
+            
+            new_path = path_prefix + [function_name]
+            extract_attributes(argument_node, code, new_path, results)
+
+    elif node_type == "select_expression":
+        # Handle dot notation like lib.licenses.mit
+        if path_prefix:
+            key = ".".join(path_prefix)
+            results[key] = extract_text(node, code).strip()
 
     elif node_type in {"attrset_expression", "rec_attrset_expression"}:
         # Find binding_set child
@@ -103,19 +132,33 @@ def extract_attributes(node, code: bytes, path_prefix: list[str], results: dict[
                     continue
 
                 # Extract attribute path components
-                components = [extract_text(part, code) for part in attr_path.children if part.type != "."]
+                components = []
+                for part in attr_path.children:
+                    if part.type == "identifier":
+                        components.append(extract_text(part, code))
+                
                 full_path = path_prefix + components
-                attribute_key = ".".join(full_path)
-
+                
                 # Process based on expression type
-                if expression.type in {"attrset_expression", "rec_attrset_expression",
-                                      "apply_expression", "function_expression"}:
+                if expression.type in {
+                    "attrset_expression", "rec_attrset_expression",
+                    "apply_expression", "function_expression", 
+                    "parenthesized_expression"
+                }:
                     extract_attributes(expression, code, full_path, results)
                 else:
+                    # Leaf value
+                    attribute_key = ".".join(full_path)
                     results[attribute_key] = extract_text(expression, code).strip()
 
+    elif node_type in {"list_expression", "string_expression", "variable_expression", "with_expression"}:
+        # Handle these as leaf values if we have a path
+        if path_prefix:
+            key = ".".join(path_prefix)
+            results[key] = extract_text(node, code).strip()
+
     else:
-        # Leaf expression
+        # Handle any other leaf expressions
         if path_prefix:
             key = ".".join(path_prefix)
             results[key] = extract_text(node, code).strip()
@@ -129,6 +172,8 @@ def flatten_nix_file(file_path: Path) -> dict[str, str]:
     language = Language(ts_nix.language())
     parser = Parser(language)
     tree = parser.parse(source_code)
+
+    # debug_ast(tree.root_node, source_code)
 
     # Extract attributes
     attributes = {}
@@ -161,6 +206,16 @@ def main():
     else:
         for key, value in sorted(processed_attributes.items()):
             print(f"{key}: {value}")
+
+
+def debug_ast(node, code: bytes, indent=0):
+    """Debug helper to print AST structure."""
+    prefix = "  " * indent
+    text_preview = extract_text(node, code)[:50].replace('\n', '\\n')
+    print(f"{prefix}{node.type}: '{text_preview}...'")
+    
+    for child in node.children:
+        debug_ast(child, code, indent + 1)
 
 
 if __name__ == "__main__":
