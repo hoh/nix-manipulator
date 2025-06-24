@@ -12,143 +12,235 @@ import argparse
 import json
 import re
 from pathlib import Path
+from typing import Any, Union
 
 import tree_sitter_nix as ts_nix
 from tree_sitter import Parser, Language
 
 
 # ───────────────────────── helpers ──────────────────────────
-def text(node, code: bytes) -> str:
-    """Return the exact source substring for *node*."""
+def extract_text(node, code: bytes) -> str:
+    """Extract the exact source substring for a node."""
     return code[node.start_byte:node.end_byte].decode()
 
 
-def func_name(node, code: bytes) -> str:
-    """Collapse whitespace inside the function part of an apply_expression."""
-    return re.sub(r"\s+", "", text(node, code))
+def normalize_function_name(node, code: bytes) -> str:
+    """Normalize whitespace in function expressions."""
+    return re.sub(r"\s+", "", extract_text(node, code))
 
 
-def convert_value(value_str):
+def parse_nix_value(value_str: str) -> Any:
     """Convert Nix value string to appropriate Python type."""
-    # String literals - remove quotes
-    if value_str.startswith(('"', "'")) and value_str.endswith(('"', "'")):
+    value_str = value_str.strip()
+    
+    # Handle quoted strings
+    if _is_quoted_string(value_str):
         return value_str[1:-1]
     
-    # Special values
-    special_values = {"true": True, "false": False, "null": None}
-    if value_str.lower() in special_values:
-        return special_values[value_str.lower()]
+    # Handle special literals
+    literal_value = _parse_literal(value_str)
+    if literal_value is not None:
+        return literal_value
     
-    # Numbers
-    try:
-        return int(value_str) if '.' not in value_str else float(value_str)
-    except ValueError:
-        pass
+    # Handle numbers
+    number_value = _parse_number(value_str)
+    if number_value is not None:
+        return number_value
     
-    # Simple arrays like [ "trl" ]
-    match = re.match(r'^\[\s*"([^"]+)"\s*\]$', value_str)
-    if match:
-        return [match.group(1)]
+    # Handle lists
+    list_value = _parse_list(value_str)
+    if list_value is not None:
+        return list_value
     
+    # Return as-is if no conversion applies
     return value_str
 
 
-def process_value(value_str):
-    """Process a value string, converting Nix lists to Python lists."""
-    # Multi-line list pattern
-    if re.match(r'^\[\s*\n(\s+[^\n]+\n)+\s*\]$', value_str):
-        items = re.findall(r'\s+([^\s][^\n]*)', value_str)
-        cleaned_items = []
-        for item in items:
-            item = item.strip()
-            if item == "]":
-                continue
-            if item.endswith("]"):
-                item = item.rstrip("]").strip()
-            cleaned_items.append(convert_value(item))
-        return cleaned_items
+def _is_quoted_string(value: str) -> bool:
+    """Check if value is a quoted string."""
+    return (len(value) >= 2 and 
+            value[0] in ('"', "'") and 
+            value[-1] == value[0])
+
+
+def _parse_literal(value: str) -> Union[bool, None, str]:
+    """Parse boolean and null literals."""
+    literals = {"true": True, "false": False, "null": None}
+    return literals.get(value.lower(), None)
+
+
+def _parse_number(value: str) -> Union[int, float, None]:
+    """Parse numeric values."""
+    try:
+        return int(value) if '.' not in value else float(value)
+    except ValueError:
+        return None
+
+
+def _parse_list(value: str) -> Union[list, None]:
+    """Parse Nix list expressions."""
+    # Simple single-item list: [ "item" ]
+    simple_match = re.match(r'^\[\s*"([^"]+)"\s*\]$', value)
+    if simple_match:
+        return [simple_match.group(1)]
     
-    return convert_value(value_str)
+    # Multi-line list
+    if re.match(r'^\[\s*\n(\s+[^\n]+\n)+\s*\]$', value):
+        items = re.findall(r'\s+([^\s][^\n]*)', value)
+        return [_clean_list_item(item) for item in items if _is_valid_list_item(item)]
+    
+    return None
+
+
+def _clean_list_item(item: str) -> Any:
+    """Clean and convert a single list item."""
+    item = item.strip()
+    if item.endswith("]"):
+        item = item.rstrip("]").strip()
+    return parse_nix_value(item)
+
+
+def _is_valid_list_item(item: str) -> bool:
+    """Check if item is a valid list element (not just closing bracket)."""
+    return item.strip() != "]"
 
 
 # ───────────────────── recursive traversal ───────────────────
-def walk_expr(node, code: bytes, prefix: list[str], out: dict[str, str]):
-    t = node.type
+def extract_attributes(node, code: bytes, path_prefix: list[str], results: dict[str, str]):
+    """Recursively extract attributes from Nix AST."""
+    node_type = node.type
     
-    if t == "comment":
+    if node_type == "comment":
         return
         
-    if t == "function_expression":
-        body = node.child_by_field_name("body")
-        if body:
-            walk_expr(body, code, prefix, out)
+    if node_type == "function_expression":
+        _process_function(node, code, path_prefix, results)
         
-    elif t == "apply_expression":
-        fn = node.child_by_field_name("function")
-        arg = node.child_by_field_name("argument")
-        fn_name_str = func_name(fn, code)
-        walk_expr(arg, code, prefix + [fn_name_str], out)
+    elif node_type == "apply_expression":
+        _process_application(node, code, path_prefix, results)
 
-    elif t in {"attrset_expression", "rec_attrset_expression"}:
-        # Find binding_set
-        binding_set = next((child for child in node.children if child.type == "binding_set"), None)
-        
-        if binding_set:
-            for binding in binding_set.children:
-                if binding.type == "binding":
-                    attr = binding.child_by_field_name("attrpath")
-                    val = binding.child_by_field_name("expression")
-                    
-                    if attr:
-                        # Get attribute path components
-                        comps = [text(part, code) for part in attr.children if part.type != "."]
-                        full_path = prefix + comps
-                        key = ".".join(full_path)
-                        
-                        if val:
-                            if val.type in {"attrset_expression", "rec_attrset_expression", 
-                                          "apply_expression", "function_expression"}:
-                                walk_expr(val, code, full_path, out)
-                            else:
-                                out[key] = text(val, code).strip()
+    elif node_type in {"attrset_expression", "rec_attrset_expression"}:
+        _process_attribute_set(node, code, path_prefix, results)
 
     else:
-        # Leaf expression
-        if prefix:
-            key = ".".join(prefix)
-            out[key] = text(node, code).strip()
+        _process_leaf_expression(node, code, path_prefix, results)
+
+
+def _process_function(node, code: bytes, path_prefix: list[str], results: dict[str, str]):
+    """Process function expressions."""
+    body = node.child_by_field_name("body")
+    if body:
+        extract_attributes(body, code, path_prefix, results)
+
+
+def _process_application(node, code: bytes, path_prefix: list[str], results: dict[str, str]):
+    """Process function application expressions."""
+    function_node = node.child_by_field_name("function")
+    argument_node = node.child_by_field_name("argument")
+    
+    if function_node and argument_node:
+        function_name = normalize_function_name(function_node, code)
+        extract_attributes(argument_node, code, path_prefix + [function_name], results)
+
+
+def _process_attribute_set(node, code: bytes, path_prefix: list[str], results: dict[str, str]):
+    """Process attribute set expressions."""
+    binding_set = _find_binding_set(node)
+    if not binding_set:
+        return
+        
+    for binding in binding_set.children:
+        if binding.type == "binding":
+            _process_binding(binding, code, path_prefix, results)
+
+
+def _find_binding_set(node):
+    """Find the binding_set child node."""
+    return next((child for child in node.children if child.type == "binding_set"), None)
+
+
+def _process_binding(binding, code: bytes, path_prefix: list[str], results: dict[str, str]):
+    """Process individual attribute bindings."""
+    attr_path = binding.child_by_field_name("attrpath")
+    expression = binding.child_by_field_name("expression")
+    
+    if not attr_path or not expression:
+        return
+        
+    # Extract attribute path components
+    components = [extract_text(part, code) for part in attr_path.children if part.type != "."]
+    full_path = path_prefix + components
+    attribute_key = ".".join(full_path)
+    
+    # Process based on expression type
+    if expression.type in {"attrset_expression", "rec_attrset_expression", 
+                          "apply_expression", "function_expression"}:
+        extract_attributes(expression, code, full_path, results)
+    else:
+        results[attribute_key] = extract_text(expression, code).strip()
+
+
+def _process_leaf_expression(node, code: bytes, path_prefix: list[str], results: dict[str, str]):
+    """Process leaf expressions."""
+    if path_prefix:
+        key = ".".join(path_prefix)
+        results[key] = extract_text(node, code).strip()
 
 
 # ────────────────────────── main API ─────────────────────────
-def flatten(path: Path) -> dict[str, str]:
-    code = path.read_bytes()
+def flatten_nix_file(file_path: Path) -> dict[str, str]:
+    """Parse a Nix file and return flattened attributes."""
+    source_code = file_path.read_bytes()
+    
+    # Set up tree-sitter parser
     language = Language(ts_nix.language())
     parser = Parser(language)
-    tree = parser.parse(code)
+    tree = parser.parse(source_code)
 
-    result = {}
-    cur = tree.walk()
-    if cur.goto_first_child():
+    # Extract attributes
+    attributes = {}
+    cursor = tree.walk()
+    
+    if cursor.goto_first_child():
         while True:
-            walk_expr(cur.node, code, [], result)
-            if not cur.goto_next_sibling():
+            extract_attributes(cursor.node, source_code, [], attributes)
+            if not cursor.goto_next_sibling():
                 break
-    return result
+                
+    return attributes
+
+
+def process_attributes(attributes: dict[str, str]) -> dict[str, Any]:
+    """Convert raw attribute strings to appropriate Python types."""
+    return {key: parse_nix_value(value) for key, value in attributes.items()}
 
 
 # ─────────────────────────── CLI ─────────────────────────────
-if __name__ == "__main__":
+def format_output(attributes: dict[str, Any], output_format: str) -> str:
+    """Format attributes for output."""
+    if output_format == "json":
+        return json.dumps(attributes, indent=2)
+    else:
+        lines = [f"{key}: {value}" for key, value in sorted(attributes.keys())]
+        return "\n".join(lines)
+
+
+def main():
+    """Main CLI entry point."""
     parser = argparse.ArgumentParser(description="Flatten Nix attributes from a file")
     parser.add_argument("file", help="Path to the Nix file to process")
     parser.add_argument("-o", "--output", choices=["json", "text"], default="text", 
                         help="Output format (default: text)")
     args = parser.parse_args()
         
-    attrs = flatten(Path(args.file))
+    # Process file
+    raw_attributes = flatten_nix_file(Path(args.file))
+    processed_attributes = process_attributes(raw_attributes)
     
-    if args.output == "json":
-        processed_attrs = {key: process_value(value) for key, value in attrs.items()}
-        print(json.dumps(processed_attrs, indent=2))
-    else:
-        for k in sorted(attrs):
-            print(f"{k}: {process_value(attrs[k])}")
+    # Output results
+    output = format_output(processed_attributes, args.output)
+    print(output)
+
+
+if __name__ == "__main__":
+    main()
