@@ -9,6 +9,7 @@ Requires py-tree-sitter ≥ 0.23  and tree_sitter_nix.
 """
 
 import argparse
+import json
 import re
 from pathlib import Path
 
@@ -29,62 +30,44 @@ def func_name(node, code: bytes) -> str:
 
 def convert_value(value_str):
     """Convert Nix value string to appropriate Python type."""
-    # Handle string literals (remove quotes)
+    # String literals - remove quotes
     if value_str.startswith(('"', "'")) and value_str.endswith(('"', "'")):
         return value_str[1:-1]
     
-    # Handle special values with a lookup table
-    special_values = {
-        "true": True,
-        "false": False,
-        "null": None
-    }
-    lower_value = value_str.lower()
-    if lower_value in special_values:
-        return special_values[lower_value]
+    # Special values
+    special_values = {"true": True, "false": False, "null": None}
+    if value_str.lower() in special_values:
+        return special_values[value_str.lower()]
     
-    # Handle numeric values
+    # Numbers
     try:
-        # Try integer first
-        if '.' not in value_str:
-            return int(value_str)
-        # Then try float
-        return float(value_str)
+        return int(value_str) if '.' not in value_str else float(value_str)
     except ValueError:
         pass
     
-    # Handle simple array patterns like [ "trl" ]
-    simple_array_match = re.match(r'^\[\s*"([^"]+)"\s*\]$', value_str)
-    if simple_array_match:
-        return [simple_array_match.group(1)]
+    # Simple arrays like [ "trl" ]
+    match = re.match(r'^\[\s*"([^"]+)"\s*\]$', value_str)
+    if match:
+        return [match.group(1)]
     
-    # Return original value if no conversion applies
     return value_str
 
 
-# Helper to detect and convert Nix lists to Python lists
 def process_value(value_str):
     """Process a value string, converting Nix lists to Python lists."""
-    # Check if it's a list pattern [items]
-    list_pattern = r'^\[\s*\n(\s+[^\n]+\n)+\s*\]$'
-    if re.match(list_pattern, value_str):
-        # Extract items from the list
+    # Multi-line list pattern
+    if re.match(r'^\[\s*\n(\s+[^\n]+\n)+\s*\]$', value_str):
         items = re.findall(r'\s+([^\s][^\n]*)', value_str)
-        # Clean up items and check for closing bracket as a separate item
         cleaned_items = []
         for item in items:
             item = item.strip()
-            # Skip if the item is just a closing bracket
             if item == "]":
                 continue
-            # Remove trailing bracket if it's part of an item
             if item.endswith("]"):
                 item = item.rstrip("]").strip()
-            # Convert each item to appropriate type
             cleaned_items.append(convert_value(item))
         return cleaned_items
     
-    # If not a multiline list, try to convert to appropriate type
     return convert_value(value_str)
 
 
@@ -92,12 +75,10 @@ def process_value(value_str):
 def walk_expr(node, code: bytes, prefix: list[str], out: dict[str, str]):
     t = node.type
     
-    # Skip comments
     if t == "comment":
         return
         
     if t == "function_expression":
-        # Handle function expressions by walking into their body
         body = node.child_by_field_name("body")
         if body:
             walk_expr(body, code, prefix, out)
@@ -109,28 +90,18 @@ def walk_expr(node, code: bytes, prefix: list[str], out: dict[str, str]):
         walk_expr(arg, code, prefix + [fn_name_str], out)
 
     elif t in {"attrset_expression", "rec_attrset_expression"}:
-        # Find the binding_set child
-        binding_set = None
-        for child in node.children:
-            if child.type == "binding_set":
-                binding_set = child
-                break
+        # Find binding_set
+        binding_set = next((child for child in node.children if child.type == "binding_set"), None)
         
         if binding_set:
-            # Process all bindings in the binding_set
             for binding in binding_set.children:
                 if binding.type == "binding":
                     attr = binding.child_by_field_name("attrpath")
                     val = binding.child_by_field_name("expression")
                     
-                    # Extract attribute name
                     if attr:
-                        # Get all parts of the attribute path
-                        comps = []
-                        for attr_part in attr.children:
-                            if attr_part.type != ".":
-                                comps.append(text(attr_part, code))
-                        
+                        # Get attribute path components
+                        comps = [text(part, code) for part in attr.children if part.type != "."]
                         full_path = prefix + comps
                         key = ".".join(full_path)
                         
@@ -139,29 +110,24 @@ def walk_expr(node, code: bytes, prefix: list[str], out: dict[str, str]):
                                           "apply_expression", "function_expression"}:
                                 walk_expr(val, code, full_path, out)
                             else:
-                                value = text(val, code).strip()
-                                out[key] = value
+                                out[key] = text(val, code).strip()
 
     else:
-        # Any other expression is a leaf (strings, numbers, paths, identifiers…)
-        if prefix:                          # ignore bare source_code etc.
+        # Leaf expression
+        if prefix:
             key = ".".join(prefix)
-            value = text(node, code).strip()
-            out[key] = value
+            out[key] = text(node, code).strip()
 
 
 # ────────────────────────── main API ─────────────────────────
 def flatten(path: Path) -> dict[str, str]:
     code = path.read_bytes()
-    
-    # Initialize tree-sitter with proper way for newer versions
     language = Language(ts_nix.language())
     parser = Parser(language)
-    
     tree = parser.parse(code)
 
-    result: dict[str, str] = {}
-    cur = tree.walk()                       # skip the `source_code` shell
+    result = {}
+    cur = tree.walk()
     if cur.goto_first_child():
         while True:
             walk_expr(cur.node, code, [], result)
@@ -181,16 +147,8 @@ if __name__ == "__main__":
     attrs = flatten(Path(args.file))
     
     if args.output == "json":
-        import json
-        
-        # Process values before outputting to JSON
-        processed_attrs = {}
-        for key, value in attrs.items():
-            processed_value = process_value(value)
-            processed_attrs[key] = processed_value
-            
+        processed_attrs = {key: process_value(value) for key, value in attrs.items()}
         print(json.dumps(processed_attrs, indent=2))
     else:
         for k in sorted(attrs):
-            processed_value = process_value(attrs[k])
-            print(f"{k}: {processed_value}")
+            print(f"{k}: {process_value(attrs[k])}")
