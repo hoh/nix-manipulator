@@ -8,15 +8,12 @@ including function names along the path, e.g.
 Requires py-tree-sitter ≥ 0.23  and tree_sitter_nix.
 """
 
-from pathlib import Path
-import sys, re
-from tree_sitter import Parser, Language
-import tree_sitter_nix as ts_nix
 import argparse
-import logging
-import json
+import re
+from pathlib import Path
 
-logger = logging.getLogger(__name__)
+import tree_sitter_nix as ts_nix
+from tree_sitter import Parser, Language
 
 
 # ───────────────────────── helpers ──────────────────────────
@@ -30,48 +27,34 @@ def func_name(node, code: bytes) -> str:
     return re.sub(r"\s+", "", text(node, code))
 
 
-# Add a helper function to print node structure for debugging
-def print_node_structure(node, code, indent=0):
-    logger.debug(" " * indent + f"Node: {node.type}")
-    for child_idx in range(node.child_count):
-        child = node.children[child_idx]
-        logger.debug(" " * (indent + 2) + f"Child {child_idx}: {child.type}")
-        if child.type == "binding_set":
-            logger.debug(" " * (indent + 4) + "Contents of binding_set:")
-            for binding_idx in range(child.child_count):
-                binding = child.children[binding_idx]
-                logger.debug(" " * (indent + 6) + f"Binding {binding_idx}: {binding.type}")
-
-
-# Convert Nix value to appropriate Python type
 def convert_value(value_str):
     """Convert Nix value string to appropriate Python type."""
     # Handle string literals (remove quotes)
-    if (value_str.startswith('"') and value_str.endswith('"')) or \
-       (value_str.startswith("'") and value_str.endswith("'")):
+    if value_str.startswith(('"', "'")) and value_str.endswith(('"', "'")):
         return value_str[1:-1]
     
-    # Handle boolean values
-    if value_str.lower() == "true":
-        return True
-    if value_str.lower() == "false":
-        return False
+    # Handle special values with a lookup table
+    special_values = {
+        "true": True,
+        "false": False,
+        "null": None
+    }
+    lower_value = value_str.lower()
+    if lower_value in special_values:
+        return special_values[lower_value]
     
-    # Handle integer values
-    if re.match(r'^-?\d+$', value_str):
-        return int(value_str)
-    
-    # Handle float values
-    if re.match(r'^-?\d+\.\d+$', value_str):
+    # Handle numeric values
+    try:
+        # Try integer first
+        if '.' not in value_str:
+            return int(value_str)
+        # Then try float
         return float(value_str)
-    
-    # Handle null
-    if value_str.lower() == "null":
-        return None
+    except ValueError:
+        pass
     
     # Handle simple array patterns like [ "trl" ]
-    simple_array_pattern = r'^\[\s*"([^"]+)"\s*\]$'
-    simple_array_match = re.match(simple_array_pattern, value_str)
+    simple_array_match = re.match(r'^\[\s*"([^"]+)"\s*\]$', value_str)
     if simple_array_match:
         return [simple_array_match.group(1)]
     
@@ -108,7 +91,6 @@ def process_value(value_str):
 # ───────────────────── recursive traversal ───────────────────
 def walk_expr(node, code: bytes, prefix: list[str], out: dict[str, str]):
     t = node.type
-    logger.debug(f"Processing node type: {t} with prefix: {prefix}")
     
     # Skip comments
     if t == "comment":
@@ -118,21 +100,15 @@ def walk_expr(node, code: bytes, prefix: list[str], out: dict[str, str]):
         # Handle function expressions by walking into their body
         body = node.child_by_field_name("body")
         if body:
-            logger.debug(f"Found function body of type: {body.type}")
             walk_expr(body, code, prefix, out)
         
     elif t == "apply_expression":
         fn = node.child_by_field_name("function")
         arg = node.child_by_field_name("argument")
         fn_name_str = func_name(fn, code)
-        logger.debug(f"Found apply_expression with function: {fn_name_str}")
         walk_expr(arg, code, prefix + [fn_name_str], out)
 
     elif t in {"attrset_expression", "rec_attrset_expression"}:
-        logger.debug(f"Processing {t}")
-        # Print structure to debug
-        print_node_structure(node, code)
-        
         # Find the binding_set child
         binding_set = None
         for child in node.children:
@@ -141,7 +117,6 @@ def walk_expr(node, code: bytes, prefix: list[str], out: dict[str, str]):
                 break
         
         if binding_set:
-            logger.debug(f"Found binding_set with {binding_set.child_count} children")
             # Process all bindings in the binding_set
             for binding in binding_set.children:
                 if binding.type == "binding":
@@ -158,7 +133,6 @@ def walk_expr(node, code: bytes, prefix: list[str], out: dict[str, str]):
                         
                         full_path = prefix + comps
                         key = ".".join(full_path)
-                        logger.debug(f"Found binding: {key}")
                         
                         if val:
                             if val.type in {"attrset_expression", "rec_attrset_expression", 
@@ -167,7 +141,6 @@ def walk_expr(node, code: bytes, prefix: list[str], out: dict[str, str]):
                             else:
                                 value = text(val, code).strip()
                                 out[key] = value
-                                logger.debug(f"Added leaf: {key} = {value}")
 
     else:
         # Any other expression is a leaf (strings, numbers, paths, identifiers…)
@@ -175,12 +148,10 @@ def walk_expr(node, code: bytes, prefix: list[str], out: dict[str, str]):
             key = ".".join(prefix)
             value = text(node, code).strip()
             out[key] = value
-            logger.debug(f"Added leaf: {key} = {value}")
 
 
 # ────────────────────────── main API ─────────────────────────
 def flatten(path: Path) -> dict[str, str]:
-    logger.debug(f"Processing file: {path}")  # Debug output
     code = path.read_bytes()
     
     # Initialize tree-sitter with proper way for newer versions
@@ -188,7 +159,6 @@ def flatten(path: Path) -> dict[str, str]:
     parser = Parser(language)
     
     tree = parser.parse(code)
-    logger.debug(f"Parsed tree: {tree.root_node.type}")
 
     result: dict[str, str] = {}
     cur = tree.walk()                       # skip the `source_code` shell
@@ -204,50 +174,23 @@ def flatten(path: Path) -> dict[str, str]:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Flatten Nix attributes from a file")
     parser.add_argument("file", help="Path to the Nix file to process")
-    parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output")
-    parser.add_argument("--log-level", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], 
-                        default="INFO", help="Set the logging level (default: INFO)")
     parser.add_argument("-o", "--output", choices=["json", "text"], default="text", 
                         help="Output format (default: text)")
     args = parser.parse_args()
-    
-    # Set a global verbose flag
-    VERBOSE = args.verbose
-    
-    # Configure logging
-    logging_level = getattr(logging, args.log_level)
-    if VERBOSE and logging_level > logging.DEBUG:
-        # If verbose is set and log level is higher than DEBUG, set to DEBUG
-        logging_level = logging.DEBUG
-    
-    logging.basicConfig(
-        level=logging_level,
-        format='%(levelname)s: %(message)s'
-    )
-    
-    logger.debug(f"Starting to process: {args.file}")
         
     attrs = flatten(Path(args.file))
     
-    if not attrs:
-        print("\nNo attributes were found. This could mean:")
-        print("1. The Nix file doesn't contain attribute sets in the expected format")
-        print("2. The parser needs additional handling for your specific Nix structure")
-        if VERBOSE:
-            logger.debug("\nTo debug further, examine the node types printed above.")
-    else:
-        if args.output == "json":
-            import json
+    if args.output == "json":
+        import json
+        
+        # Process values before outputting to JSON
+        processed_attrs = {}
+        for key, value in attrs.items():
+            processed_value = process_value(value)
+            processed_attrs[key] = processed_value
             
-            # Process values before outputting to JSON
-            processed_attrs = {}
-            for key, value in attrs.items():
-                processed_value = process_value(value)
-                processed_attrs[key] = processed_value
-                
-            print(json.dumps(processed_attrs, indent=2))
-        else:
-            print(f"\nFound {len(attrs)} attributes")
-            for k in sorted(attrs):
-                processed_value = process_value(attrs[k])
-                print(f"{k}: {processed_value}")
+        print(json.dumps(processed_attrs, indent=2))
+    else:
+        for k in sorted(attrs):
+            processed_value = process_value(attrs[k])
+            print(f"{k}: {processed_value}")
