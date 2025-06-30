@@ -16,15 +16,24 @@ from pygments.lexers.python import PythonLexer
 from tree_sitter import Language, Parser, Node
 
 
+def extract_text(node: Node, code: bytes) -> str:
+    """Extract the exact source substring for a node."""
+    return code[node.start_byte:node.end_byte].decode('utf-8')
+
+
 class NixNode:
-    """Base class for all nodes in our Nix AST representation."""
+    """Base class for all nodes in our Nix CST representation."""
+    pass
 
-    def __init__(self):
-        self.leading_comments: List[str] = []
 
-    def add_leading_comments(self, comments: List[str]):
-        if comments:
-            self.leading_comments.extend(comments)
+class NixTrivia(NixNode):
+    """Represents comments or whitespace."""
+
+    def __init__(self, text: str):
+        self.text = text
+
+    def __repr__(self):
+        return f"NixTrivia({self.text!r})"
 
 
 class NixExpression(NixNode):
@@ -35,64 +44,42 @@ class NixExpression(NixNode):
 class NixBinding(NixNode):
     """Represents a key-value binding in an attrset or let block."""
 
-    def __init__(self, key: str, value: Any):
-        super().__init__()
+    def __init__(self, key: str, value: Any, text: str):
         self.key = key
         self.value = value
+        self.text = text  # The full original text of the binding
 
     def __repr__(self):
-        return f"NixBinding(key='{self.key}', value={self.value!r}, comments={len(self.leading_comments)})"
+        return f"NixBinding(key='{self.key}', value={self.value!r})"
 
 
-class NixFunction(NixExpression):
+class NixContainer(NixExpression):
+    """Base class for nodes that contain other nodes, preserving trivia."""
+
+    def __init__(self):
+        self.children: List[NixNode] = []
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(children={self.children!r})"
+
+
+class NixFunction(NixContainer):
     """Represents a Nix function with its components."""
+    pass
 
-    def __init__(self):
+
+class NixAttrSet(NixContainer):
+    """Represents a Nix attribute set, preserving order and trivia."""
+
+    def __init__(self, rec=False):
         super().__init__()
-        self.arguments: List['NixArgument'] = []
-        self.let_bindings: List[NixBinding] = []
-        self.result: Any = None
-
-    def __repr__(self):
-        return (f"NixFunction(arguments={self.arguments!r}, "
-                f"let_bindings={self.let_bindings!r}, result={self.result!r})")
-
-
-class NixVariable(NixExpression):
-    """Represents a Nix variable reference."""
-
-    def __init__(self, name: str):
-        super().__init__()
-        self.name = name
-
-    def __repr__(self) -> str:
-        return f"NixVariable('{self.name}')"
-
-
-class NixArgument(NixVariable):
-    """Represents a function argument, which is a variable."""
-
-    def __repr__(self) -> str:
-        return f"NixArgument('{self.name}')"
-
-
-class NixAttrSet(NixExpression):
-    """Represents a Nix attribute set, preserving order."""
-
-    def __init__(self):
-        super().__init__()
-        self.rec = False
-        self.bindings: List[NixBinding] = []
-
-    def __repr__(self) -> str:
-        return f"NixAttrSet(rec={self.rec}, bindings={self.bindings!r})"
+        self.rec = rec
 
 
 class NixApply(NixExpression):
     """Represents a Nix function application."""
 
     def __init__(self, function: Any, argument: Any):
-        super().__init__()
         self.function = function
         self.argument = argument
 
@@ -100,221 +87,130 @@ class NixApply(NixExpression):
         return f"NixApply(function={self.function!r}, argument={self.argument!r})"
 
 
-def extract_text(node: Node, code: bytes) -> str:
-    """Extract the exact source substring for a node."""
-    return code[node.start_byte:node.end_byte].decode('utf-8')
+class NixVerbatim(NixExpression):
+    """Represents a Nix expression that we will render verbatim from source."""
+
+    def __init__(self, text: str):
+        self.text = text
+
+    def __repr__(self):
+        return f"NixVerbatim({self.text!r})"
 
 
-def parse_nix_expression(node: Node, code: bytes) -> Any:
-    """Recursively parse a Nix expression node into a Python object."""
+def parse_cst(node: Node, code: bytes) -> NixNode:
+    """
+    Recursively parse a Tree-sitter node into a Concrete Syntax Tree,
+    preserving all comments and whitespace.
+    """
     node_type = node.type
 
-    if node_type == "parenthesized_expression":
-        inner_expr = next((child for child in node.children if child.type not in ["(", ")"]), None)
-        return parse_nix_expression(inner_expr, code) if inner_expr else None
+    if node_type in {"attrset_expression", "rec_attrset_expression"}:
+        container = NixAttrSet(rec=(node_type == "rec_attrset_expression"))
+        binding_set = next((c for c in node.children if c.type == "binding_set"), None)
+        if binding_set:
+            populate_container_from_children(container, binding_set, code)
+        return container
 
-    elif node_type == "list_expression":
-        items = []
-        comments_buffer = []
-        for child in node.children:
-            if child.type == 'comment':
-                comments_buffer.append(extract_text(child, code).strip())
-            elif not child.is_extra:
-                item = parse_nix_expression(child, code)
-                if isinstance(item, NixNode):
-                    item.add_leading_comments(comments_buffer)
-                comments_buffer = []
-                items.append(item)
-        return items
+    if node_type == "let_expression":
+        # A let-in can be treated like a container of bindings followed by a body
+        container = NixAttrSet() # Using AttrSet to hold the bindings
+        populate_container_from_children(container, node, code)
+        body_node = node.child_by_field_name("body")
+        # The final child in the container will be the body expression
+        if body_node:
+            container.children.append(parse_cst(body_node, code))
+        return container
 
-    elif node_type in {"attrset_expression", "rec_attrset_expression"}:
-        attr_set = NixAttrSet()
-        attr_set.rec = node_type == "rec_attrset_expression"
-        binding_set_node = next((child for child in node.children if child.type == "binding_set"), None)
-        if binding_set_node:
-            attr_set.bindings = parse_bindings(binding_set_node, code)
-        return attr_set
+    if node_type == "function_expression":
+        func = NixFunction()
+        populate_container_from_children(func, node, code)
+        return func
 
-    elif node_type == "apply_expression":
-        function_node = node.child_by_field_name("function")
-        argument_node = node.child_by_field_name("argument")
-        if function_node and argument_node:
-            return NixApply(
-                parse_nix_expression(function_node, code),
-                parse_nix_expression(argument_node, code)
-            )
+    if node_type == "apply_expression":
+        func_node = node.child_by_field_name("function")
+        arg_node = node.child_by_field_name("argument")
+        if func_node and arg_node:
+            return NixApply(parse_cst(func_node, code), parse_cst(arg_node, code))
 
-    elif node_type == "function_expression":
-        return parse_function(node, code)
-
-    elif node_type == "let_expression":
-        nix_func = NixFunction()
-        nix_func.let_bindings = parse_bindings(node, code)
-        result_node = node.child_by_field_name("body")
-        if result_node:
-            nix_func.result = parse_nix_expression(result_node, code)
-        return nix_func # Represent let-in as a body-only function
-
-    elif node_type == "string_expression":
-        text = extract_text(node, code)
-        if text.startswith('"') and text.endswith('"'):
-            return text[1:-1]
-        if text.startswith("''") and text.endswith("''"):
-            return text[2:-2].strip()
-        return text
-
-    elif node_type == "integer": return int(extract_text(node, code))
-    elif node_type == "float": return float(extract_text(node, code))
-    elif node_type == "variable_expression":
-        text = extract_text(node, code)
-        if text == "true": return True
-        if text == "false": return False
-        if text == "null": return None
-        return NixVariable(text)
-
-    return extract_text(node, code).strip()
+    # For simple types, we just return a verbatim representation
+    return NixVerbatim(extract_text(node, code))
 
 
-def parse_bindings(parent_node: Node, code: bytes) -> List[NixBinding]:
-    """Extracts bindings from an attrset or let-in expression."""
-    bindings = []
-    binding_set_node = next((n for n in parent_node.children if n.type == "binding_set"), parent_node)
-    if not binding_set_node:
-        return bindings
+def populate_container_from_children(container: NixContainer, parent_node: Node, code: bytes):
+    """
+    Parses the children of a node, capturing all trivia (comments, whitespace)
+    between them.
+    """
+    last_child_end = parent_node.start_byte
+    # Find the first meaningful child to establish the real start
+    first_child = next((c for c in parent_node.children if not c.is_extra), None)
+    if first_child:
+        last_child_end = first_child.start_byte
 
-    comments_buffer = []
-    for child in binding_set_node.children:
-        if child.type == 'comment':
-            comments_buffer.append(extract_text(child, code).strip())
-        elif child.type == "binding":
-            attr_path_node = child.child_by_field_name("attrpath")
-            expr_node = child.child_by_field_name("expression")
-            if attr_path_node and expr_node:
-                key = extract_text(attr_path_node, code)
-                value = parse_nix_expression(expr_node, code)
-                binding = NixBinding(key, value)
-                binding.add_leading_comments(comments_buffer)
-                comments_buffer = []
-                bindings.append(binding)
-    return bindings
+    for child in parent_node.children:
+        # Capture text between the last node and this one as trivia
+        trivia_text = code[last_child_end:child.start_byte].decode('utf-8')
+        if trivia_text:
+            container.children.append(NixTrivia(trivia_text))
 
+        # Process the actual child node
+        if child.type == "binding":
+            key_node = child.child_by_field_name("attrpath")
+            value_node = child.child_by_field_name("expression")
+            if key_node and value_node:
+                key = extract_text(key_node, code)
+                value = parse_cst(value_node, code)
+                container.children.append(NixBinding(key, value, extract_text(child, code)))
+        elif not child.is_extra and child.type not in ["binding_set", "{", "}", "let", "in", ":"]:
+            # Add other significant nodes if they are not part of a larger structure
+            # we are already handling (like 'binding').
+            container.children.append(parse_cst(child, code))
 
-def parse_function(func_node: Node, code: bytes) -> NixFunction:
-    """Parses a function expression node."""
-    nix_func = NixFunction()
-    param_node = func_node.child_by_field_name("formals")
-    body_node = func_node.child_by_field_name("body")
+        last_child_end = child.end_byte
 
-    if param_node:
-        comments_buffer = []
-        for child in param_node.children:
-            if child.type == 'comment':
-                comments_buffer.append(extract_text(child, code).strip())
-            elif child.type == "formal":
-                arg_name = extract_text(child, code).strip().strip(',')
-                if arg_name:
-                    arg = NixArgument(arg_name)
-                    arg.add_leading_comments(comments_buffer)
-                    comments_buffer = []
-                    nix_func.arguments.append(arg)
-
-    if body_node:
-        if body_node.type == "let_expression":
-            nix_func.let_bindings = parse_bindings(body_node, code)
-            result_node = body_node.child_by_field_name("body")
-            if result_node:
-                nix_func.result = parse_nix_expression(result_node, code)
-        else:
-            nix_func.result = parse_nix_expression(body_node, code)
-    return nix_func
+    # Capture any final trivia after the last child
+    final_trivia = code[last_child_end:parent_node.end_byte].decode('utf-8')
+    if final_trivia:
+        container.children.append(NixTrivia(final_trivia))
 
 
 def parse_nix_file(file_path: Path) -> Optional[NixNode]:
-    """Parse a Nix file and return a Nix expression object."""
+    """Parse a Nix file and return the root of its CST."""
     source_code = file_path.read_bytes()
     language = Language(ts_nix.language())
     parser = Parser(language)
     tree = parser.parse(source_code)
     root_node = tree.root_node
 
-    comments_buffer = []
-    main_expr_node = None
-    if root_node.type == "source_code":
-        for child in root_node.children:
-            if child.type == 'comment':
-                comments_buffer.append(extract_text(child, source_code).strip())
-            elif not child.is_extra:
-                main_expr_node = child
-                break
-    if main_expr_node:
-        parsed_expr = parse_nix_expression(main_expr_node, source_code)
-        if isinstance(parsed_expr, NixNode):
-            parsed_expr.add_leading_comments(comments_buffer)
-        return parsed_expr
+    if root_node.type == "source_code" and root_node.children:
+        # Find the first actual expression node, skipping any leading trivia
+        main_expr_node = next((c for c in root_node.children if not c.is_extra), None)
+        if main_expr_node:
+            # We create a root container to hold the main expression and all trivia
+            root_container = NixContainer()
+            populate_container_from_children(root_container, root_node, source_code)
+            return root_container
     return None
 
 
-def rebuild_expression(expr: Any, indent_level=0) -> str:
-    """Recursively rebuilds a Nix code string from a Python object."""
-    indent = "  " * indent_level
-    next_indent = "  " * (indent_level + 1)
-    comment_str = "".join(f"{indent}{comment}\n" for comment in getattr(expr, 'leading_comments', []))
+def rebuild_from_cst(node: NixNode) -> str:
+    """Recursively rebuilds a Nix code string from a CST node."""
+    if isinstance(node, NixTrivia):
+        return node.text
+    if isinstance(node, NixVerbatim):
+        return node.text
+    if isinstance(node, NixBinding):
+        return node.text  # The binding is preserved exactly as it was
+    if isinstance(node, NixContainer):
+        return "".join(rebuild_from_cst(child) for child in node.children)
+    if isinstance(node, NixApply):
+        func_str = rebuild_from_cst(node.function)
+        arg_str = rebuild_from_cst(node.argument)
+        # This is a simplification; a full solution would need to reconstruct
+        # the original text between function and arg if it contained comments.
+        return f"{func_str} {arg_str}"
 
-    if isinstance(expr, NixVariable):
-        content = expr.name
-    elif isinstance(expr, str):
-        content = f'"{expr}"' if '\n' not in expr else f"''\n{indent}{expr}\n{indent}''"
-    elif isinstance(expr, bool):
-        content = "true" if expr else "false"
-    elif expr is None:
-        content = "null"
-    elif isinstance(expr, (int, float)):
-        content = str(expr)
-    elif isinstance(expr, list):
-        items = [rebuild_expression(item, indent_level + 1) for item in expr]
-        content = f"[\n{next_indent}" + f"\n{next_indent}".join(items) + f"\n{indent}]" if items else "[]"
-    elif isinstance(expr, NixApply):
-        func_str = rebuild_expression(expr.function, indent_level)
-        arg_str = rebuild_expression(expr.argument, indent_level if isinstance(expr.argument, NixAttrSet) else 0)
-        content = f"{func_str} (\n{arg_str}\n{indent})" if isinstance(expr.argument, NixAttrSet) else f"{func_str} {arg_str}"
-    elif isinstance(expr, NixAttrSet):
-        binder = "rec " if expr.rec else ""
-        if not expr.bindings:
-            content = f"{binder}{{ }}"
-        else:
-            lines = [rebuild_expression(b, indent_level + 1) for b in expr.bindings]
-            content = f"{binder}{{\n" + "\n".join(lines) + f"\n{indent}}}"
-    elif isinstance(expr, NixBinding):
-        val_str = rebuild_expression(expr.value, indent_level)
-        content = f"{expr.key} = {val_str};"
-    elif isinstance(expr, NixFunction):
-        content = rebuild_function(expr, indent_level)
-    else:
-        content = str(expr)
-
-    return f"{comment_str}{indent}{content}" if isinstance(expr, NixBinding) else f"{comment_str}{content}"
-
-
-def rebuild_function(nix_function: NixFunction, indent_level=0) -> str:
-    """Rebuilds a Nix code string from a NixFunction object."""
-    indent = "  " * indent_level
-    next_indent = "  " * (indent_level + 1)
-
-    header = ""
-    if nix_function.arguments:
-        args_str = ", ".join(arg.name for arg in nix_function.arguments)
-        header = f"{{ {args_str} }}:"
-
-    body_parts = []
-    if nix_function.let_bindings:
-        let_lines = "\n".join([rebuild_expression(b, indent_level + 2) for b in nix_function.let_bindings])
-        body_parts.append(f"{next_indent}let\n{let_lines}\n{next_indent}in")
-
-    if nix_function.result:
-        body_parts.append(rebuild_expression(nix_function.result, indent_level + 1))
-
-    body = "\n".join(body_parts)
-    return f"{header}\n{body}" if header else body
+    return ""
 
 
 def main():
@@ -325,15 +221,15 @@ def main():
     parser.add_argument("file", help="Path to the Nix file to process")
     args = parser.parse_args()
 
-    parsed_expr = parse_nix_file(Path(args.file))
+    parsed_cst = parse_nix_file(Path(args.file))
 
-    print("--- Parsed Python Object ---")
+    print("--- Parsed Python Object (CST) ---")
     # Using repr for a dense but complete view of the object
-    print(highlight(repr(parsed_expr), PythonLexer(), TerminalFormatter()))
+    print(highlight(repr(parsed_cst), PythonLexer(), TerminalFormatter()))
 
     print("\n--- Rebuilt Nix Code ---")
-    if parsed_expr:
-        rebuilt_code = rebuild_expression(parsed_expr)
+    if parsed_cst:
+        rebuilt_code = rebuild_from_cst(parsed_cst)
         print(highlight(rebuilt_code, NixLexer(), TerminalFormatter()))
 
 
