@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 """
 A python library and tool powerful enough to be used into IPython solely that
@@ -38,7 +37,17 @@ def extract_text(node: Node, code: bytes) -> str:
 class CstNode:
     """Base class for all nodes in our Concrete Syntax Tree."""
 
+    def __init__(self):
+        # Trivia appearing immediately after this node (e.g., a comma, comments, newlines)
+        self.post_trivia: List[CstLeaf] = []
+
     def rebuild(self) -> str:
+        """Reconstruct the source code for this node, including any associated trivia."""
+        post = "".join(t.rebuild() for t in self.post_trivia)
+        return self._rebuild_internal() + post
+
+    def _rebuild_internal(self) -> str:
+        """Reconstruct the source code for the node itself, without trivia."""
         raise NotImplementedError
 
 
@@ -46,12 +55,13 @@ class CstContainer(CstNode):
     """A container node that holds a list of other CST nodes."""
 
     def __init__(self, children: List[CstNode]):
+        super().__init__()
         self.children = children
 
     def __repr__(self):
         return f"{self.__class__.__name__}(children=[...])"
 
-    def rebuild(self) -> str:
+    def _rebuild_internal(self) -> str:
         return "".join(c.rebuild() for c in self.children)
 
 
@@ -70,12 +80,13 @@ class CstLeaf(CstNode):
     """Base class for leaf nodes in the CST, representing a literal piece of source code."""
 
     def __init__(self, text: str):
+        super().__init__()
         self.text = text
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.text.strip()!r})"
 
-    def rebuild(self) -> str:
+    def _rebuild_internal(self) -> str:
         return self.text
 
 
@@ -121,6 +132,18 @@ class NixLambda(CstContainer):
     pass
 
 
+class NixFormal(CstContainer):
+    """A node representing a formal parameter in a lambda."""
+
+    @property
+    def identifier(self) -> Optional[NixIdentifier]:
+        """Returns the identifier of the formal parameter, if found."""
+        for child in self.children:
+            if isinstance(child, NixIdentifier):
+                return child
+        return None
+
+
 NODE_TYPE_TO_CLASS = {
     "comment": NixComment,
     "identifier": NixIdentifier,
@@ -130,40 +153,67 @@ NODE_TYPE_TO_CLASS = {
     "attr_set": NixAttrSet,
     "let_in": NixLetIn,
     "lambda": NixLambda,
+    "formal": NixFormal,
 }
 
 
 def parse_to_cst(node: Node, code: bytes) -> CstNode:
     """
     Recursively parse a Tree-sitter node into a Concrete Syntax Tree.
-    This CST retains all characters from the original source file, including
-    whitespace and comments, ensuring a perfect rebuild.
+    This CST retains all characters from the original source file by attaching trivia
+    (whitespace, comments) to the semantic nodes they belong to.
     """
     cls = NODE_TYPE_TO_CLASS.get(node.type)
 
+    # If the node has no children, it's a leaf.
     if not node.children:
         text = extract_text(node, code)
+        # Create a specialized leaf if a class is registered, otherwise a generic one.
         if cls and issubclass(cls, CstLeaf):
             return cls(text)
         return CstVerbatim(text)
 
-    children_cst: List[CstNode] = []
+    # --- Container Node Processing ---
+
+    # 1. Create a temporary list of all CST nodes, including trivia between them.
+    temp_list: List[CstNode] = []
     last_child_end = node.start_byte
-    for child in node.children:
-        trivia = code[last_child_end:child.start_byte].decode('utf-8')
-        if trivia:
-            children_cst.append(CstVerbatim(trivia))
-        children_cst.append(parse_to_cst(child, code))
-        last_child_end = child.end_byte
+    for child_node in node.children:
+        trivia_text = code[last_child_end:child_node.start_byte].decode('utf-8')
+        if trivia_text:
+            temp_list.append(CstVerbatim(trivia_text))
+        temp_list.append(parse_to_cst(child_node, code))
+        last_child_end = child_node.end_byte
 
-    final_trivia = code[last_child_end:node.end_byte].decode('utf-8')
-    if final_trivia:
-        children_cst.append(CstVerbatim(final_trivia))
+    final_trivia_text = code[last_child_end:node.end_byte].decode('utf-8')
+    if final_trivia_text:
+        temp_list.append(CstVerbatim(final_trivia_text))
 
+    # 2. Process the temporary list to attach trivia to semantic nodes.
+    final_children: List[CstNode] = []
+    i = 0
+    while i < len(temp_list):
+        current_cst = temp_list[i]
+        final_children.append(current_cst)
+
+        # Look ahead for trivia to attach to the current node.
+        j = i + 1
+        while j < len(temp_list):
+            next_cst = temp_list[j]
+            # Attachable trivia includes comments and any verbatim leaf (e.g., commas, operators).
+            if isinstance(next_cst, CstLeaf):
+                current_cst.post_trivia.append(next_cst)
+                j += 1
+            else:
+                break  # Stop when we hit the next non-leaf (semantic) node.
+
+        # Advance the main loop counter past the trivia we just consumed.
+        i = j
+
+    # 3. Create the appropriate container for the processed children.
     if cls and issubclass(cls, CstContainer):
-        return cls(children_cst)
-
-    return CstElement(node.type, children_cst)
+        return cls(final_children)
+    return CstElement(node.type, final_children)
 
 
 def parse_nix_cst(source_code: bytes) -> CstNode:
@@ -185,18 +235,26 @@ def parse_nix_file(file_path: Path) -> Optional[CstNode]:
 def pretty_print_cst(node: CstNode, indent_level=0) -> str:
     """Generates a nicely indented string representation of the CST for printing."""
     indent = '  ' * indent_level
+    # Base representation for all nodes
+    if isinstance(node, CstElement):
+        base_repr = f"{indent}{node.__class__.__name__}(type='{node.node_type}'"
+    elif isinstance(node, CstLeaf):
+        base_repr = f"{indent}{node.__class__.__name__}({node.text!r}"
+    else:
+        base_repr = f"{indent}{node.__class__.__name__}("
+
+    # Add post_trivia if it exists
+    if node.post_trivia:
+        base_repr += f", post_trivia=[...{len(node.post_trivia)} item(s)]"
+
+    # Add children for containers
     if isinstance(node, CstContainer):
-        if isinstance(node, CstElement):
-            header = f"{indent}{node.__class__.__name__}(type='{node.node_type}', children=[\n"
-        else:
-            header = f"{indent}{node.__class__.__name__}([\n"
+        base_repr += ", children=[\n"
         children_str = ',\n'.join(pretty_print_cst(c, indent_level + 1) for c in node.children)
         footer = f"\n{indent}])"
-        return header + children_str + footer
-    elif isinstance(node, CstLeaf):
-        return f"{indent}{node.__class__.__name__}({node.text!r})"
+        return base_repr + children_str + footer
     else:
-        return f"{indent}{repr(node)}"
+        return base_repr + ")"
 
 
 def main():
