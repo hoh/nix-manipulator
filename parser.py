@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Nix function parser that extracts function structure and outputs it as JSON.
+Nix function parser that recursively extracts function structure and outputs it as JSON.
 """
 
 import argparse
@@ -31,6 +31,55 @@ def extract_text(node, code: bytes) -> str:
     return code[node.start_byte:node.end_byte].decode()
 
 
+def parse_nix_expression(node, code: bytes) -> Any:
+    """Recursively parse a Nix expression node into a Python object."""
+    if not node:
+        return None
+
+    node_type = node.type
+
+    if node_type == "parenthesized_expression":
+        inner_expr = next((child for child in node.children if child.type not in ["(", ")"]), None)
+        return parse_nix_expression(inner_expr, code)
+
+    if node_type in {"attrset_expression", "rec_attrset_expression"}:
+        result = {}
+        binding_set = next((child for child in node.children if child.type == "binding_set"), None)
+        if not binding_set:
+            return result
+
+        for binding in binding_set.children:
+            if binding.type == "binding":
+                attr_path = binding.child_by_field_name("attrpath")
+                expression = binding.child_by_field_name("expression")
+
+                if attr_path and expression:
+                    name_parts = [extract_text(part, code) for part in attr_path.children if part.type == "identifier"]
+                    if name_parts:
+                        key = ".".join(name_parts)
+                        result[key] = parse_nix_expression(expression, code)
+        return result
+
+    elif node_type == "apply_expression":
+        result = {}
+        function_node = node.child_by_field_name("function")
+        argument_node = node.child_by_field_name("argument")
+
+        if function_node and argument_node:
+            func_name = extract_text(function_node, code).strip()
+            result["_function_call"] = func_name
+
+            parsed_args = parse_nix_expression(argument_node, code)
+            if isinstance(parsed_args, dict):
+                result.update(parsed_args)
+            else:
+                result["_argument"] = parsed_args
+        return result
+
+    else:
+        return extract_text(node, code).strip()
+
+
 def extract_function_arguments(param_node, code: bytes) -> Set[str]:
     """Extract argument names from function parameters."""
     arguments = set()
@@ -52,7 +101,6 @@ def extract_let_bindings(let_node, code: bytes) -> Dict[str, Any]:
     if not let_node or let_node.type != "let_expression":
         return bindings
 
-    # Find the binding_set child node by its type, which is more reliable.
     binding_set_node = next((child for child in let_node.children if child.type == "binding_set"), None)
 
     if not binding_set_node:
@@ -67,47 +115,8 @@ def extract_let_bindings(let_node, code: bytes) -> Dict[str, Any]:
                 name_parts = [extract_text(part, code) for part in attr_path.children if part.type == "identifier"]
                 if name_parts:
                     key = ".".join(name_parts)
-                    bindings[key] = extract_text(expression, code).strip()
+                    bindings[key] = parse_nix_expression(expression, code)
     return bindings
-
-
-def extract_result_set(node, code: bytes) -> Dict[str, Any]:
-    """Extract the result attribute set from an expression."""
-    result = {}
-    if not node:
-        return result
-
-    if node.type in {"attrset_expression", "rec_attrset_expression"}:
-        binding_set = next((child for child in node.children if child.type == "binding_set"), None)
-        if not binding_set:
-            return result
-
-        for binding in binding_set.children:
-            if binding.type == "binding":
-                attr_path = binding.child_by_field_name("attrpath")
-                expression = binding.child_by_field_name("expression")
-
-                if attr_path and expression:
-                    name_parts = [extract_text(part, code) for part in attr_path.children if part.type == "identifier"]
-                    if name_parts:
-                        key = ".".join(name_parts)
-                        if expression.type in {"attrset_expression", "rec_attrset_expression"}:
-                            result[key] = extract_result_set(expression, code)
-                        else:
-                            result[key] = extract_text(expression, code).strip()
-
-    elif node.type == "apply_expression":
-        function_node = node.child_by_field_name("function")
-        argument_node = node.child_by_field_name("argument")
-
-        if function_node and argument_node:
-            func_name = extract_text(function_node, code).strip()
-            result["_function_call"] = func_name
-            if argument_node.type in {"attrset_expression", "rec_attrset_expression"}:
-                nested_result = extract_result_set(argument_node, code)
-                result.update(nested_result)
-
-    return result
 
 
 def parse_nix_file(file_path: Path) -> NixFunction:
@@ -135,9 +144,9 @@ def parse_nix_file(file_path: Path) -> NixFunction:
                     nix_func.let_bindings = extract_let_bindings(body_node, source_code)
                     result_node = body_node.child_by_field_name("body")
                     if result_node:
-                        nix_func.result = extract_result_set(result_node, source_code)
+                        nix_func.result = parse_nix_expression(result_node, source_code)
                 else:
-                    nix_func.result = extract_result_set(body_node, source_code)
+                    nix_func.result = parse_nix_expression(body_node, source_code)
 
     return nix_func
 
@@ -150,14 +159,12 @@ def main():
 
     nix_function = parse_nix_file(Path(args.file))
 
-    # Create a dictionary representation of the NixFunction object
     output_dict = {
         "arguments": sorted(list(nix_function.arguments)),
         "let_bindings": nix_function.let_bindings,
         "result": nix_function.result,
     }
 
-    # Print as a formatted JSON string, which is valid Python syntax for a dict.
     print(json.dumps(output_dict, indent=2))
 
 
