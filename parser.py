@@ -25,7 +25,7 @@ class NixFunction(NixExpression):
     """Represents a Nix function with its components."""
 
     def __init__(self):
-        self.arguments: Set[str] = set()
+        self.arguments: Set['NixVariable'] = set()
         self.let_bindings: Dict[str, Any] = {}
         self.result: Dict[str, Any] = {}
 
@@ -38,7 +38,6 @@ class NixVariable(NixExpression):
 
     def __repr__(self) -> str:
         return f"Variable('{self.name}')"
-
 
 def extract_text(node, code: bytes) -> str:
     """Extract the exact source substring for a node."""
@@ -120,7 +119,7 @@ def parse_nix_expression(node, code: bytes) -> Any:
         return extract_text(node, code).strip()
 
 
-def extract_function_arguments(param_node, code: bytes) -> Set[str]:
+def extract_function_arguments(param_node, code: bytes) -> Set[NixVariable]:
     """Extract argument names from function parameters."""
     arguments = set()
     if not param_node:
@@ -131,7 +130,7 @@ def extract_function_arguments(param_node, code: bytes) -> Set[str]:
             arg_text = extract_text(child, code).strip()
             arg_name = arg_text.strip(',')
             if arg_name and not arg_name.startswith("#"):
-                arguments.add(arg_name)
+                arguments.add(NixVariable(arg_name))
     return arguments
 
 
@@ -200,7 +199,7 @@ def main():
     nix_function = parse_nix_file(Path(args.file))
 
     output_dict = {
-        "arguments": sorted(list(nix_function.arguments)),
+        "arguments": list(nix_function.arguments),
         "let_bindings": nix_function.let_bindings,
         "result": nix_function.result,
     }
