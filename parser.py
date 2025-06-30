@@ -42,7 +42,10 @@ def parse_nix_expression(node, code: bytes) -> Any:
         inner_expr = next((child for child in node.children if child.type not in ["(", ")"]), None)
         return parse_nix_expression(inner_expr, code)
 
-    if node_type in {"attrset_expression", "rec_attrset_expression"}:
+    elif node_type == "list_expression":
+        return [parse_nix_expression(child, code) for child in node.named_children]
+
+    elif node_type in {"attrset_expression", "rec_attrset_expression"}:
         result = {}
         binding_set = next((child for child in node.children if child.type == "binding_set"), None)
         if not binding_set:
@@ -75,6 +78,28 @@ def parse_nix_expression(node, code: bytes) -> Any:
             else:
                 result["_argument"] = parsed_args
         return result
+
+    elif node_type == "string_expression":
+        text = extract_text(node, code)
+        if text.startswith('"') and text.endswith('"'):
+            return text[1:-1]
+        return text
+
+    elif node_type == "integer":
+        return int(extract_text(node, code))
+
+    elif node_type == "float":
+        return float(extract_text(node, code))
+
+    elif node_type == "variable_expression":
+        text = extract_text(node, code)
+        if text == "true":
+            return True
+        elif text == "false":
+            return False
+        elif text == "null":
+            return None
+        return text
 
     else:
         return extract_text(node, code).strip()
