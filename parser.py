@@ -30,6 +30,16 @@ class NixFunction(NixExpression):
         self.result: Dict[str, Any] = {}
 
 
+class NixVariable(NixExpression):
+    """Represents a Nix variable reference."""
+
+    def __init__(self, name: str):
+        self.name = name
+
+    def __repr__(self) -> str:
+        return f"Variable('{self.name}')"
+
+
 def extract_text(node, code: bytes) -> str:
     """Extract the exact source substring for a node."""
     return code[node.start_byte:node.end_byte].decode()
@@ -86,6 +96,7 @@ def parse_nix_expression(node, code: bytes) -> Any:
     elif node_type == "string_expression":
         text = extract_text(node, code)
         if text.startswith('"') and text.endswith('"'):
+            # This doesn't handle escaped quotes inside the string
             return text[1:-1]
         return text
 
@@ -103,7 +114,7 @@ def parse_nix_expression(node, code: bytes) -> Any:
             return False
         elif text == "null":
             return None
-        return text
+        return NixVariable(text)
 
     else:
         return extract_text(node, code).strip()
