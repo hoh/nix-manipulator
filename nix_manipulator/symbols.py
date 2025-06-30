@@ -77,7 +77,7 @@ class NixIdentifier(NixObject):
         """Reconstruct identifier."""
         before_str = self._format_trivia(self.before)
         after_str = self._format_trivia(self.after)
-        return f"{before_str}{self.name}{after_str}"
+        return f"{before_str}'{self.name}'{after_str}"
 
 
 class Comment(NixObject):
@@ -192,6 +192,10 @@ class NixExpression(NixObject):
 
 class NixList(NixExpression):
     value: List[Union[NixObject, str, int, bool]]
+    multiline: bool = True
+
+    def __init__(self, value, multiline: bool=False, **kwargs):
+        super().__init__(value=value, multiline=multiline, **kwargs)
 
     def rebuild(self) -> str:
         """Reconstruct list."""
@@ -204,15 +208,15 @@ class NixList(NixExpression):
         items = []
         for item in self.value:
             if isinstance(item, NixObject):
-                items.append(f"  {item.rebuild()}")
+                items.append(f"{item.rebuild()}")
             elif isinstance(item, str):
-                items.append(f'  "{item}"')
+                items.append(f'"{item}"')
             elif isinstance(item, bool):
-                items.append(f'  {"true" if item else "false"}')
+                items.append(f'{"true" if item else "false"}')
             else:
-                items.append(f"  {str(item)}")
+                items.append(f"{str(item)}")
 
-        items_str = "\n".join(items)
+        items_str = "\n".join(items) if self.multiline else " ".join(items)
         return f"{before_str}[\n{items_str}\n]{after_str}"
 
 
