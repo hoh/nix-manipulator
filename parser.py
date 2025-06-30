@@ -7,7 +7,7 @@ rebuilds the Nix code.
 
 import argparse
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import List, Optional
 
 import tree_sitter_nix as ts_nix
 from pygments import highlight
@@ -15,6 +15,10 @@ from pygments.formatters import TerminalFormatter
 from pygments.lexers.nix import NixLexer
 from pygments.lexers.python import PythonLexer
 from tree_sitter import Language, Parser, Node
+
+# Initialize the tree-sitter parser only once for efficiency.
+NIX_LANGUAGE = Language(ts_nix.language())
+PARSER = Parser(NIX_LANGUAGE)
 
 
 def extract_text(node: Node, code: bytes) -> str:
@@ -29,21 +33,22 @@ class CstNode:
         raise NotImplementedError
 
 
-class CstContainer(CstNode):
-    """A container node that holds a list of other CST nodes."""
+class CstElement(CstNode):
+    """A node that represents a part of the Nix language grammar."""
 
-    def __init__(self, children: List[CstNode]):
+    def __init__(self, node_type: str, children: List[CstNode]):
+        self.node_type = node_type
         self.children = children
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(children={self.children!r})"
+        return f"{self.__class__.__name__}(type='{self.node_type}', children=[...])"
 
     def rebuild(self) -> str:
         return "".join(c.rebuild() for c in self.children)
 
 
 class CstVerbatim(CstNode):
-    """A leaf node representing a literal piece of the source code."""
+    """A leaf node representing a literal piece of the source code (e.g., whitespace, comments)."""
 
     def __init__(self, text: str):
         self.text = text
@@ -62,46 +67,53 @@ def parse_to_cst(node: Node, code: bytes) -> CstNode:
     This CST retains all characters from the original source file, including
     whitespace and comments, ensuring a perfect rebuild.
     """
-    # If a node has children, we treat it as a container. We recursively
-    # parse its children and also capture the raw text (trivia) between them.
-    if node.children:
-        children_cst: List[CstNode] = []
-        last_child_end = node.start_byte
-        for child in node.children:
-            # Capture any text (whitespace, comments not part of the AST)
-            # that occurred between the last node and the current one.
-            trivia = code[last_child_end:child.start_byte].decode()
-            if trivia:
-                children_cst.append(CstVerbatim(trivia))
+    if not node.children:
+        return CstVerbatim(extract_text(node, code))
 
-            # Recursively parse the child node.
-            children_cst.append(parse_to_cst(child, code))
+    children_cst: List[CstNode] = []
+    last_child_end = node.start_byte
+    for child in node.children:
+        trivia = code[last_child_end:child.start_byte].decode('utf-8')
+        if trivia:
+            children_cst.append(CstVerbatim(trivia))
+        children_cst.append(parse_to_cst(child, code))
+        last_child_end = child.end_byte
 
-            last_child_end = child.end_byte
+    final_trivia = code[last_child_end:node.end_byte].decode('utf-8')
+    if final_trivia:
+        children_cst.append(CstVerbatim(final_trivia))
 
-        # Capture any final trivia after the last child.
-        final_trivia = code[last_child_end:node.end_byte].decode()
-        if final_trivia:
-            children_cst.append(CstVerbatim(final_trivia))
+    return CstElement(node.type, children_cst)
 
-        return CstContainer(children_cst)
 
-    # If a node has no children, it's a leaf. We represent it as a
-    # verbatim chunk of the original source code.
-    return CstVerbatim(extract_text(node, code))
+def parse_nix_cst(source_code: bytes) -> CstNode:
+    """Parse Nix source code and return the root of its CST."""
+    tree = PARSER.parse(source_code)
+    return parse_to_cst(tree.root_node, source_code)
 
 
 def parse_nix_file(file_path: Path) -> Optional[CstNode]:
     """Parse a Nix file and return the root of its CST."""
     try:
         source_code = file_path.read_bytes()
-        language = Language(ts_nix.language())
-        parser = Parser(language)
-        tree = parser.parse(source_code)
-        return parse_to_cst(tree.root_node, source_code)
+        return parse_nix_cst(source_code)
     except Exception as e:
         print(f"Error parsing file {file_path}: {e}")
         return None
+
+
+def pretty_print_cst(node: CstNode, indent_level=0) -> str:
+    """Generates a nicely indented string representation of the CST for printing."""
+    indent = '  ' * indent_level
+    if isinstance(node, CstElement):
+        header = f"{indent}{node.__class__.__name__}(type='{node.node_type}', children=[\n"
+        children_str = ',\n'.join(pretty_print_cst(c, indent_level + 1) for c in node.children)
+        footer = f"\n{indent}])"
+        return header + children_str + footer
+    elif isinstance(node, CstVerbatim):
+        return f"{indent}CstVerbatim({node.text!r})"
+    else:
+        return f"{indent}{repr(node)}"
 
 
 def main():
@@ -119,12 +131,11 @@ def main():
         return
 
     print("--- Parsed Python Object (CST Representation) ---")
-    # The repr can be very long, so we limit its depth for printing
-    print(repr(parsed_cst)[:2000] + "...")
+    pretty_cst_string = pretty_print_cst(parsed_cst)
+    print(highlight(pretty_cst_string, PythonLexer(), TerminalFormatter()))
 
     print("\n--- Rebuilt Nix Code ---")
     rebuilt_code = parsed_cst.rebuild()
-    # Highlight and print to console
     print(highlight(rebuilt_code, NixLexer(), TerminalFormatter()))
 
     if args.output:
