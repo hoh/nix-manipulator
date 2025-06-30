@@ -1,25 +1,7 @@
-#!/usr/bin/env python3
-"""
-A python library and tool powerful enough to be used into IPython solely that
-intent to make the process of writing code that modify Nix source code as easy
-and as simple as possible.
-
-That includes writing custom refactoring, generic refactoring, tools, IDE or
-directly modifying your Nix source code via IPython with a higher and more
-powerful abstraction than the advanced text modification tools that you find in
-advanced text editors and IDE.
-
-This project guarantees you that it will only modify your code where you ask
-him to. To achieve this, it is based on tree-sitter, a multilingual AST.
-"""
-
-import argparse
 from pathlib import Path
 from typing import List, Optional
 
 import tree_sitter_nix as ts_nix
-from pygments import highlight
-from pygments.formatters import TerminalFormatter
 from pygments.lexers.nix import NixLexer
 from pygments.lexers.python import PythonLexer
 from tree_sitter import Language, Parser, Node
@@ -255,38 +237,3 @@ def pretty_print_cst(node: CstNode, indent_level=0) -> str:
         return base_repr + children_str + footer
     else:
         return base_repr + ")"
-
-
-def main():
-    """Main CLI entry point."""
-    parser = argparse.ArgumentParser(
-        description="Parse a Nix file and rebuild it, preserving all formatting."
-    )
-    parser.add_argument("file", help="Path to the Nix file to process")
-    parser.add_argument("-o", "--output", help="Path to the output file for the rebuilt Nix code")
-    args = parser.parse_args()
-
-    parsed_cst = parse_nix_file(Path(args.file))
-
-    if not parsed_cst:
-        return
-
-    print("--- Parsed Python Object (CST Representation) ---")
-    pretty_cst_string = pretty_print_cst(parsed_cst)
-    print(highlight(pretty_cst_string, PythonLexer(), TerminalFormatter()))
-
-    print("\n--- Rebuilt Nix Code ---")
-    rebuilt_code = parsed_cst.rebuild()
-    print(highlight(rebuilt_code, NixLexer(), TerminalFormatter()))
-
-    if args.output:
-        output_path = Path(args.output)
-        try:
-            output_path.write_text(rebuilt_code, encoding='utf-8')
-            print(f"\n--- Rebuilt Nix code written to {output_path} ---")
-        except IOError as e:
-            print(f"\nError writing to output file {output_path}: {e}")
-
-
-if __name__ == "__main__":
-    main()
