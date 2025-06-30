@@ -1,8 +1,17 @@
+
 #!/usr/bin/env python3
 """
-Nix parser that recursively extracts the structure of a Nix expression into a
-Python object, preserving order, comments, and all formatting, and then
-rebuilds the Nix code.
+A python library and tool powerful enough to be used into IPython solely that
+intent to make the process of writing code that modify Nix source code as easy
+and as simple as possible.
+
+That includes writing custom refactoring, generic refactoring, tools, IDE or
+directly modifying your Nix source code via IPython with a higher and more
+powerful abstraction than the advanced text modification tools that you find in
+advanced text editors and IDE.
+
+This project guarantees you that it will only modify your code where you ask
+him to. To achieve this, it is based on tree-sitter, a multilingual AST.
 """
 
 import argparse
@@ -33,32 +42,95 @@ class CstNode:
         raise NotImplementedError
 
 
-class CstElement(CstNode):
-    """A node that represents a part of the Nix language grammar."""
+class CstContainer(CstNode):
+    """A container node that holds a list of other CST nodes."""
 
-    def __init__(self, node_type: str, children: List[CstNode]):
-        self.node_type = node_type
+    def __init__(self, children: List[CstNode]):
         self.children = children
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(type='{self.node_type}', children=[...])"
+        return f"{self.__class__.__name__}(children=[...])"
 
     def rebuild(self) -> str:
         return "".join(c.rebuild() for c in self.children)
 
 
-class CstVerbatim(CstNode):
-    """A leaf node representing a literal piece of the source code (e.g., whitespace, comments)."""
+class CstElement(CstContainer):
+    """A generic container for non-specialized grammar elements."""
+
+    def __init__(self, node_type: str, children: List[CstNode]):
+        super().__init__(children)
+        self.node_type = node_type
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(type='{self.node_type}', children=[...])"
+
+
+class CstLeaf(CstNode):
+    """Base class for leaf nodes in the CST, representing a literal piece of source code."""
 
     def __init__(self, text: str):
         self.text = text
 
     def __repr__(self):
-        # Keep repr short for readability
-        return f"CstVerbatim({self.text.strip()!r})"
+        return f"{self.__class__.__name__}({self.text.strip()!r})"
 
     def rebuild(self) -> str:
         return self.text
+
+
+class CstVerbatim(CstLeaf):
+    """A generic leaf node for trivia or unknown tokens."""
+    pass
+
+
+# --- Specialized CST classes ---
+
+class NixComment(CstLeaf):
+    """A node representing a Nix comment."""
+    pass
+
+
+class NixIdentifier(CstLeaf):
+    """A node representing a Nix identifier."""
+    pass
+
+
+class NixString(CstLeaf):
+    """A node representing a Nix string."""
+    pass
+
+
+class NixBinding(CstContainer):
+    """A node representing a Nix binding (e.g., `x = 1;`)."""
+    pass
+
+
+class NixAttrSet(CstContainer):
+    """A node representing a Nix attribute set (e.g., `{ ... }`)."""
+    pass
+
+
+class NixLetIn(CstContainer):
+    """A node representing a Nix let-in expression."""
+    pass
+
+
+class NixLambda(CstContainer):
+    """A node representing a Nix lambda function (e.g., `x: ...`)."""
+    pass
+
+
+NODE_TYPE_TO_CLASS = {
+    "comment": NixComment,
+    "identifier": NixIdentifier,
+    "string_expression": NixString,
+    "indented_string_expression": NixString,
+    "binding": NixBinding,
+    "attr_set": NixAttrSet,
+    "let_in": NixLetIn,
+    "lambda": NixLambda,
+}
 
 
 def parse_to_cst(node: Node, code: bytes) -> CstNode:
@@ -67,8 +139,13 @@ def parse_to_cst(node: Node, code: bytes) -> CstNode:
     This CST retains all characters from the original source file, including
     whitespace and comments, ensuring a perfect rebuild.
     """
+    cls = NODE_TYPE_TO_CLASS.get(node.type)
+
     if not node.children:
-        return CstVerbatim(extract_text(node, code))
+        text = extract_text(node, code)
+        if cls and issubclass(cls, CstLeaf):
+            return cls(text)
+        return CstVerbatim(text)
 
     children_cst: List[CstNode] = []
     last_child_end = node.start_byte
@@ -82,6 +159,9 @@ def parse_to_cst(node: Node, code: bytes) -> CstNode:
     final_trivia = code[last_child_end:node.end_byte].decode('utf-8')
     if final_trivia:
         children_cst.append(CstVerbatim(final_trivia))
+
+    if cls and issubclass(cls, CstContainer):
+        return cls(children_cst)
 
     return CstElement(node.type, children_cst)
 
@@ -105,13 +185,16 @@ def parse_nix_file(file_path: Path) -> Optional[CstNode]:
 def pretty_print_cst(node: CstNode, indent_level=0) -> str:
     """Generates a nicely indented string representation of the CST for printing."""
     indent = '  ' * indent_level
-    if isinstance(node, CstElement):
-        header = f"{indent}{node.__class__.__name__}(type='{node.node_type}', children=[\n"
+    if isinstance(node, CstContainer):
+        if isinstance(node, CstElement):
+            header = f"{indent}{node.__class__.__name__}(type='{node.node_type}', children=[\n"
+        else:
+            header = f"{indent}{node.__class__.__name__}([\n"
         children_str = ',\n'.join(pretty_print_cst(c, indent_level + 1) for c in node.children)
         footer = f"\n{indent}])"
         return header + children_str + footer
-    elif isinstance(node, CstVerbatim):
-        return f"{indent}CstVerbatim({node.text!r})"
+    elif isinstance(node, CstLeaf):
+        return f"{indent}{node.__class__.__name__}({node.text!r})"
     else:
         return f"{indent}{repr(node)}"
 
