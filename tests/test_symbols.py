@@ -67,7 +67,7 @@ FunctionDefinition(
             ],
         ),
         "doCheck": NixExpression(
-            value=True,
+            value=False,
             before=[
                 empty_line,
                 Comment(text="Many tests require internet access."),
