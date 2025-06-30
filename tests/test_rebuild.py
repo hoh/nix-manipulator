@@ -25,3 +25,16 @@ def test_rebuild_nix_list():
     ]).rebuild() == "[\n  'foo'\n  'bar'\n]"
 
 
+def test_nix_with():
+    assert NixWith(
+        expression=NixIdentifier('lib.maintainers'),
+        attributes=[NixIdentifier('hoh')],
+    ).rebuild() == "with lib.maintainers; [ hoh ];"
+
+    assert NixWith(
+        expression=NixIdentifier('lib.maintainers'),
+        attributes=[
+            NixIdentifier('hoh'),
+            NixIdentifier('mic92'),
+        ],
+    ).rebuild() == "with lib.maintainers; [ hoh mic92 ];"
