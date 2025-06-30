@@ -33,9 +33,14 @@ class NixIdentifier(NixObject):
 class Comment(NixObject):
     text: str
 
+    def __str__(self):
+        return f"# {self.text}s"
+
 
 class MultilineComment(Comment):
-    pass
+
+    def __str__(self):
+        return f"/* {self.text} */"
 
 
 class NixBinding(NixObject):
