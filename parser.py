@@ -219,6 +219,7 @@ def main():
         description="Parse a Nix file, print its object representation, and then rebuild the Nix code."
     )
     parser.add_argument("file", help="Path to the Nix file to process")
+    parser.add_argument("-o", "--output", help="Path to the output file for the rebuilt Nix code")
     args = parser.parse_args()
 
     parsed_cst = parse_nix_file(Path(args.file))
@@ -231,6 +232,11 @@ def main():
     if parsed_cst:
         rebuilt_code = rebuild_from_cst(parsed_cst)
         print(highlight(rebuilt_code, NixLexer(), TerminalFormatter()))
+
+        if args.output:
+            output_path = Path(args.output)
+            output_path.write_text(rebuilt_code, encoding='utf-8')
+            print(f"\n--- Rebuilt Nix code written to {output_path} ---")
 
 
 if __name__ == "__main__":
