@@ -194,7 +194,7 @@ class NixList(NixExpression):
     value: List[Union[NixObject, str, int, bool]]
     multiline: bool = True
 
-    def __init__(self, value, multiline: bool=False, **kwargs):
+    def __init__(self, value, multiline: bool=True, **kwargs):
         super().__init__(value=value, multiline=multiline, **kwargs)
 
     def rebuild(self) -> str:
@@ -216,8 +216,14 @@ class NixList(NixExpression):
             else:
                 items.append(f"{str(item)}")
 
-        items_str = "\n".join(items) if self.multiline else " ".join(items)
-        return f"{before_str}[\n{items_str}\n]{after_str}"
+        if self.multiline:
+            # Add proper indentation for multiline lists
+            indented_items = [f"  {item}" for item in items]
+            items_str = "\n".join(indented_items)
+            return f"{before_str}[\n{items_str}\n]{after_str}"
+        else:
+            items_str = " ".join(items)
+            return f"{before_str}[ {items_str} ]{after_str}"
 
 
 class NixWith(NixObject):

@@ -12,3 +12,16 @@ def test_rebuild_nix_list():
         NixIdentifier('foo'),
         NixIdentifier('bar'),
     ], multiline=False).rebuild() == "[ 'foo' 'bar' ]"
+
+    assert NixList([
+        NixIdentifier('foo'),
+        NixIdentifier('bar'),
+    ], multiline=True).rebuild() == "[\n  'foo'\n  'bar'\n]"
+
+    # Multiline is the default
+    assert NixList([
+        NixIdentifier('foo'),
+        NixIdentifier('bar'),
+    ]).rebuild() == "[\n  'foo'\n  'bar'\n]"
+
+
