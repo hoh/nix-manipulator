@@ -28,7 +28,7 @@ class NixObject(BaseModel):
             elif item is comma:
                 result += ","
             elif isinstance(item, (Comment, MultilineComment)):
-                result += str(item)
+                result += str(item) + "\n"
             else:
                 result += str(item)
         return result
@@ -77,14 +77,15 @@ class NixIdentifier(NixObject):
         """Reconstruct identifier."""
         before_str = self._format_trivia(self.before)
         after_str = self._format_trivia(self.after)
-        return f"{before_str}'{self.name}'{after_str}"
+        return f"{before_str}{self.name}{after_str}"
 
 
 class Comment(NixObject):
     text: str
 
     def __str__(self):
-        return f"# {self.text}"
+        lines = self.text.split('\n')
+        return '\n'.join(f"# {line}" for line in lines)
 
     def rebuild(self) -> str:
         return str(self)
