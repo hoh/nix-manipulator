@@ -1,5 +1,3 @@
-# CST nodes from parser.py to symbols in symbols.py
-
 from __future__ import annotations
 from typing import List, Dict, Any, Optional, Union
 from collections import OrderedDict
@@ -61,16 +59,27 @@ class CstToSymbolConverter:
     def _convert_node(self, node: CstNode) -> Any:
         """Convert a single CST node to a symbol object."""
         if isinstance(node, CstElement):
-            if node.node_type == "lambda":
+            # Handle different node types
+            if node.node_type == "source_code":
+                return self._convert_source_code(node)
+            elif node.node_type == "function_expression":
                 return self._convert_lambda(node)
-            elif node.node_type == "let_in":
+            elif node.node_type == "let_expression":
                 return self._convert_let_in(node)
-            elif node.node_type == "apply":
+            elif node.node_type == "apply_expression":
                 return self._convert_function_call(node)
-            elif node.node_type == "list":
+            elif node.node_type == "list_expression":
                 return self._convert_list(node)
-            elif node.node_type == "with":
+            elif node.node_type == "with_expression":
                 return self._convert_with(node)
+            elif node.node_type in ["attrset_expression", "rec_attrset_expression"]:
+                return self._convert_attr_set_from_element(node)
+            elif node.node_type == "parenthesized_expression":
+                return self._convert_parenthesized(node)
+            elif node.node_type == "select_expression":
+                return self._convert_select_expression(node)
+            elif node.node_type in ["string_expression", "indented_string_expression"]:
+                return self._convert_string_from_element(node)
         elif isinstance(node, NixAttrSet):
             return self._convert_attr_set(node)
         elif isinstance(node, CstNixBinding):
@@ -79,23 +88,122 @@ class CstToSymbolConverter:
             return self._convert_identifier(node)
         elif isinstance(node, NixString):
             return self._convert_string_value(node)
+        elif isinstance(node, NixLambda):
+            return self._convert_lambda_container(node)
         elif isinstance(node, CstLeaf):
             return self._convert_leaf_value(node)
 
         # Fallback for unknown nodes
         return self._convert_generic(node)
 
-    def _convert_lambda(self, node: CstElement) -> FunctionDefinition:
-        """Convert a lambda expression to a FunctionDefinition."""
-        # Extract formal parameters
+    def _convert_source_code(self, node: CstElement) -> NixObject:
+        """Convert the root source_code node by finding the main expression."""
+        # Find the first non-trivia child
+        for child in node.children:
+            if not isinstance(child, CstVerbatim):
+                return self._convert_node(child)
+
+        # Fallback to empty set if nothing found
+        return NixSet(values={})
+
+    def _convert_parenthesized(self, node: CstElement) -> NixObject:
+        """Convert parenthesized expression by extracting the inner content."""
+        # Find the expression inside parentheses
+        for child in node.children:
+            if not isinstance(child, CstLeaf) and not isinstance(child, CstVerbatim):
+                return self._convert_node(child)
+
+        return NixExpression(value="")
+
+    def _convert_select_expression(self, node: CstElement) -> NixIdentifier:
+        """Convert select expression (like lib.maintainers) to NixIdentifier."""
+        name = self._extract_select_expression_name(node)
+        trivia = self.trivia_processor.extract_trivia(node)
+        return NixIdentifier(name=name, after=trivia)
+
+    def _convert_string_from_element(self, node: CstElement) -> str:
+        """Convert string element to string value."""
+        # Extract the actual string content
+        text = ""
+        for child in node.children:
+            if isinstance(child, CstLeaf):
+                text += child.text
+
+        # Remove quotes if present
+        if text.startswith('"') and text.endswith('"'):
+            return text[1:-1]
+        elif text.startswith("''") and text.endswith("''"):
+            return text[2:-2]
+        return text
+
+    def _convert_lambda_container(self, node: NixLambda) -> FunctionDefinition:
+        """Convert a NixLambda container to FunctionDefinition."""
         argument_set = []
         let_statements = []
         result = None
         recursive = False
         name = "anonymous"
 
-        # Find formals (parameters)
-        formals_node = self._find_child_by_type(node, "formals")
+        # Extract formals and body from lambda container
+        formals_found = False
+        body_node = None
+
+        for child in node.children:
+            if isinstance(child, CstElement):
+                if child.node_type == "formals":
+                    formals_found = True
+                    # Extract formal parameters
+                    for formal_child in child.children:
+                        if isinstance(formal_child, NixFormal):
+                            if formal_child.identifier:
+                                arg_name = formal_child.identifier.text
+                                trivia = self.trivia_processor.extract_trivia(formal_child)
+                                argument_set.append(NixIdentifier(name=arg_name, before=trivia))
+                elif not formals_found or child.node_type not in [":", "formals"]:
+                    # This might be the body
+                    body_node = child
+
+        # Convert body
+        if body_node:
+            if isinstance(body_node, NixLetIn) or (
+                    isinstance(body_node, CstElement) and body_node.node_type == "let_expression"):
+                let_data = self._convert_let_in(body_node)
+                let_statements = let_data.get("bindings", [])
+                result = let_data.get("result")
+            else:
+                result = self._convert_node(body_node)
+
+        trivia = self.trivia_processor.extract_trivia(node)
+
+        return FunctionDefinition(
+            name=name,
+            recursive=recursive,
+            argument_set=argument_set,
+            let_statements=let_statements,
+            result=result or NixSet(values={}),
+            after=trivia
+        )
+
+    def _convert_lambda(self, node: CstElement) -> FunctionDefinition:
+        """Convert a lambda expression to a FunctionDefinition."""
+        argument_set = []
+        let_statements = []
+        result = None
+        recursive = False
+        name = "anonymous"
+
+        # Find formals (parameters) and body
+        formals_node = None
+        body_node = None
+
+        for child in node.children:
+            if isinstance(child, CstElement):
+                if child.node_type == "formals":
+                    formals_node = child
+                elif child.node_type not in [":", "formals"] and body_node is None:
+                    body_node = child
+
+        # Extract formal parameters
         if formals_node:
             for child in formals_node.children:
                 if isinstance(child, NixFormal) and child.identifier:
@@ -103,16 +211,14 @@ class CstToSymbolConverter:
                     trivia = self.trivia_processor.extract_trivia(child)
                     argument_set.append(NixIdentifier(name=arg_name, before=trivia))
 
-        # Find body
-        body_nodes = [child for child in node.children if not isinstance(child, CstLeaf)]
-        if body_nodes:
-            last_node = body_nodes[-1]
-            if isinstance(last_node, NixLetIn):
-                # Extract let bindings and result
-                let_statements = self._extract_let_bindings(last_node)
-                result = self._extract_let_result(last_node)
+        # Convert body
+        if body_node:
+            if body_node.node_type == "let_expression":
+                let_data = self._convert_let_in(body_node)
+                let_statements = let_data.get("bindings", [])
+                result = let_data.get("result")
             else:
-                result = self._convert_node(last_node)
+                result = self._convert_node(body_node)
 
         trivia = self.trivia_processor.extract_trivia(node)
 
@@ -130,14 +236,18 @@ class CstToSymbolConverter:
         bindings = []
         result = None
 
-        # Find all bindings in the let section
+        # Look for binding_set and the result expression
         for child in node.children:
-            if isinstance(child, CstNixBinding):
-                binding = self._convert_binding(child)
-                bindings.append(binding)
-            elif not isinstance(child, CstLeaf):
-                # This might be the result expression
-                result = self._convert_node(child)
+            if isinstance(child, CstElement):
+                if child.node_type == "binding_set":
+                    # Extract bindings from binding_set
+                    for binding_child in child.children:
+                        if isinstance(binding_child, CstNixBinding):
+                            binding = self._convert_binding(binding_child)
+                            bindings.append(binding)
+                elif child.node_type not in ["let", "in", "binding_set"]:
+                    # This should be the result expression
+                    result = self._convert_node(child)
 
         return {"bindings": bindings, "result": result}
 
@@ -150,6 +260,21 @@ class CstToSymbolConverter:
         """Extract result from let-in node."""
         let_data = self._convert_let_in(let_node)
         return let_data.get("result")
+
+    def _convert_attr_set_from_element(self, node: CstElement) -> NixSet:
+        """Convert CstElement attrset to NixSet."""
+        values = OrderedDict()
+
+        # Look for binding_set
+        for child in node.children:
+            if isinstance(child, CstElement) and child.node_type == "binding_set":
+                for binding_child in child.children:
+                    if isinstance(binding_child, CstNixBinding):
+                        binding = self._convert_binding(binding_child)
+                        values[binding.name] = binding.value
+
+        trivia = self.trivia_processor.extract_trivia(node)
+        return NixSet(values=values, before=trivia)
 
     def _convert_attr_set(self, node: NixAttrSet) -> NixSet:
         """Convert attribute set to NixSet."""
@@ -169,9 +294,19 @@ class CstToSymbolConverter:
         name = ""
         value = None
 
-        # Extract name and value from binding
+        # Look for attrpath and expression
         for child in node.children:
-            if isinstance(child, CstNixIdentifier):
+            if isinstance(child, CstElement):
+                if child.node_type == "attrpath":
+                    # Extract identifier from attrpath
+                    for path_child in child.children:
+                        if isinstance(path_child, CstNixIdentifier):
+                            name = path_child.text
+                            break
+                elif child.node_type not in ["=", ";"]:
+                    # This should be the value expression
+                    value = self._convert_node(child)
+            elif isinstance(child, CstNixIdentifier):
                 name = child.text
             elif isinstance(child, CstLeaf) and child.text not in ['=', ';']:
                 value = self._convert_leaf_value(child)
@@ -192,23 +327,47 @@ class CstToSymbolConverter:
         name = ""
         arguments = []
 
-        # First child is usually the function name
-        if node.children:
-            func_node = node.children[0]
-            if isinstance(func_node, CstNixIdentifier):
-                name = func_node.text
+        function_node = None
+        argument_node = None
 
-            # Rest are arguments
-            for child in node.children[1:]:
-                if isinstance(child, NixAttrSet):
-                    # Convert attribute set arguments to bindings
-                    attr_set = self._convert_attr_set(child)
-                    for key, value in attr_set.values.items():
-                        arguments.append(NixBinding(name=key, value=value))
+        # Find function and argument
+        for child in node.children:
+            if isinstance(child, CstNixIdentifier):
+                if not function_node:
+                    function_node = child
+                    name = child.text
+            elif isinstance(child, CstElement):
+                if child.node_type == "select_expression":
+                    # Handle something like stdenv.mkDerivation
+                    if not function_node:
+                        function_node = child
+                        name = self._extract_select_expression_name(child)
+                elif not argument_node and child.node_type in ["attrset_expression", "rec_attrset_expression"]:
+                    argument_node = child
+
+        # Convert arguments
+        if argument_node:
+            attr_set = self._convert_attr_set_from_element(argument_node)
+            for key, value in attr_set.values.items():
+                arguments.append(NixBinding(name=key, value=value))
 
         trivia = self.trivia_processor.extract_trivia(node)
 
         return FunctionCall(name=name, arguments=arguments, before=trivia)
+
+    def _extract_select_expression_name(self, node: CstElement) -> str:
+        """Extract name from select expression like stdenv.mkDerivation."""
+        parts = []
+
+        def extract_parts(n):
+            if isinstance(n, CstNixIdentifier):
+                parts.append(n.text)
+            elif isinstance(n, CstElement):
+                for child in n.children:
+                    extract_parts(child)
+
+        extract_parts(node)
+        return ".".join(parts)
 
     def _convert_list(self, node: CstElement) -> NixList:
         """Convert list to NixList."""
@@ -216,7 +375,8 @@ class CstToSymbolConverter:
 
         for child in node.children:
             if not isinstance(child, CstLeaf) or child.text not in ['[', ']']:
-                values.append(self._convert_node(child))
+                if not isinstance(child, CstVerbatim):  # Skip whitespace
+                    values.append(self._convert_node(child))
 
         trivia = self.trivia_processor.extract_trivia(node)
 
@@ -227,15 +387,40 @@ class CstToSymbolConverter:
         expression = None
         attributes = []
 
-        # Extract expression and attributes
-        for child in node.children:
-            if isinstance(child, CstNixIdentifier):
-                if expression is None:
-                    expression = NixIdentifier(name=child.text)
-                else:
-                    attributes.append(NixIdentifier(name=child.text))
+        # The with expression structure is typically: with <expr>; <body>
+        # We need to handle this more carefully
+        found_semicolon = False
 
-        return NixWith(expression=expression, attributes=attributes)
+        for child in node.children:
+            if isinstance(child, CstLeaf) and child.text == ";":
+                found_semicolon = True
+                continue
+            elif isinstance(child, CstLeaf) and child.text == "with":
+                continue
+            elif isinstance(child, CstVerbatim):
+                continue
+
+            if isinstance(child, CstNixIdentifier):
+                if not found_semicolon and expression is None:
+                    expression = NixIdentifier(name=child.text)
+                elif found_semicolon:
+                    attributes.append(NixIdentifier(name=child.text))
+            elif isinstance(child, CstElement):
+                if child.node_type == "select_expression" and expression is None:
+                    # This is the expression part like lib.maintainers
+                    name = self._extract_select_expression_name(child)
+                    expression = NixIdentifier(name=name)
+                elif found_semicolon:
+                    # This is part of the body - could be a list expression
+                    if child.node_type == "list_expression":
+                        list_result = self._convert_list(child)
+                        if isinstance(list_result, NixList):
+                            for item in list_result.value:
+                                if isinstance(item, NixIdentifier):
+                                    attributes.append(item)
+
+        trivia = self.trivia_processor.extract_trivia(node)
+        return NixWith(expression=expression, attributes=attributes, before=trivia)
 
     def _convert_string_value(self, node: NixString) -> str:
         """Convert string node to string value."""

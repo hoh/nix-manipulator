@@ -8,6 +8,8 @@ let
     ps.tree-sitter-grammars.tree-sitter-python     # grammar wrapper → tree_sitter_python.language()
     ps.pygments
     ps.pydantic
+    ps.mypy
+    ps.ruff
   ]);
 in pkgs.mkShell { packages = [ pkgs.tree-sitter pyEnv ]; }
 
