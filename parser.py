@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 """
-Nix function parser that recursively extracts function structure and outputs it as JSON.
+Nix function parser that recursively extracts function structure and outputs it as a
+syntax-highlighted Python dictionary.
 """
 
 import argparse
-import json
+import pprint
 from pathlib import Path
 from typing import Any, Dict, Set
 
 import tree_sitter_nix as ts_nix
+from pygments import highlight
+from pygments.formatters import TerminalFormatter
+from pygments.lexers import PythonLexer
 from tree_sitter import Language, Parser
 
 
@@ -178,7 +182,7 @@ def parse_nix_file(file_path: Path) -> NixFunction:
 
 def main():
     """Main CLI entry point."""
-    parser = argparse.ArgumentParser(description="Parse Nix function structure and output as JSON")
+    parser = argparse.ArgumentParser(description="Parse Nix function structure and output as a Python dictionary")
     parser.add_argument("file", help="Path to the Nix file to process")
     args = parser.parse_args()
 
@@ -190,7 +194,11 @@ def main():
         "result": nix_function.result,
     }
 
-    print(json.dumps(output_dict, indent=2))
+    # Format the dictionary as a pretty string
+    formatted_dict = pprint.pformat(output_dict, indent=2)
+
+    # Highlight the Python code using pygments and print it
+    print(highlight(formatted_dict, PythonLexer(), TerminalFormatter()))
 
 
 if __name__ == "__main__":
