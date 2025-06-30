@@ -52,11 +52,13 @@ def extract_let_bindings(let_node, code: bytes) -> Dict[str, Any]:
     if not let_node or let_node.type != "let_expression":
         return bindings
 
-    binding_set = let_node.child_by_field_name("bindings")
-    if not binding_set:
+    # Find the binding_set child node by its type, which is more reliable.
+    binding_set_node = next((child for child in let_node.children if child.type == "binding_set"), None)
+
+    if not binding_set_node:
         return bindings
 
-    for binding in binding_set.children:
+    for binding in binding_set_node.children:
         if binding.type == "binding":
             attr_path = binding.child_by_field_name("attrpath")
             expression = binding.child_by_field_name("expression")
