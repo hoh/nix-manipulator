@@ -64,3 +64,4 @@ def test_nix_comment():
             empty_line,
         ],
     ).rebuild() == "# Many tests require internet access.\n\ntrue"
+

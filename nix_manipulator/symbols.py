@@ -28,7 +28,7 @@ class NixObject(BaseModel):
             elif item is comma:
                 result += ","
             elif isinstance(item, (Comment, MultilineComment)):
-                result += str(item) + "\n"
+                result += str(item)
             else:
                 result += str(item)
         return result
