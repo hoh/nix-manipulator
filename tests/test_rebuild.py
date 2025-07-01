@@ -65,3 +65,19 @@ def test_nix_comment():
         ],
     ).rebuild() == "# Many tests require internet access.\n\ntrue"
 
+
+def test_nix_expression():
+    assert NixExpression(
+        value=True,
+        before=[]
+    ).rebuild() == "true"
+
+
+def test_nix_set():
+    assert NixSet({
+        'foo': NixIdentifier('bar'),
+        'baz': NixList([
+            NixIdentifier('qux'),
+            NixIdentifier('quux'),
+        ], multiline=False),
+    }).rebuild() == "{\n  foo = bar;\n  baz = [ qux quux ];\n}"
