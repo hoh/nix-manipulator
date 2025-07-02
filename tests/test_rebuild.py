@@ -224,6 +224,20 @@ def test_function_call():
         == 'foo {\n  foo = bar;\n  alice = "bob";\n}'
     )
 
+def test_function_calls_function_call():
+    assert FunctionDefinition(
+        argument_set=[NixIdentifier("pkgs")],
+        result=FunctionCall(
+            name = "buildPythonPackage",
+            recursive=True,
+            arguments=[
+                NixBinding("pkgs", NixIdentifier("pkgs")),
+                NixBinding("alice", "bob"),
+            ],
+        )
+    ).rebuild() == """{\n  pkgs\n}:\nbuildPythonPackage rec {\n  pkgs = pkgs;\n  alice = "bob";\n}"""
+
+
 def test_function_call_recursive():
     assert (
             FunctionCall(
