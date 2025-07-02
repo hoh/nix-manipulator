@@ -111,7 +111,7 @@ class Comment(NixObject):
 
 class MultilineComment(Comment):
     def rebuild(self, indent: int = 0) -> str:
-        return f"/* {self.text} */"
+        return f"/* {self.text} */".replace("\n", "\n" + " " * indent)
 
 
 class NixBinding(NixObject):
@@ -156,15 +156,15 @@ class NixAttributeSet(NixObject):
 
     def rebuild(self, indent: int = 0) -> str:
         """Reconstruct attribute set."""
-        indent += 2
-        before_str = self._format_trivia(self.before, indent=indent)
-        after_str = self._format_trivia(self.after, indent=indent)
+        indented = indent + 2
+        before_str = self._format_trivia(self.before, indent=indented)
+        after_str = self._format_trivia(self.after, indent=indented)
 
         if not self.values:
             return f"{before_str}{{ }}{after_str}"
 
         bindings_str = "\n".join(
-            [value.rebuild(indent=indent) for value in self.values]
+            [value.rebuild(indent=indented) for value in self.values]
         )
         return f"{before_str}{{\n{bindings_str}\n}}{after_str}"
 

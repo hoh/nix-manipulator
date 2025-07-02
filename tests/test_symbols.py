@@ -167,18 +167,18 @@ def test_function_definition():
                         "doCheck",
                         NixExpression(
                             value=False,
-                            before=[
-                                empty_line,
-                                Comment(text="Many tests require internet access."),
-                            ],
-                        )
+                        ),
+                        before=[
+                            empty_line,
+                            Comment(text="Many tests require internet access."),
+                        ],
                     ),
                     NixBinding(
                         "pythonImportsCheck",
                         NixList(
                             value=["trl"],
-                            before=[empty_line],
-                        )
+                        ),
+                        before=[empty_line],
                     ),
                     NixBinding(
                         "meta",
@@ -193,8 +193,8 @@ def test_function_definition():
                                     attributes=[NixIdentifier("hoh")],
                                 ),
                             },
-                            before=[empty_line],
-                        )
+                        ),
+                        before=[empty_line],
                     ),
                 ]
             ),
