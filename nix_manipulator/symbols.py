@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from collections import OrderedDict
-from textwrap import indent
+import json
 from typing import Dict, List, Union, Any
 
 from pydantic import BaseModel
+from tree_sitter import Node
 
 
 class EmptyLine:
@@ -57,6 +57,17 @@ class FunctionDefinition(NixObject):
     argument_set: List[NixIdentifier] = []
     let_statements: List[NixBinding] = []
     result: Union[NixAttributeSet, NixObject, None] = None
+
+    @classmethod
+    def from_cst(cls, node: Node):
+        print("F", node, node.type, dir(node), node.text)
+        name = node.text
+        argument_set = []
+        let_statements = []
+        result = None
+        recursive = False
+        for child in node.children:
+            print("C", child, child.type, dir(child), child.text)
 
     def rebuild(self, indent: int = 0) -> str:
         """Reconstruct function definition."""
@@ -118,6 +129,11 @@ class Comment(NixObject):
         lines = self.text.split("\n")
         return "\n".join(f"# {line}" for line in lines)
 
+    @classmethod
+    def from_cst(cls, node: Node):
+        print("C", node, node.type, dir(node), node.text)
+        return cls(text=node.text.decode())
+
     def rebuild(self, indent: int = 0) -> str:
         return " " * indent + str(self) + "\n"
 
@@ -171,6 +187,32 @@ class NixBinding(NixObject):
 
         return f"{before_str}{indented_line}{after_str}"
 
+    @classmethod
+    def from_cst(cls, node: Node):
+        print("B", node, node.type, dir(node), node.text)
+        print(len(node.children), node.children)
+        children = (
+            node.children[0].children if len(node.children) == 1 else node.children
+        )
+        for child in children:
+            if child.type in ("=", ";"):
+                continue
+            elif child.type in "attrpath":
+                name = child.text.decode()
+            elif child.type == "string_expression":
+                value = NixExpression(value=json.loads(child.text.decode()))
+            elif child.type == "integer_expression":
+                value = NixExpression(value=int(child.text.decode()))
+            elif child.type == "identifier":
+                print("X", child, child.type, dir(child), child.text)
+                for attr in dir(child):
+                    print("-", attr, "=", getattr(child, attr))
+                name = child.text.decode()
+                value = "FAKE"
+            else:
+                raise ValueError(f"Unsupported child node: {child}")
+        return cls(name=name, value=value)
+
 
 class NixAttributeSet(NixObject):
     values: List[NixBinding]
@@ -183,7 +225,35 @@ class NixAttributeSet(NixObject):
                 values_list.append(NixBinding(key, value))
             values = values_list
 
+        print("V", [values])
+
         super().__init__(values=values, **kwargs)
+
+    @classmethod
+    def from_cst(cls, node: Node):
+        print("A", node, node.type, dir(node), node.text)
+        values = []
+        for child in node.children:
+            print("C", child, child.type, dir(child), child.text)
+            if child.type in ("{", "}"):
+                continue
+            elif child.type == "binding_set":
+                if child.named_children:
+                    for grandchild in child.named_children:
+                        if grandchild.type == "binding":
+                            values.append(
+                                NixBinding.from_cst(grandchild),
+                            )
+                        else:
+                            raise ValueError(f"Unknown binding child: {grandchild}")
+                else:
+                    values.append(
+                        NixBinding.from_cst(child),
+                    )
+            else:
+                raise ValueError(f"Unsupported child node: {child}")
+
+        return cls(values=values)
 
     def rebuild(self, indent: int = 0) -> str:
         """Reconstruct attribute set."""
@@ -207,6 +277,23 @@ class FunctionCall(NixObject):
     argument: NixAttributeSet = None
     recursive: bool = False
 
+    @classmethod
+    def from_cst(cls, node: Node):
+        print("F", node, node.type, dir(node), node.text)
+        name = node.text
+        argument = None
+        recursive = False
+        for child in node.children:
+            print("C", child, child.type, dir(child), child.text)
+            if child.type == "select_expression":
+                name = child.text.decode()
+                print(f"name = {name}")
+            elif child.type == "attrset_expression":
+                argument = NixAttributeSet.from_cst(child)
+            elif child.type == "rec":
+                recursive = True
+        return cls(name=name, argument=argument, recursive=recursive)
+
     def rebuild(self, indent: int = 0) -> str:
         """Reconstruct function call."""
         indented = indent + 2
@@ -227,6 +314,12 @@ class FunctionCall(NixObject):
 
 class NixExpression(NixObject):
     value: Union[str, int, bool]
+
+    @classmethod
+    def from_cst(cls, node: Node):
+        print("N", node, node.type, dir(node), node.text)
+        # return parse_to_cst(node)
+        return cls(value=json.loads(node.text))
 
     def rebuild(self, indent: int = 0) -> str:
         """Reconstruct expression."""
@@ -251,6 +344,15 @@ class NixList(NixExpression):
 
     def __init__(self, value, multiline: bool = True, **kwargs):
         super().__init__(value=value, multiline=multiline, **kwargs)
+
+    @classmethod
+    def from_cst(cls, node: Node):
+        from nix_manipulator.cst.parser import parse_to_cst
+
+        value = [
+            parse_to_cst(obj) for obj in node.children if obj.type not in ("[", "]")
+        ]
+        return cls(value=value)
 
     def rebuild(self, indent: int = 0) -> str:
         """Reconstruct list."""
