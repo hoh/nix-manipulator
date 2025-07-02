@@ -184,7 +184,7 @@ class NixAttributeSet(NixObject):
         bindings_str = "\n".join(
             [value.rebuild(indent=indented) for value in self.values]
         )
-        return f"{before_str}{{\n{bindings_str}\n}}{after_str}"
+        return f"{before_str}{{" + f"\n{bindings_str}\n" + " " * indent + f"}}{after_str}"
 
 
 class FunctionCall(NixObject):

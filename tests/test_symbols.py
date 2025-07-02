@@ -177,6 +177,7 @@ def test_function_definition():
                         "pythonImportsCheck",
                         NixList(
                             value=["trl"],
+                            multiline=False,
                         ),
                         before=[empty_line],
                     ),
