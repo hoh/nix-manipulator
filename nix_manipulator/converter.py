@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import OrderedDict
+from pathlib import Path
 from typing import List, Dict, Any, Optional, Union
 
 from .parser import (
@@ -126,7 +127,7 @@ class CstToSymbolConverter:
                 return self._convert_node(child)
 
         # Fallback to empty set if nothing found
-        return NixAttributeSet(values={})
+        return NixAttributeSet(values=[])
 
     def _convert_parenthesized(self, node: CstElement) -> NixObject:
         """Convert parenthesized expression by extracting the inner content."""
@@ -192,8 +193,8 @@ class CstToSymbolConverter:
         # Convert body
         if body_node:
             if isinstance(body_node, NixLetIn) or (
-                isinstance(body_node, CstElement)
-                and body_node.node_type == "let_expression"
+                    isinstance(body_node, CstElement)
+                    and body_node.node_type == "let_expression"
             ):
                 let_data = self._convert_let_in(body_node)
                 let_statements = let_data.get("bindings", [])
@@ -208,7 +209,7 @@ class CstToSymbolConverter:
             recursive=recursive,
             argument_set=argument_set,
             let_statements=let_statements,
-            result=result or NixAttributeSet(values={}),
+            result=result or NixAttributeSet(values=[]),
             after=trivia,
         )
 
@@ -255,7 +256,7 @@ class CstToSymbolConverter:
             recursive=recursive,
             argument_set=argument_set,
             let_statements=let_statements,
-            result=result or NixAttributeSet(values={}),
+            result=result or NixAttributeSet(values=[]),
             after=trivia,
         )
 
@@ -290,8 +291,8 @@ class CstToSymbolConverter:
         return let_data.get("result")
 
     def _convert_attr_set_from_element(self, node: CstElement) -> NixAttributeSet:
-        """Convert CstElement attrset to NixSet."""
-        values = OrderedDict()
+        """Convert CstElement attrset to NixAttributeSet."""
+        bindings = []
 
         # Look for binding_set
         for child in node.children:
@@ -299,23 +300,23 @@ class CstToSymbolConverter:
                 for binding_child in child.children:
                     if isinstance(binding_child, CstNixBinding):
                         binding = self._convert_binding(binding_child)
-                        values[binding.name] = binding.value
+                        bindings.append(binding)
 
         trivia = self.trivia_processor.extract_trivia(node)
-        return NixAttributeSet(values=values, before=trivia)
+        return NixAttributeSet(values=bindings, before=trivia)
 
     def _convert_attr_set(self, node: NixAttrSet) -> NixAttributeSet:
-        """Convert attribute set to NixSet."""
-        values = OrderedDict()
+        """Convert attribute set to NixAttributeSet."""
+        bindings = []
 
         for child in node.children:
             if isinstance(child, CstNixBinding):
                 binding = self._convert_binding(child)
-                values[binding.name] = binding.value
+                bindings.append(binding)
 
         trivia = self.trivia_processor.extract_trivia(node)
 
-        return NixAttributeSet(values=values, before=trivia)
+        return NixAttributeSet(values=bindings, before=trivia)
 
     def _convert_binding(self, node: CstNixBinding) -> NixBinding:
         """Convert a binding node to NixBinding."""
@@ -353,7 +354,8 @@ class CstToSymbolConverter:
     def _convert_function_call(self, node: CstElement) -> FunctionCall:
         """Convert function application to FunctionCall."""
         name = ""
-        arguments = []
+        argument = None
+        recursive = False
 
         function_node = None
         argument_node = None
@@ -375,16 +377,16 @@ class CstToSymbolConverter:
                     "rec_attrset_expression",
                 ]:
                     argument_node = child
+                    if child.node_type == "rec_attrset_expression":
+                        recursive = True
 
-        # Convert arguments
+        # Convert argument
         if argument_node:
-            attr_set = self._convert_attr_set_from_element(argument_node)
-            for key, value in attr_set.values.items():
-                arguments.append(NixBinding(name=key, value=value))
+            argument = self._convert_attr_set_from_element(argument_node)
 
         trivia = self.trivia_processor.extract_trivia(node)
 
-        return FunctionCall(name=name, arguments=arguments, before=trivia)
+        return FunctionCall(name=name, argument=argument, recursive=recursive, before=trivia)
 
     def _extract_select_expression_name(self, node: CstElement) -> str:
         """Extract name from select expression like stdenv.mkDerivation."""
@@ -491,7 +493,7 @@ class CstToSymbolConverter:
         return NixExpression(value=value, before=trivia)
 
     def _find_child_by_type(
-        self, node: CstContainer, node_type: str
+            self, node: CstContainer, node_type: str
     ) -> Optional[CstNode]:
         """Find a child node by its type."""
         for child in node.children:
@@ -510,11 +512,10 @@ def convert_nix_source(source_code: str) -> NixObject:
     return converter.convert(cst_root)
 
 
-def convert_nix_file(file_path: str) -> Optional[NixObject]:
+def convert_nix_file(file_path: Path) -> Optional[NixObject]:
     """Convert a Nix file to high-level symbol objects."""
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            source_code = f.read()
+        source_code = file_path.read_text()
         return convert_nix_source(source_code)
     except Exception as e:
         print(f"Error converting file {file_path}: {e}")
