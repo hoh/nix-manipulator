@@ -18,7 +18,7 @@ def test_rebuild_nix_identifier():
     assert NixIdentifier("foo.bar").rebuild() == "foo.bar"
 
 
-def test_rebuild_nix_list():
+def test_rebuild_nix_list_single_line():
     assert (
         NixList(
             [
@@ -30,6 +30,7 @@ def test_rebuild_nix_list():
         == "[ foo bar ]"
     )
 
+def test_rebuild_nix_list_multiline():
     assert (
         NixList(
             [
@@ -41,6 +42,7 @@ def test_rebuild_nix_list():
         == "[\n  foo\n  bar\n]"
     )
 
+def test_rebuild_nix_list_multiline_not_specified():
     # Multiline is the default
     assert (
         NixList(
@@ -52,7 +54,6 @@ def test_rebuild_nix_list():
         == "[\n  foo\n  bar\n]"
     )
 
-
 def test_nix_with():
     assert (
         NixWith(
@@ -62,6 +63,7 @@ def test_nix_with():
         == "with lib.maintainers; [ hoh ];"
     )
 
+def test_nix_with_multiple_attributes():
     assert (
         NixWith(
             expression=NixIdentifier("lib.maintainers"),
@@ -220,4 +222,17 @@ def test_function_call():
             ],
         ).rebuild()
         == 'foo {\n  foo = bar;\n  alice = "bob";\n}'
+    )
+
+def test_function_call_recursive():
+    assert (
+            FunctionCall(
+                name="foo",
+                recursive=True,
+                arguments=[
+                    NixBinding("foo", NixIdentifier("bar")),
+                    NixBinding("alice", "bob"),
+                ],
+            ).rebuild()
+            == 'foo rec {\n  foo = bar;\n  alice = "bob";\n}'
     )

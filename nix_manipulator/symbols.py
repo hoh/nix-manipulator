@@ -170,6 +170,7 @@ class NixSet(NixObject):
 class FunctionCall(NixObject):
     name: str
     arguments: List[NixBinding] = []
+    recursive: bool = False
 
     def rebuild(self, indent: int = 0) -> str:
         """Reconstruct function call."""
@@ -184,7 +185,8 @@ class FunctionCall(NixObject):
             args.append(arg.rebuild(indent=indent + 2))
 
         args_str: str = " {\n" + "\n".join(args) + "\n}"
-        return f"{before_str}{self.name}{args_str}{after_str}"
+        rec_str = " rec" if self.recursive else ""
+        return f"{before_str}{self.name}{rec_str}{args_str}{after_str}"
 
 
 class NixExpression(NixObject):
