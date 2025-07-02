@@ -6,9 +6,19 @@ from typing import Dict, List, Union, Any
 
 from pydantic import BaseModel
 
-empty_line = object()
-linebreak = object()
-comma = object()
+
+class EmptyLine:
+    pass
+
+class Linebreak:
+    pass
+
+class Comma:
+    pass
+
+empty_line = EmptyLine()
+linebreak = Linebreak()
+comma = Comma()
 
 
 class NixObject(BaseModel):
@@ -27,8 +37,6 @@ class NixObject(BaseModel):
         for item in trivia_list:
             if item is empty_line:
                 result += "\n"
-            # elif item is linebreak:
-            #     result += "\n"
             elif item is comma:
                 result += ","
             elif isinstance(item, (Comment, MultilineComment)):
