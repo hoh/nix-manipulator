@@ -96,3 +96,21 @@ def test_nix_function_definition():
         let_statements=[],
         result=NixSet({"pkgs": NixIdentifier("pkgs")}),
     ).rebuild() == "{\n  pkgs\n}:\n{\n  pkgs = pkgs;\n}"
+
+    assert FunctionDefinition(
+        argument_set=[],
+        let_statements=[
+            NixBinding("foo", NixIdentifier("bar")),
+            NixBinding("alice", "bob"),
+        ],
+        result=NixSet({}),
+    ).rebuild() == "{ }:\nlet\n  foo = bar;\n  alice = \"bob\";\nin\n{ }"
+
+    assert FunctionDefinition(
+        argument_set=[NixIdentifier("pkgs")],
+        let_statements=[
+            NixBinding("pkgs-copy", NixIdentifier("pkgs")),
+            NixBinding("alice", "bob"),
+        ],
+        result=NixSet({"pkgs-again": NixIdentifier("pkgs-copy")}),
+    ).rebuild() == "{\n  pkgs\n}:\nlet\n  pkgs-copy = pkgs;\n  alice = \"bob\";\nin\n{\n  pkgs-again = pkgs-copy;\n}"

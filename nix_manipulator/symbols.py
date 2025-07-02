@@ -105,6 +105,9 @@ class NixBinding(NixObject):
     name: str
     value: Union[NixObject, str, int, bool]
 
+    def __init__(self, name: str, value, **kwargs: Any):
+        super().__init__(name=name, value=value, **kwargs)
+
     def rebuild(self) -> str:
         """Reconstruct binding."""
         before_str = self._format_trivia(self.before)
