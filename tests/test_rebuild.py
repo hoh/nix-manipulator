@@ -16,6 +16,16 @@ def test_rebuild_nix_identifier():
     assert NixIdentifier("foo").rebuild() == "foo"
     assert NixIdentifier("foo-bar").rebuild() == "foo-bar"
     assert NixIdentifier("foo.bar").rebuild() == "foo.bar"
+    assert (
+        NixIdentifier(
+            name="accelerate",
+            before=[
+                empty_line,
+                Comment(text="dependencies"),
+            ],
+        ).rebuild()
+        == "\ns# dependencies\naccelerate"
+    )
 
 
 def test_rebuild_nix_list_single_line():
