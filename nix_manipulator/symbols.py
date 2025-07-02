@@ -35,7 +35,6 @@ class NixObject(BaseModel):
 
 
 class FunctionDefinition(NixObject):
-    name: str
     recursive: bool = False
     argument_set: List[NixIdentifier] = []
     let_statements: List[NixBinding] = []
@@ -47,11 +46,13 @@ class FunctionDefinition(NixObject):
         after_str = self._format_trivia(self.after)
 
         # Build argument set
-        args = []
-        for arg in self.argument_set:
-            args.append(f"{self._format_trivia(arg.before)}{arg.name}")
-
-        args_str = "{\n  " + ",\n  ".join(args) + "\n}"
+        if not self.argument_set:
+            args_str = "{ }"
+        else:
+            args = []
+            for arg in self.argument_set:
+                args.append(f"{self._format_trivia(arg.before)}{arg.name}")
+            args_str = "{\n  " + ",\n  ".join(args) + "\n}"
 
         # Build let statements
         let_str = ""
@@ -64,7 +65,11 @@ class FunctionDefinition(NixObject):
         # Build result
         result_str = self.result.rebuild() if self.result else "{}"
 
-        return f"{before_str}{args_str}:\n{let_str}{result_str}{after_str}"
+        # Format the final string - use single line format when no arguments and no let statements
+        if not self.argument_set and not self.let_statements:
+            return f"{before_str}{args_str}: {result_str}{after_str}"
+        else:
+            return f"{before_str}{args_str}:\n{let_str}{result_str}{after_str}"
 
 
 class NixIdentifier(NixObject):
@@ -132,7 +137,7 @@ class NixSet(NixObject):
         after_str = self._format_trivia(self.after)
 
         if not self.values:
-            return f"{before_str}{{}}{after_str}"
+            return f"{before_str}{{ }}{after_str}"
 
         bindings = []
         for key, value in self.values.items():

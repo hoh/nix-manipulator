@@ -1,4 +1,4 @@
-from nix_manipulator import NixIdentifier, NixList, NixSet, NixWith, NixBinding, NixExpression, Comment, empty_line
+from nix_manipulator import NixIdentifier, NixList, NixSet, NixWith, NixBinding, NixExpression, Comment, empty_line, FunctionCall, FunctionDefinition
 
 
 def test_rebuild_nix_identifier():
@@ -81,3 +81,18 @@ def test_nix_set():
             NixIdentifier('quux'),
         ], multiline=False),
     }).rebuild() == "{\n  foo = bar;\n  baz = [ qux quux ];\n}"
+
+
+def test_nix_function_definition():
+    # Empty sets as input and output
+    assert FunctionDefinition(
+        argument_set=[],
+        let_statements=[],
+        result=NixSet({}),
+    ).rebuild() == "{ }: { }"
+
+    assert FunctionDefinition(
+        argument_set=[NixIdentifier("pkgs")],
+        let_statements=[],
+        result=NixSet({"pkgs": NixIdentifier("pkgs")}),
+    ).rebuild() == "{\n  pkgs\n}:\n{\n  pkgs = pkgs;\n}"
