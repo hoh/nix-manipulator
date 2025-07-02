@@ -45,97 +45,118 @@ def test_function_definition():
             NixBinding(
                 name="acc",
                 value=NixIdentifier("accelerate"),
-                before=[Comment(text="We loves comments here")],
+                before=[Comment(text="We love comments here")],
             ),
         ],
         result=FunctionCall(
             name="buildPythonPackage",
             recursive=True,
             argument=NixAttributeSet(
-                {
-                    "pname": "trl",
-                    "version": "0.19.0",
-                    "pyproject": NixExpression(
-                        value=True,
+                [
+                    NixBinding("pname", "trl"),
+                    NixBinding("version", "0.19.0"),
+                    NixBinding(
+                        "pyproject",
+                        NixExpression(
+                            value=True,
+
+                        ),
                         before=[
                             Comment(text="This is something else"),
                         ],
                     ),
-                    "src": FunctionCall(
-                        name="fetchFromGitHub",
-                        argument=NixAttributeSet(
-                            values=[
-                                NixBinding(name="owner", value=NixIdentifier("owner")),
-                                NixBinding(
-                                    name="owner",
-                                    value=NixIdentifier("owner"),
-                                    before=[
-                                        Comment(text="Something cool"),
-                                    ],
-                                ),
-                                NixIdentifier("repo", "trl"),
-                                NixIdentifier("tag", "${version}"),
-                                NixIdentifier(
-                                    "hash",
-                                    "sha256-TlTq3tIQfNuI+CPvIy/qPFiKPhoSQd7g7FDj4F7C3CQ=",
-                                ),
-                                s,
-                            ]
+                    NixBinding(
+                        "src",
+                        FunctionCall(
+                            name="fetchFromGitHub",
+                            argument=NixAttributeSet(
+                                values=[
+                                    NixBinding(
+                                        name="owner",
+                                        value=NixIdentifier("owner"),
+                                        before=[
+                                            Comment(text="Something cool"),
+                                        ],
+                                    ),
+                                    NixBinding("repo", "trl"),
+                                    NixBinding("tag", "v${version}"),
+                                    NixBinding(
+                                        "hash",
+                                        "sha256-TlTq3tIQfNuI+CPvIy/qPFiKPhoSQd7g7FDj4F7C3CQ=",
+                                    ),
+                                ]
+                            ),
                         ),
                         before=[empty_line],
                     ),
-                    "build_system": NixList(
-                        value=[
-                            NixIdentifier("setuptools"),
-                            NixIdentifier("setuptools-scm"),
-                        ],
-                        before=[empty_line],
+                    NixBinding(
+                        "build_system",
+                        NixList(
+                            value=[
+                                NixIdentifier("setuptools"),
+                                NixIdentifier("setuptools-scm"),
+                            ],
+                            before=[empty_line],
+                        )
                     ),
-                    "dependencies": NixList(
-                        value=[
-                            NixIdentifier("acc"),
-                            NixIdentifier("datasets"),
-                            NixIdentifier("rich"),
-                            NixIdentifier("transformers"),
-                        ],
-                        before=[
-                            empty_line,
-                            MultilineComment(
-                                text="\nWe love\nmultiline comments\nhere\n"
-                            ),
-                            empty_line,
-                        ],
+                    NixBinding(
+                        "dependencies",
+                        NixList(
+                            value=[
+                                NixIdentifier("acc"),
+                                NixIdentifier("datasets"),
+                                NixIdentifier("rich"),
+                                NixIdentifier("transformers"),
+                            ],
+                            before=[
+                                empty_line,
+                                MultilineComment(
+                                    text="\nWe love\nmultiline comments\nhere\n"
+                                ),
+                                empty_line,
+                            ],
+                        )
                     ),
-                    "doCheck": NixExpression(
-                        value=False,
-                        before=[
-                            empty_line,
-                            Comment(text="Many tests require internet access."),
-                        ],
+                    NixBinding(
+                        "doCheck",
+                        NixExpression(
+                            value=False,
+                            before=[
+                                empty_line,
+                                Comment(text="Many tests require internet access."),
+                            ],
+                        )
                     ),
-                    "pythonImportsCheck": NixList(
-                        value=[NixIdentifier("trl")],
-                        before=[empty_line],
+                    NixBinding(
+                        "pythonImportsCheck",
+                        NixList(
+                            value=["trl"],
+                            before=[empty_line],
+                        )
                     ),
-                    "meta": NixAttributeSet(
-                        {
-                            "description": "Train transformer language models with reinforcement learning",
-                            "homepage": "https://github.com/huggingface/trl",
-                            "changelog": "https://github.com/huggingface/trl/releases/tag/${src.tag}",
-                            "license": NixIdentifier("mit.licenses.asl20"),
-                            "maintainers": NixWith(
-                                expression=NixIdentifier("lib.maintainers"),
-                                attributes=[NixIdentifier("hoh")],
-                            ),
-                        },
-                        before=[empty_line],
+                    NixBinding(
+                        "meta",
+                        NixAttributeSet(
+                            {
+                                "description": "Train transformer language models with reinforcement learning",
+                                "homepage": "https://github.com/huggingface/trl",
+                                "changelog": "https://github.com/huggingface/trl/releases/tag/${src.tag}",
+                                "license": NixIdentifier("mit.licenses.asl20"),
+                                "maintainers": NixWith(
+                                    expression=NixIdentifier("lib.maintainers"),
+                                    attributes=[NixIdentifier("hoh")],
+                                ),
+                            },
+                            before=[empty_line],
+                        )
                     ),
-                }
+                ]
             ),
         ),
     )
     print(function.rebuild())
+    (Path(__file__).parent / "nix_files/trl-default-new-generated.nix").write_text(function.rebuild())
     assert (
-        function.rebuild()
-        == (Path(__file__).parent / "nix_files/trl-default-old.nix").read_text()
+            function.rebuild()
+            == (Path(__file__).parent / "nix_files/trl-default-new.nix").read_text()
     )
