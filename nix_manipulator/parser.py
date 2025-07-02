@@ -1,7 +1,27 @@
+#!/usr/bin/env python3
+"""
+A python library and tool powerful enough to be used into IPython solely that
+intent to make the process of writing code that modify Nix source code as easy
+and as simple as possible.
+
+That includes writing custom refactoring, generic refactoring, tools, IDE or
+directly modifying your Nix source code via IPython with a higher and more
+powerful abstraction than the advanced text modification tools that you find in
+advanced text editors and IDE.
+
+This project guarantees you that it will only modify your code where you ask
+him to. To achieve this, it is based on tree-sitter, a multilingual AST.
+"""
+
+import argparse
 from pathlib import Path
 from typing import List, Optional
 
 import tree_sitter_nix as ts_nix
+from pygments import highlight
+from pygments.formatters import TerminalFormatter
+from pygments.lexers.nix import NixLexer
+from pygments.lexers.python import PythonLexer
 from tree_sitter import Language, Parser, Node
 
 # Initialize the tree-sitter parser only once for efficiency.
@@ -11,7 +31,7 @@ PARSER = Parser(NIX_LANGUAGE)
 
 def extract_text(node: Node, code: bytes) -> str:
     """Extract the exact source substring for a node."""
-    return code[node.start_byte : node.end_byte].decode("utf-8")
+    return code[node.start_byte:node.end_byte].decode('utf-8')
 
 
 class CstNode:
@@ -72,52 +92,43 @@ class CstLeaf(CstNode):
 
 class CstVerbatim(CstLeaf):
     """A generic leaf node for trivia or unknown tokens."""
-
     pass
 
 
 # --- Specialized CST classes ---
 
-
 class NixComment(CstLeaf):
     """A node representing a Nix comment."""
-
     pass
 
 
 class NixIdentifier(CstLeaf):
     """A node representing a Nix identifier."""
-
     pass
 
 
 class NixString(CstLeaf):
     """A node representing a Nix string."""
-
     pass
 
 
 class NixBinding(CstContainer):
     """A node representing a Nix binding (e.g., `x = 1;`)."""
-
     pass
 
 
 class NixAttrSet(CstContainer):
     """A node representing a Nix attribute set (e.g., `{ ... }`)."""
-
     pass
 
 
 class NixLetIn(CstContainer):
     """A node representing a Nix let-in expression."""
-
     pass
 
 
 class NixLambda(CstContainer):
     """A node representing a Nix lambda function (e.g., `x: ...`)."""
-
     pass
 
 
@@ -168,13 +179,13 @@ def parse_to_cst(node: Node, code: bytes) -> CstNode:
     temp_list: List[CstNode] = []
     last_child_end = node.start_byte
     for child_node in node.children:
-        trivia_text = code[last_child_end : child_node.start_byte].decode("utf-8")
+        trivia_text = code[last_child_end:child_node.start_byte].decode('utf-8')
         if trivia_text:
             temp_list.append(CstVerbatim(trivia_text))
         temp_list.append(parse_to_cst(child_node, code))
         last_child_end = child_node.end_byte
 
-    final_trivia_text = code[last_child_end : node.end_byte].decode("utf-8")
+    final_trivia_text = code[last_child_end:node.end_byte].decode('utf-8')
     if final_trivia_text:
         temp_list.append(CstVerbatim(final_trivia_text))
 
@@ -223,7 +234,7 @@ def parse_nix_file(file_path: Path) -> Optional[CstNode]:
 
 def pretty_print_cst(node: CstNode, indent_level=0) -> str:
     """Generates a nicely indented string representation of the CST for printing."""
-    indent = "  " * indent_level
+    indent = '  ' * indent_level
     # Base representation for all nodes
     if isinstance(node, CstElement):
         base_repr = f"{indent}{node.__class__.__name__}(type='{node.node_type}'"
@@ -239,10 +250,43 @@ def pretty_print_cst(node: CstNode, indent_level=0) -> str:
     # Add children for containers
     if isinstance(node, CstContainer):
         base_repr += ", children=[\n"
-        children_str = ",\n".join(
-            pretty_print_cst(c, indent_level + 1) for c in node.children
-        )
+        children_str = ',\n'.join(pretty_print_cst(c, indent_level + 1) for c in node.children)
         footer = f"\n{indent}])"
         return base_repr + children_str + footer
     else:
         return base_repr + ")"
+
+
+def main():
+    """Main CLI entry point."""
+    parser = argparse.ArgumentParser(
+        description="Parse a Nix file and rebuild it, preserving all formatting."
+    )
+    parser.add_argument("file", help="Path to the Nix file to process")
+    parser.add_argument("-o", "--output", help="Path to the output file for the rebuilt Nix code")
+    args = parser.parse_args()
+
+    parsed_cst = parse_nix_file(Path(args.file))
+
+    if not parsed_cst:
+        return
+
+    print("--- Parsed Python Object (CST Representation) ---")
+    pretty_cst_string = pretty_print_cst(parsed_cst)
+    print(highlight(pretty_cst_string, PythonLexer(), TerminalFormatter()))
+
+    print("\n--- Rebuilt Nix Code ---")
+    rebuilt_code = parsed_cst.rebuild()
+    print(highlight(rebuilt_code, NixLexer(), TerminalFormatter()))
+
+    if args.output:
+        output_path = Path(args.output)
+        try:
+            output_path.write_text(rebuilt_code, encoding='utf-8')
+            print(f"\n--- Rebuilt Nix code written to {output_path} ---")
+        except IOError as e:
+            print(f"\nError writing to output file {output_path}: {e}")
+
+
+if __name__ == "__main__":
+    main()
