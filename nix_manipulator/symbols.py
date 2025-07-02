@@ -105,6 +105,7 @@ class MultilineComment(Comment):
         return f"/* {self.text} */"
 
 
+
 class NixBinding(NixObject):
     name: str
     value: Union[NixObject, str, int, bool]
@@ -126,9 +127,10 @@ class NixBinding(NixObject):
         else:
             value_str = str(self.value)
 
-        value_str = " " * indent + value_str + ";"
+        # Apply indentation to the entire binding, not just the value
+        indented_line = " " * indent + f"{self.name} = {value_str};"
 
-        return f"{before_str}{self.name} = {value_str}{after_str}"
+        return f"{before_str}{indented_line}{after_str}"
 
 
 class NixSet(NixObject):

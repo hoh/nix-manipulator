@@ -190,7 +190,6 @@ def test_nix_function_definition():
             argument_set=[],
             let_statements=[
                 NixBinding("foo", NixIdentifier("bar")),
-                NixBinding("alice", "bob"),
                 NixBinding("alice", "bob", before=[Comment(text="This is a comment")]),
             ],
             result=NixSet({}),
