@@ -216,10 +216,10 @@ def test_function_call():
     assert (
         FunctionCall(
             name="foo",
-            arguments=[
-                NixBinding("foo", NixIdentifier("bar")),
-                NixBinding("alice", "bob"),
-            ],
+            argument=NixSet(values={
+                "foo": NixIdentifier("bar"),
+                "alice": "bob"
+            }),
         ).rebuild()
         == 'foo {\n  foo = bar;\n  alice = "bob";\n}'
     )
@@ -230,10 +230,10 @@ def test_function_calls_function_call():
         result=FunctionCall(
             name = "buildPythonPackage",
             recursive=True,
-            arguments=[
-                NixBinding("pkgs", NixIdentifier("pkgs")),
-                NixBinding("alice", "bob"),
-            ],
+            argument=NixSet(values={
+                "pkgs": NixIdentifier("pkgs"),
+                "alice": "bob"
+            }),
         )
     ).rebuild() == """{\n  pkgs\n}:\nbuildPythonPackage rec {\n  pkgs = pkgs;\n  alice = "bob";\n}"""
 
@@ -243,10 +243,10 @@ def test_function_call_recursive():
             FunctionCall(
                 name="foo",
                 recursive=True,
-                arguments=[
-                    NixBinding("foo", NixIdentifier("bar")),
-                    NixBinding("alice", "bob"),
-                ],
+                argument=NixSet(values={
+                    "foo": NixIdentifier("bar"),
+                    "alice": "bob",
+                }),
             ).rebuild()
             == 'foo rec {\n  foo = bar;\n  alice = "bob";\n}'
     )

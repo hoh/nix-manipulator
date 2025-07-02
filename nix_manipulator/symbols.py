@@ -169,7 +169,7 @@ class NixSet(NixObject):
 
 class FunctionCall(NixObject):
     name: str
-    arguments: List[NixBinding] = []
+    argument: NixSet = NixSet({})
     recursive: bool = False
 
     def rebuild(self, indent: int = 0) -> str:
@@ -177,12 +177,12 @@ class FunctionCall(NixObject):
         before_str = self._format_trivia(self.before, indent=indent)
         after_str = self._format_trivia(self.after, indent=indent)
 
-        if not self.arguments:
+        if not self.argument:
             return f"{before_str}{self.name}{after_str}"
 
         args = []
-        for arg in self.arguments:
-            args.append(arg.rebuild(indent=indent + 2))
+        for key, value in self.argument.values.items():
+            args.append(NixBinding(key, value).rebuild(indent=indent + 2))
 
         args_str: str = " {\n" + "\n".join(args) + "\n}"
         rec_str = " rec" if self.recursive else ""
