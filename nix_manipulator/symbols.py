@@ -125,7 +125,7 @@ class MultilineComment(Comment):
             if not self.text.endswith("\n"):
                 result += " */"
             else:
-                result += "*/"
+                result += "*/\n"
             return result
         else:
             # Single line

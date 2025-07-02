@@ -61,6 +61,47 @@ def test_function_argument_set():
     ).rebuild() == expected_function_argument_set
 
 
+expected_from_test_issue = """
+
+{
+  pname = "trl";
+
+  /*
+  We love
+  multiline comments
+  here
+  */
+
+  dependencies = [
+    acc
+  ];
+}
+""".strip("\n")
+
+
+def test_issue():
+    assert NixAttributeSet(
+        [
+            NixBinding("pname", "trl"),
+            NixBinding(
+                "dependencies",
+                NixList(
+                    value=[
+                        NixIdentifier("acc"),
+                    ],
+                ),
+                before=[
+                    empty_line,
+                    MultilineComment(
+                        text="\nWe love\nmultiline comments\nhere\n"
+                    ),
+                    empty_line,
+                ],
+            )
+        ],
+    ).rebuild() == expected_from_test_issue
+
+
 def test_function_definition():
     function = FunctionDefinition(
         argument_set=[
@@ -158,7 +199,7 @@ def test_function_definition():
                         before=[
                             empty_line,
                             MultilineComment(
-                                text="\nWe love\nmultiline comments\nhere\n"
+                                text="\n  We love\n  multiline comments\n  here\n"
                             ),
                             empty_line,
                         ],
@@ -202,8 +243,8 @@ def test_function_definition():
         ),
     )
     print(function.rebuild())
-    (Path(__file__).parent / "nix_files/trl-default-new-generated.nix").write_text(function.rebuild())
+    (Path(__file__).parent / "nix_files/trl-default-new-generated.nix").write_text(function.rebuild() + "\n")
     assert (
             function.rebuild()
-            == (Path(__file__).parent / "nix_files/trl-default-new.nix").read_text()
+            == (Path(__file__).parent / "nix_files/trl-default-new.nix").read_text().strip("\n")
     )

@@ -73,7 +73,7 @@ def test_nix_with():
             expression=NixIdentifier("lib.maintainers"),
             attributes=[NixIdentifier("hoh")],
         ).rebuild()
-        == "with lib.maintainers; [ hoh ];"
+        == "with lib.maintainers; [ hoh ]"
     )
 
 
@@ -86,7 +86,7 @@ def test_nix_with_multiple_attributes():
                 NixIdentifier("mic92"),
             ],
         ).rebuild()
-        == "with lib.maintainers; [ hoh mic92 ];"
+        == "with lib.maintainers; [ hoh mic92 ]"
     )
 
 
