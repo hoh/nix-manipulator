@@ -279,4 +279,4 @@ class NixWith(NixObject):
         # expr_str = self.expression.rebuild() if self.expression else ""
         attrs_str = " ".join(attr.name for attr in self.attributes)
 
-        return f"{before_str}with {self.expression.name}; [ {attrs_str} ];{after_str}"
+        return f"{before_str}with {self.expression.name}; [ {attrs_str} ]{after_str}"
