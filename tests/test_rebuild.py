@@ -114,3 +114,12 @@ def test_nix_function_definition():
         ],
         result=NixSet({"pkgs-again": NixIdentifier("pkgs-copy")}),
     ).rebuild() == "{\n  pkgs\n}:\nlet\n  pkgs-copy = pkgs;\n  alice = \"bob\";\nin\n{\n  pkgs-again = pkgs-copy;\n}"
+
+def test_function_call():
+    assert FunctionCall(
+        name="foo",
+        arguments=[
+            NixBinding("foo", NixIdentifier("bar")),
+            NixBinding("alice", "bob"),
+        ],
+    ).rebuild() == "foo {\n  foo = bar;\n  alice = \"bob\";\n}"
