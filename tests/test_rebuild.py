@@ -1,7 +1,7 @@
 from nix_manipulator import (
     NixIdentifier,
     NixList,
-    NixSet,
+    NixAttributeSet,
     NixWith,
     NixBinding,
     NixExpression,
@@ -30,6 +30,7 @@ def test_rebuild_nix_list_single_line():
         == "[ foo bar ]"
     )
 
+
 def test_rebuild_nix_list_multiline():
     assert (
         NixList(
@@ -41,6 +42,7 @@ def test_rebuild_nix_list_multiline():
         ).rebuild()
         == "[\n  foo\n  bar\n]"
     )
+
 
 def test_rebuild_nix_list_multiline_not_specified():
     # Multiline is the default
@@ -54,6 +56,7 @@ def test_rebuild_nix_list_multiline_not_specified():
         == "[\n  foo\n  bar\n]"
     )
 
+
 def test_nix_with():
     assert (
         NixWith(
@@ -62,6 +65,7 @@ def test_nix_with():
         ).rebuild()
         == "with lib.maintainers; [ hoh ];"
     )
+
 
 def test_nix_with_multiple_attributes():
     assert (
@@ -126,7 +130,7 @@ def test_nix_expression():
 
 def test_nix_set():
     assert (
-        NixSet(
+        NixAttributeSet(
             {
                 "foo": NixIdentifier("bar"),
                 "baz": NixList(
@@ -148,7 +152,7 @@ def test_nix_function_definition():
         FunctionDefinition(
             argument_set=[],
             let_statements=[],
-            result=NixSet({}),
+            result=NixAttributeSet({}),
         ).rebuild()
         == "{ }: { }"
     )
@@ -157,7 +161,7 @@ def test_nix_function_definition():
         FunctionDefinition(
             argument_set=[NixIdentifier("pkgs")],
             let_statements=[],
-            result=NixSet({"pkgs": NixIdentifier("pkgs")}),
+            result=NixAttributeSet({"pkgs": NixIdentifier("pkgs")}),
         ).rebuild()
         == "{\n  pkgs\n}:\n{\n  pkgs = pkgs;\n}"
     )
@@ -169,7 +173,7 @@ def test_nix_function_definition():
                 NixBinding("foo", NixIdentifier("bar")),
                 NixBinding("alice", "bob"),
             ],
-            result=NixSet({}),
+            result=NixAttributeSet({}),
         ).rebuild()
         == '{ }:\nlet\n  foo = bar;\n  alice = "bob";\nin\n{ }'
     )
@@ -182,7 +186,7 @@ def test_nix_function_definition():
                 NixBinding("foo", NixIdentifier("bar")),
                 NixBinding("alice", "bob", before=[Comment(text="This is a comment")]),
             ],
-            result=NixSet({}),
+            result=NixAttributeSet({}),
         ).rebuild()
         == '{ }:\nlet\n  foo = bar;\n  # This is a comment\n  alice = "bob";\nin\n{ }'
     )
@@ -194,7 +198,7 @@ def test_nix_function_definition():
                 NixBinding("foo", NixIdentifier("bar")),
                 NixBinding("alice", "bob", before=[Comment(text="This is a comment")]),
             ],
-            result=NixSet({}),
+            result=NixAttributeSet({}),
         ).rebuild()
         == '{ }:\nlet\n  foo = bar;\n  # This is a comment\n  alice = "bob";\nin\n{ }'
     )
@@ -206,7 +210,7 @@ def test_nix_function_definition():
                 NixBinding("pkgs-copy", NixIdentifier("pkgs")),
                 NixBinding("alice", "bob"),
             ],
-            result=NixSet({"pkgs-again": NixIdentifier("pkgs-copy")}),
+            result=NixAttributeSet({"pkgs-again": NixIdentifier("pkgs-copy")}),
         ).rebuild()
         == '{\n  pkgs\n}:\nlet\n  pkgs-copy = pkgs;\n  alice = "bob";\nin\n{\n  pkgs-again = pkgs-copy;\n}'
     )
@@ -216,37 +220,60 @@ def test_function_call():
     assert (
         FunctionCall(
             name="foo",
-            argument=NixSet(values={
-                "foo": NixIdentifier("bar"),
-                "alice": "bob"
-            }),
+            argument=NixAttributeSet(
+                values={"foo": NixIdentifier("bar"), "alice": "bob"}
+            ),
         ).rebuild()
         == 'foo {\n  foo = bar;\n  alice = "bob";\n}'
     )
 
-def test_function_calls_function_call():
-    assert FunctionDefinition(
-        argument_set=[NixIdentifier("pkgs")],
-        result=FunctionCall(
-            name = "buildPythonPackage",
-            recursive=True,
-            argument=NixSet(values={
-                "pkgs": NixIdentifier("pkgs"),
-                "alice": "bob"
-            }),
-        )
-    ).rebuild() == """{\n  pkgs\n}:\nbuildPythonPackage rec {\n  pkgs = pkgs;\n  alice = "bob";\n}"""
+
+def test_function_with_comments():
+    assert (
+        FunctionCall(
+            name="foo",
+            argument=NixAttributeSet(
+                values=[
+                    NixBinding(
+                        "foo",
+                        NixIdentifier("bar"),
+                        before=[Comment(text="This is a comment")],
+                    ),
+                    NixBinding("alice", "bob"),
+                ]
+            ),
+        ).rebuild()
+        == 'foo {\n  # This is a comment\n  foo = bar;\n  alice = "bob";\n}'
+    )
+
+
+def test_function_definition_with_function_call():
+    assert (
+        FunctionDefinition(
+            argument_set=[NixIdentifier("pkgs")],
+            result=FunctionCall(
+                name="buildPythonPackage",
+                recursive=True,
+                argument=NixAttributeSet(
+                    values={"pkgs": NixIdentifier("pkgs"), "alice": "bob"}
+                ),
+            ),
+        ).rebuild()
+        == """{\n  pkgs\n}:\nbuildPythonPackage rec {\n  pkgs = pkgs;\n  alice = "bob";\n}"""
+    )
 
 
 def test_function_call_recursive():
     assert (
-            FunctionCall(
-                name="foo",
-                recursive=True,
-                argument=NixSet(values={
+        FunctionCall(
+            name="foo",
+            recursive=True,
+            argument=NixAttributeSet(
+                values={
                     "foo": NixIdentifier("bar"),
                     "alice": "bob",
-                }),
-            ).rebuild()
-            == 'foo rec {\n  foo = bar;\n  alice = "bob";\n}'
+                }
+            ),
+        ).rebuild()
+        == 'foo rec {\n  foo = bar;\n  alice = "bob";\n}'
     )

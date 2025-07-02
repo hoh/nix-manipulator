@@ -26,7 +26,7 @@ from .symbols import (
     Comment,
     MultilineComment,
     NixBinding,
-    NixSet,
+    NixAttributeSet,
     FunctionCall,
     NixExpression,
     NixList,
@@ -126,7 +126,7 @@ class CstToSymbolConverter:
                 return self._convert_node(child)
 
         # Fallback to empty set if nothing found
-        return NixSet(values={})
+        return NixAttributeSet(values={})
 
     def _convert_parenthesized(self, node: CstElement) -> NixObject:
         """Convert parenthesized expression by extracting the inner content."""
@@ -208,7 +208,7 @@ class CstToSymbolConverter:
             recursive=recursive,
             argument_set=argument_set,
             let_statements=let_statements,
-            result=result or NixSet(values={}),
+            result=result or NixAttributeSet(values={}),
             after=trivia,
         )
 
@@ -255,7 +255,7 @@ class CstToSymbolConverter:
             recursive=recursive,
             argument_set=argument_set,
             let_statements=let_statements,
-            result=result or NixSet(values={}),
+            result=result or NixAttributeSet(values={}),
             after=trivia,
         )
 
@@ -289,7 +289,7 @@ class CstToSymbolConverter:
         let_data = self._convert_let_in(let_node)
         return let_data.get("result")
 
-    def _convert_attr_set_from_element(self, node: CstElement) -> NixSet:
+    def _convert_attr_set_from_element(self, node: CstElement) -> NixAttributeSet:
         """Convert CstElement attrset to NixSet."""
         values = OrderedDict()
 
@@ -302,9 +302,9 @@ class CstToSymbolConverter:
                         values[binding.name] = binding.value
 
         trivia = self.trivia_processor.extract_trivia(node)
-        return NixSet(values=values, before=trivia)
+        return NixAttributeSet(values=values, before=trivia)
 
-    def _convert_attr_set(self, node: NixAttrSet) -> NixSet:
+    def _convert_attr_set(self, node: NixAttrSet) -> NixAttributeSet:
         """Convert attribute set to NixSet."""
         values = OrderedDict()
 
@@ -315,7 +315,7 @@ class CstToSymbolConverter:
 
         trivia = self.trivia_processor.extract_trivia(node)
 
-        return NixSet(values=values, before=trivia)
+        return NixAttributeSet(values=values, before=trivia)
 
     def _convert_binding(self, node: CstNixBinding) -> NixBinding:
         """Convert a binding node to NixBinding."""

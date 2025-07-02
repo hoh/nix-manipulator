@@ -42,7 +42,7 @@ class FunctionDefinition(NixObject):
     recursive: bool = False
     argument_set: List[NixIdentifier] = []
     let_statements: List[NixBinding] = []
-    result: Union[NixSet, NixObject, None] = None
+    result: Union[NixAttributeSet, NixObject, None] = None
 
     def rebuild(self, indent: int = 0) -> str:
         """Reconstruct function definition."""
@@ -105,7 +105,6 @@ class MultilineComment(Comment):
         return f"/* {self.text} */"
 
 
-
 class NixBinding(NixObject):
     name: str
     value: Union[NixObject, str, int, bool]
@@ -133,43 +132,37 @@ class NixBinding(NixObject):
         return f"{before_str}{indented_line}{after_str}"
 
 
-class NixSet(NixObject):
-    values: Dict[str, Union[NixObject, str, int, bool]]
+class NixAttributeSet(NixObject):
+    values: List[NixBinding]
 
-    def __init__(self, values: Dict[str, Any], **kwargs):
-        # Convert to OrderedDict to preserve order
-        if not isinstance(values, OrderedDict):
-            values = OrderedDict(values)
+    def __init__(self, values: List[NixBinding] | Dict[str, NixObject], **kwargs):
+        # Convert dict to
+        if isinstance(values, dict):
+            values_list = []
+            for key, value in values.items():
+                values_list.append(NixBinding(key, value))
+            values = values_list
+
         super().__init__(values=values, **kwargs)
 
     def rebuild(self, indent: int = 0) -> str:
         """Reconstruct attribute set."""
+        indent += 2
         before_str = self._format_trivia(self.before, indent=indent)
         after_str = self._format_trivia(self.after, indent=indent)
 
         if not self.values:
             return f"{before_str}{{ }}{after_str}"
 
-        bindings = []
-        for key, value in self.values.items():
-            if isinstance(value, NixObject):
-                value_str = value.rebuild()
-            elif isinstance(value, str):
-                value_str = f'"{value}"'
-            elif isinstance(value, bool):
-                value_str = "true" if value else "false"
-            else:
-                value_str = str(value)
-
-            bindings.append(f"  {key} = {value_str};")
-
-        bindings_str = "\n".join(bindings)
+        bindings_str = "\n".join(
+            [value.rebuild(indent=indent) for value in self.values]
+        )
         return f"{before_str}{{\n{bindings_str}\n}}{after_str}"
 
 
 class FunctionCall(NixObject):
     name: str
-    argument: NixSet = NixSet({})
+    argument: NixAttributeSet = NixAttributeSet({})
     recursive: bool = False
 
     def rebuild(self, indent: int = 0) -> str:
@@ -181,8 +174,8 @@ class FunctionCall(NixObject):
             return f"{before_str}{self.name}{after_str}"
 
         args = []
-        for key, value in self.argument.values.items():
-            args.append(NixBinding(key, value).rebuild(indent=indent + 2))
+        for binding in self.argument.values:
+            args.append(binding.rebuild(indent=2))
 
         args_str: str = " {\n" + "\n".join(args) + "\n}"
         rec_str = " rec" if self.recursive else ""
@@ -198,7 +191,7 @@ class NixExpression(NixObject):
         after_str = self._format_trivia(self.after, indent=indent)
 
         if isinstance(self.value, NixObject):
-            value_str = self.value.rebuild()
+            value_str = self.value.rebuild(indent=indent)
         elif isinstance(self.value, str):
             value_str = f'"{self.value}"'
         elif isinstance(self.value, bool):
