@@ -14,6 +14,52 @@ from nix_manipulator.symbols import (
     MultilineComment,
 )
 
+expected_function_argument_set = """
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+  setuptools-scm,
+
+  # dependencies
+  accelerate,
+  datasets,
+  rich,
+  transformers,
+}:
+{ }
+""".strip("\n")
+
+def test_function_argument_set():
+    assert FunctionDefinition(
+        argument_set=[
+            NixIdentifier(name="lib"),
+            NixIdentifier(name="buildPythonPackage"),
+            NixIdentifier(name="fetchFromGitHub"),
+            NixIdentifier(
+                name="setuptools",
+                before=[
+                    empty_line,
+                    Comment(text="build-system"),
+                ],
+            ),
+            NixIdentifier(name="setuptools-scm"),
+            NixIdentifier(
+                name="accelerate",
+                before=[
+                    empty_line,
+                    Comment(text="dependencies"),
+                ],
+            ),
+            NixIdentifier(name="datasets"),
+            NixIdentifier(name="rich"),
+            NixIdentifier(name="transformers"),
+        ]
+    ).rebuild() == expected_function_argument_set
+
 
 def test_function_definition():
     function = FunctionDefinition(
@@ -90,7 +136,7 @@ def test_function_definition():
                         before=[empty_line],
                     ),
                     NixBinding(
-                        "build_system",
+                        "build-system",
                         NixList(
                             value=[
                                 NixIdentifier("setuptools"),
@@ -141,7 +187,7 @@ def test_function_definition():
                                 "description": "Train transformer language models with reinforcement learning",
                                 "homepage": "https://github.com/huggingface/trl",
                                 "changelog": "https://github.com/huggingface/trl/releases/tag/${src.tag}",
-                                "license": NixIdentifier("mit.licenses.asl20"),
+                                "license": NixIdentifier("lib.licenses.asl20"),
                                 "maintainers": NixWith(
                                     expression=NixIdentifier("lib.maintainers"),
                                     attributes=[NixIdentifier("hoh")],

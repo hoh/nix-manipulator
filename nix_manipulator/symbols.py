@@ -57,8 +57,14 @@ class FunctionDefinition(NixObject):
             args = []
             for arg in self.argument_set:
                 indented_line = " " * indent + f"{arg.name}"
+                print([indented_line])
                 args.append(f"{self._format_trivia(arg.before, indent)}{indented_line}")
-            args_str = "{\n  " + ",\n".join(args) + "\n}"
+
+            # Add a trailing comma to the last argument
+            if args:
+                args[-1] += ","
+
+            args_str = "{\n" + ",\n".join(args) + "\n}"
 
         # Build let statements
         let_str = ""
@@ -69,7 +75,7 @@ class FunctionDefinition(NixObject):
             let_str = f"let\n" + "\n".join(let_bindings) + "\nin\n"
 
         # Build result
-        result_str = self.result.rebuild() if self.result else "{}"
+        result_str = self.result.rebuild() if self.result else "{ }"
 
         # Format the final string - use single line format when no arguments and no let statements
         if not self.argument_set and not self.let_statements:
