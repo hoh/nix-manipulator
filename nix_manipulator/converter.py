@@ -1,17 +1,39 @@
 from __future__ import annotations
-from typing import List, Dict, Any, Optional, Union
+
 from collections import OrderedDict
-import re
+from typing import List, Dict, Any, Optional, Union
 
 from .parser import (
-    CstNode, CstContainer, CstLeaf, CstElement, CstVerbatim,
-    NixComment, NixIdentifier as CstNixIdentifier, NixString, NixBinding as CstNixBinding,
-    NixAttrSet, NixLetIn, NixLambda, NixFormal, parse_nix_cst
+    CstNode,
+    CstContainer,
+    CstLeaf,
+    CstElement,
+    CstVerbatim,
+    NixComment,
+    NixIdentifier as CstNixIdentifier,
+    NixString,
+    NixBinding as CstNixBinding,
+    NixAttrSet,
+    NixLetIn,
+    NixLambda,
+    NixFormal,
+    parse_nix_cst,
 )
 from .symbols import (
-    NixObject, FunctionDefinition, NixIdentifier, Comment, MultilineComment,
-    NixBinding, NixSet, FunctionCall, NixExpression, NixList, NixWith,
-    empty_line, linebreak, comma
+    NixObject,
+    FunctionDefinition,
+    NixIdentifier,
+    Comment,
+    MultilineComment,
+    NixBinding,
+    NixSet,
+    FunctionCall,
+    NixExpression,
+    NixList,
+    NixWith,
+    empty_line,
+    linebreak,
+    comma,
 )
 
 
@@ -26,21 +48,21 @@ class TriviaProcessor:
         for trivia_node in cst_node.post_trivia:
             if isinstance(trivia_node, NixComment):
                 text = trivia_node.text.strip()
-                if text.startswith('/*') and text.endswith('*/'):
+                if text.startswith("/*") and text.endswith("*/"):
                     # Multiline comment
                     content = text[2:-2].strip()
                     trivia.append(MultilineComment(text=content))
-                elif text.startswith('#'):
+                elif text.startswith("#"):
                     # Single line comment
                     content = text[1:].strip()
                     trivia.append(Comment(text=content))
             elif isinstance(trivia_node, CstVerbatim):
                 text = trivia_node.text
-                if '\n\n' in text or text.count('\n') > 1:
+                if "\n\n" in text or text.count("\n") > 1:
                     trivia.append(empty_line)
-                elif '\n' in text:
+                elif "\n" in text:
                     trivia.append(linebreak)
-                elif ',' in text:
+                elif "," in text:
                     trivia.append(comma)
 
         return trivia
@@ -157,8 +179,12 @@ class CstToSymbolConverter:
                         if isinstance(formal_child, NixFormal):
                             if formal_child.identifier:
                                 arg_name = formal_child.identifier.text
-                                trivia = self.trivia_processor.extract_trivia(formal_child)
-                                argument_set.append(NixIdentifier(name=arg_name, before=trivia))
+                                trivia = self.trivia_processor.extract_trivia(
+                                    formal_child
+                                )
+                                argument_set.append(
+                                    NixIdentifier(name=arg_name, before=trivia)
+                                )
                 elif not formals_found or child.node_type not in [":", "formals"]:
                     # This might be the body
                     body_node = child
@@ -166,7 +192,9 @@ class CstToSymbolConverter:
         # Convert body
         if body_node:
             if isinstance(body_node, NixLetIn) or (
-                    isinstance(body_node, CstElement) and body_node.node_type == "let_expression"):
+                isinstance(body_node, CstElement)
+                and body_node.node_type == "let_expression"
+            ):
                 let_data = self._convert_let_in(body_node)
                 let_statements = let_data.get("bindings", [])
                 result = let_data.get("result")
@@ -181,7 +209,7 @@ class CstToSymbolConverter:
             argument_set=argument_set,
             let_statements=let_statements,
             result=result or NixSet(values={}),
-            after=trivia
+            after=trivia,
         )
 
     def _convert_lambda(self, node: CstElement) -> FunctionDefinition:
@@ -228,7 +256,7 @@ class CstToSymbolConverter:
             argument_set=argument_set,
             let_statements=let_statements,
             result=result or NixSet(values={}),
-            after=trivia
+            after=trivia,
         )
 
     def _convert_let_in(self, node: CstElement) -> Dict[str, Any]:
@@ -308,7 +336,7 @@ class CstToSymbolConverter:
                     value = self._convert_node(child)
             elif isinstance(child, CstNixIdentifier):
                 name = child.text
-            elif isinstance(child, CstLeaf) and child.text not in ['=', ';']:
+            elif isinstance(child, CstLeaf) and child.text not in ["=", ";"]:
                 value = self._convert_leaf_value(child)
             elif not isinstance(child, CstLeaf):
                 value = self._convert_node(child)
@@ -342,7 +370,10 @@ class CstToSymbolConverter:
                     if not function_node:
                         function_node = child
                         name = self._extract_select_expression_name(child)
-                elif not argument_node and child.node_type in ["attrset_expression", "rec_attrset_expression"]:
+                elif not argument_node and child.node_type in [
+                    "attrset_expression",
+                    "rec_attrset_expression",
+                ]:
                     argument_node = child
 
         # Convert arguments
@@ -374,7 +405,7 @@ class CstToSymbolConverter:
         values = []
 
         for child in node.children:
-            if not isinstance(child, CstLeaf) or child.text not in ['[', ']']:
+            if not isinstance(child, CstLeaf) or child.text not in ["[", "]"]:
                 if not isinstance(child, CstVerbatim):  # Skip whitespace
                     values.append(self._convert_node(child))
 
@@ -437,9 +468,9 @@ class CstToSymbolConverter:
         text = node.text.strip()
 
         # Try to parse as different types
-        if text.lower() == 'true':
+        if text.lower() == "true":
             return True
-        elif text.lower() == 'false':
+        elif text.lower() == "false":
             return False
         elif text.isdigit():
             return int(text)
@@ -459,7 +490,9 @@ class CstToSymbolConverter:
 
         return NixExpression(value=value, before=trivia)
 
-    def _find_child_by_type(self, node: CstContainer, node_type: str) -> Optional[CstNode]:
+    def _find_child_by_type(
+        self, node: CstContainer, node_type: str
+    ) -> Optional[CstNode]:
         """Find a child node by its type."""
         for child in node.children:
             if isinstance(child, CstElement) and child.node_type == node_type:
@@ -470,7 +503,7 @@ class CstToSymbolConverter:
 def convert_nix_source(source_code: str) -> NixObject:
     """Convert Nix source code to high-level symbol objects."""
     # Parse to CST first
-    cst_root = parse_nix_cst(source_code.encode('utf-8'))
+    cst_root = parse_nix_cst(source_code.encode("utf-8"))
 
     # Convert CST to symbols
     converter = CstToSymbolConverter()
@@ -480,7 +513,7 @@ def convert_nix_source(source_code: str) -> NixObject:
 def convert_nix_file(file_path: str) -> Optional[NixObject]:
     """Convert a Nix file to high-level symbol objects."""
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             source_code = f.read()
         return convert_nix_source(source_code)
     except Exception as e:

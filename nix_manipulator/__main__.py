@@ -3,14 +3,11 @@
 High-level example usage of the Nix manipulator library.
 """
 
-from pathlib import Path
 from pygments import highlight
-from pygments.lexers import PythonLexer, NixLexer
 from pygments.formatters import TerminalFormatter
-import pprint
+from pygments.lexers import PythonLexer, NixLexer
 
-from nix_manipulator.converter import convert_nix_source, convert_nix_file
-
+from nix_manipulator.converter import convert_nix_source
 from nix_manipulator.symbols import NixObject
 
 
@@ -18,11 +15,11 @@ def pretty_print_symbols(obj: NixObject, indent: int = 0) -> str:
     """Pretty print symbol objects in a tree structure."""
     indent_str = "  " * indent
 
-    if hasattr(obj, '__dict__'):
+    if hasattr(obj, "__dict__"):
         lines = [f"{indent_str}{obj.__class__.__name__}("]
 
         for key, value in obj.__dict__.items():
-            if key.startswith('_'):
+            if key.startswith("_"):
                 continue
 
             if isinstance(value, NixObject):
@@ -54,7 +51,7 @@ def pretty_print_symbols(obj: NixObject, indent: int = 0) -> str:
 def main():
     """Main example function."""
     # Example Nix code
-    nix_code = '''
+    nix_code = """
 {
   lib,
   buildPythonPackage,
@@ -119,7 +116,7 @@ buildPythonPackage rec {
     maintainers = with lib.maintainers; [ hoh ];
   };
 }
-'''
+"""
 
     print("🚀 Nix Manipulator Library Example")
     print("=" * 50)
