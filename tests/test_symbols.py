@@ -2,13 +2,10 @@ from pathlib import Path
 
 from nix_manipulator.symbols import (
     FunctionDefinition,
-    FunctionCall,
     NixIdentifier,
     NixList,
     NixAttributeSet,
-    NixWith,
     NixBinding,
-    NixExpression,
     Comment,
     empty_line,
     MultilineComment,
@@ -34,32 +31,36 @@ expected_function_argument_set = """
 { }
 """.strip("\n")
 
+
 def test_function_argument_set():
-    assert FunctionDefinition(
-        argument_set=[
-            NixIdentifier(name="lib"),
-            NixIdentifier(name="buildPythonPackage"),
-            NixIdentifier(name="fetchFromGitHub"),
-            NixIdentifier(
-                name="setuptools",
-                before=[
-                    empty_line,
-                    Comment(text="build-system"),
-                ],
-            ),
-            NixIdentifier(name="setuptools-scm"),
-            NixIdentifier(
-                name="accelerate",
-                before=[
-                    empty_line,
-                    Comment(text="dependencies"),
-                ],
-            ),
-            NixIdentifier(name="datasets"),
-            NixIdentifier(name="rich"),
-            NixIdentifier(name="transformers"),
-        ]
-    ).rebuild() == expected_function_argument_set
+    assert (
+        FunctionDefinition(
+            argument_set=[
+                NixIdentifier(name="lib"),
+                NixIdentifier(name="buildPythonPackage"),
+                NixIdentifier(name="fetchFromGitHub"),
+                NixIdentifier(
+                    name="setuptools",
+                    before=[
+                        empty_line,
+                        Comment(text="build-system"),
+                    ],
+                ),
+                NixIdentifier(name="setuptools-scm"),
+                NixIdentifier(
+                    name="accelerate",
+                    before=[
+                        empty_line,
+                        Comment(text="dependencies"),
+                    ],
+                ),
+                NixIdentifier(name="datasets"),
+                NixIdentifier(name="rich"),
+                NixIdentifier(name="transformers"),
+            ]
+        ).rebuild()
+        == expected_function_argument_set
+    )
 
 
 expected_from_test_issue = """
@@ -81,33 +82,35 @@ expected_from_test_issue = """
 
 
 def test_issue():
-    assert NixAttributeSet(
-        [
-            NixBinding("pname", "trl"),
-            NixBinding(
-                "dependencies",
-                NixList(
-                    value=[
-                        NixIdentifier("acc"),
+    assert (
+        NixAttributeSet(
+            [
+                NixBinding("pname", "trl"),
+                NixBinding(
+                    "dependencies",
+                    NixList(
+                        value=[
+                            NixIdentifier("acc"),
+                        ],
+                    ),
+                    before=[
+                        empty_line,
+                        MultilineComment(text="\nWe love\nmultiline comments\nhere\n"),
+                        empty_line,
                     ],
                 ),
-                before=[
-                    empty_line,
-                    MultilineComment(
-                        text="\nWe love\nmultiline comments\nhere\n"
-                    ),
-                    empty_line,
-                ],
-            )
-        ],
-    ).rebuild() == expected_from_test_issue
+            ],
+        ).rebuild()
+        == expected_from_test_issue
+    )
 
 
 def test_function_definition():
     function = nixpkgs_trl_default
     print(function.rebuild())
-    (Path(__file__).parent / "nix_files/trl-default-new-generated.nix").write_text(function.rebuild() + "\n")
-    assert (
-            function.rebuild()
-            == (Path(__file__).parent / "nix_files/trl-default-new.nix").read_text().strip("\n")
+    (Path(__file__).parent / "nix_files/trl-default-new-generated.nix").write_text(
+        function.rebuild() + "\n"
     )
+    assert function.rebuild() == (
+        Path(__file__).parent / "nix_files/trl-default-new.nix"
+    ).read_text().strip("\n")

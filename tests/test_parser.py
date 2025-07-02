@@ -1,13 +1,9 @@
-from pathlib import Path
-
 from pygments import highlight
 from pygments.formatters import TerminalFormatter
 from pygments.lexers.nix import NixLexer
 
-from nix_manipulator import parse_nix_cst, pretty_print_cst
-from nix_manipulator.symbols import NixExpression
-from nix_manipulator.converter import convert_nix_file, convert_nix_source, CstToSymbolConverter
-from .fixtures import nixpkgs_trl_default
+from nix_manipulator.converter import CstToSymbolConverter, parse_nix_cst
+from nix_manipulator.parser import pretty_print_cst
 
 
 # def test_parse_file():
@@ -26,7 +22,7 @@ from .fixtures import nixpkgs_trl_default
 
 
 def parse_and_rebuild(source: str):
-    parsed_cst = parse_nix_cst(source.encode('utf-8'))
+    parsed_cst = parse_nix_cst(source.encode("utf-8"))
     print(pretty_print_cst(parsed_cst))
     converter = CstToSymbolConverter()
     print([converter.convert(parsed_cst)])
@@ -41,22 +37,22 @@ def test_rebuild_simple_string():
 
 
 def test_rebuild_number():
-    source = '123'
+    source = "123"
     assert source == parse_and_rebuild(source)
 
 
 def test_rebuild_list():
-    source = '[1 2 3]'
+    source = "[1 2 3]"
     assert source == parse_and_rebuild(source)
 
 
 def test_rebuild_set():
-    source = '{1 2 3}'
+    source = "{1 2 3}"
     assert source == parse_and_rebuild(source)
 
 
 def test_rebuild_function_call():
-    source = 'builtins.fetchFromGitHub { ... }'
+    source = "builtins.fetchFromGitHub { ... }"
     assert source == parse_and_rebuild(source)
 
 

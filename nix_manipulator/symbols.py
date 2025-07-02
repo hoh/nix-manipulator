@@ -10,11 +10,14 @@ from pydantic import BaseModel
 class EmptyLine:
     pass
 
+
 class Linebreak:
     pass
 
+
 class Comma:
     pass
+
 
 empty_line = EmptyLine()
 linebreak = Linebreak()
@@ -37,6 +40,8 @@ class NixObject(BaseModel):
         for item in trivia_list:
             if item is empty_line:
                 result += "\n"
+            elif item is linebreak:
+                result += ""
             elif item is comma:
                 result += ","
             elif isinstance(item, (Comment, MultilineComment)):
@@ -192,7 +197,9 @@ class NixAttributeSet(NixObject):
         bindings_str = "\n".join(
             [value.rebuild(indent=indented) for value in self.values]
         )
-        return f"{before_str}{{" + f"\n{bindings_str}\n" + " " * indent + f"}}{after_str}"
+        return (
+            f"{before_str}{{" + f"\n{bindings_str}\n" + " " * indent + f"}}{after_str}"
+        )
 
 
 class FunctionCall(NixObject):
@@ -213,13 +220,13 @@ class FunctionCall(NixObject):
         for binding in self.argument.values:
             args.append(binding.rebuild(indent=indented))
 
-        args_str: str = " {\n" + "\n".join(args) + "\n" + " " * indent+ "}"
+        args_str: str = " {\n" + "\n".join(args) + "\n" + " " * indent + "}"
         rec_str = " rec" if self.recursive else ""
         return f"{before_str}{self.name}{rec_str}{args_str}{after_str}"
 
 
 class NixExpression(NixObject):
-    value: Union[NixObject, str, int, bool]
+    value: Union[str, int, bool]
 
     def rebuild(self, indent: int = 0) -> str:
         """Reconstruct expression."""

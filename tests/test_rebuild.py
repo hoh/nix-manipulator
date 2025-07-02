@@ -1,4 +1,4 @@
-from nix_manipulator import (
+from nix_manipulator.symbols import (
     NixIdentifier,
     NixList,
     NixAttributeSet,
@@ -298,13 +298,15 @@ expected_list = """
 
 
 def test_list():
-    assert NixList(
-        value=[
-            NixIdentifier("setuptools"),
-            NixIdentifier("setuptools-scm"),
-        ],
-
-    ).rebuild() == expected_list
+    assert (
+        NixList(
+            value=[
+                NixIdentifier("setuptools"),
+                NixIdentifier("setuptools-scm"),
+            ],
+        ).rebuild()
+        == expected_list
+    )
 
 
 expected_binding_list = """
@@ -316,42 +318,49 @@ build-system = [
 
 
 def test_binding_list():
-    assert NixBinding(
-        "build-system",
-        NixList(
-            value=[
-                NixIdentifier("setuptools"),
-                NixIdentifier("setuptools-scm"),
-            ],
-        )
-    ).rebuild() == expected_binding_list
+    assert (
+        NixBinding(
+            "build-system",
+            NixList(
+                value=[
+                    NixIdentifier("setuptools"),
+                    NixIdentifier("setuptools-scm"),
+                ],
+            ),
+        ).rebuild()
+        == expected_binding_list
+    )
 
 
 def test_indented_function_call():
-    assert NixList(
-        value=[
-            FunctionCall(
-                name="fetchFromGitHub"
-            ),
-        ],
-    ).rebuild() == "[\n  fetchFromGitHub\n]"
+    assert (
+        NixList(
+            value=[
+                FunctionCall(name="fetchFromGitHub"),
+            ],
+        ).rebuild()
+        == "[\n  fetchFromGitHub\n]"
+    )
 
-    assert NixList(
-        value=[
-            FunctionCall(
-                name="fetchFromGitHub",
-                argument=NixAttributeSet(
-                    values=[
-                        NixBinding(
-                            name="owner",
-                            value="huggingface",
-                        ),
-                        NixBinding(
-                            name="repo",
-                            value="trl",
-                        ),
-                    ]
+    assert (
+        NixList(
+            value=[
+                FunctionCall(
+                    name="fetchFromGitHub",
+                    argument=NixAttributeSet(
+                        values=[
+                            NixBinding(
+                                name="owner",
+                                value="huggingface",
+                            ),
+                            NixBinding(
+                                name="repo",
+                                value="trl",
+                            ),
+                        ]
+                    ),
                 ),
-            ),
-        ],
-    ).rebuild() == "[\n  fetchFromGitHub {\n    owner = \"huggingface\";\n    repo = \"trl\";\n  }\n]"
+            ],
+        ).rebuild()
+        == '[\n  fetchFromGitHub {\n    owner = "huggingface";\n    repo = "trl";\n  }\n]'
+    )

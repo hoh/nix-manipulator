@@ -24,6 +24,8 @@ from pygments.lexers.nix import NixLexer
 from pygments.lexers.python import PythonLexer
 from tree_sitter import Language, Parser, Node
 
+from . import symbols
+
 # Initialize the tree-sitter parser only once for efficiency.
 NIX_LANGUAGE = Language(ts_nix.language())
 PARSER = Parser(NIX_LANGUAGE)
@@ -31,7 +33,7 @@ PARSER = Parser(NIX_LANGUAGE)
 
 def extract_text(node: Node, code: bytes) -> str:
     """Extract the exact source substring for a node."""
-    return code[node.start_byte:node.end_byte].decode('utf-8')
+    return code[node.start_byte : node.end_byte].decode("utf-8")
 
 
 class CstNode:
@@ -49,6 +51,10 @@ class CstNode:
     def _rebuild_internal(self) -> str:
         """Reconstruct the source code for the node itself, without trivia."""
         raise NotImplementedError
+
+    def as_symbol(self) -> symbols.NixObject:
+        """Convert this CST node to a Nix symbol object."""
+        raise NotImplementedError(f"Cannot convert {type(self).__name__} to a symbol.")
 
 
 class CstContainer(CstNode):
@@ -75,6 +81,10 @@ class CstElement(CstContainer):
     def __repr__(self):
         return f"{self.__class__.__name__}(type='{self.node_type}', children=[...])"
 
+    def as_symbol(self) -> symbols.NixExpression:
+        # Fallback: represent this element as a raw expression
+        return symbols.NixExpression(value=self.rebuild())
+
 
 class CstLeaf(CstNode):
     """Base class for leaf nodes in the CST, representing a literal piece of source code."""
@@ -89,47 +99,108 @@ class CstLeaf(CstNode):
     def _rebuild_internal(self) -> str:
         return self.text
 
+    def as_symbol(self) -> symbols.NixExpression:
+        # Default leaf -> expression of raw text
+        return symbols.NixExpression(value=self.text)
+
 
 class CstVerbatim(CstLeaf):
     """A generic leaf node for trivia or unknown tokens."""
+
     pass
 
 
 # --- Specialized CST classes ---
 
+
 class NixComment(CstLeaf):
     """A node representing a Nix comment."""
-    pass
+
+    def as_symbol(self) -> symbols.Comment:
+        # Strip leading '#' and whitespace
+        text = self.text.lstrip("# ").rstrip("\n")
+        return symbols.Comment(text=text)
 
 
 class NixIdentifier(CstLeaf):
     """A node representing a Nix identifier."""
-    pass
+
+    def as_symbol(self) -> symbols.NixIdentifier:
+        name = self.text.strip()
+        return symbols.NixIdentifier(name=name)
 
 
 class NixString(CstLeaf):
     """A node representing a Nix string."""
-    pass
+
+    def as_symbol(self) -> symbols.NixExpression:
+        # Keep raw string, including quotes
+        return symbols.NixExpression(value=self.text)
 
 
 class NixBinding(CstContainer):
     """A node representing a Nix binding (e.g., `x = 1;`)."""
-    pass
+
+    def as_symbol(self) -> symbols.NixBinding:
+        # Find the identifier and the value node
+        name_node = None
+        value_node = None
+        for child in self.children:
+            if isinstance(child, NixIdentifier):
+                name_node = child
+            # assume non-identifier leaf/container after '=' is the value
+            elif hasattr(child, "as_symbol") and not isinstance(child, CstVerbatim):
+                try:
+                    sym = child.as_symbol()
+                except NotImplementedError:
+                    continue
+                # skip identifier mapping above
+                if not isinstance(sym, symbols.NixIdentifier):
+                    value_node = child
+        if name_node is None or value_node is None:
+            raise ValueError(f"Unable to parse binding from CST: {self}")
+        return symbols.NixBinding(
+            name=name_node.text.strip(), value=value_node.as_symbol()
+        )
 
 
 class NixAttrSet(CstContainer):
     """A node representing a Nix attribute set (e.g., `{ ... }`)."""
-    pass
+
+    def as_symbol(self) -> symbols.NixAttributeSet:
+        bindings = []
+        for child in self.children:
+            if isinstance(child, NixBinding):
+                bindings.append(child.as_symbol())
+        return symbols.NixAttributeSet(values=bindings)
 
 
 class NixLetIn(CstContainer):
     """A node representing a Nix let-in expression."""
-    pass
+
+    # Fallback to expression
+    def as_symbol(self) -> symbols.NixExpression:
+        return symbols.NixExpression(value=self.rebuild())
 
 
 class NixLambda(CstContainer):
     """A node representing a Nix lambda function (e.g., `x: ...`)."""
-    pass
+
+    def as_symbol(self) -> symbols.FunctionDefinition:
+        args = []
+        body = None
+        for child in self.children:
+            if isinstance(child, NixFormal):
+                args.append(child.as_symbol())
+            elif hasattr(child, "as_symbol") and not isinstance(
+                child, (NixFormal, CstVerbatim)
+            ):
+                # first non-formal is body
+                if body is None:
+                    body = child.as_symbol()
+        return symbols.FunctionDefinition(
+            argument_set=args, let_statements=[], result=body
+        )
 
 
 class NixFormal(CstContainer):
@@ -142,6 +213,12 @@ class NixFormal(CstContainer):
             if isinstance(child, NixIdentifier):
                 return child
         return None
+
+    def as_symbol(self) -> symbols.NixIdentifier:
+        ident = self.identifier
+        if not ident:
+            raise ValueError(f"Formal parameter without identifier: {self}")
+        return symbols.NixIdentifier(name=ident.text.strip())
 
 
 NODE_TYPE_TO_CLASS = {
@@ -179,13 +256,13 @@ def parse_to_cst(node: Node, code: bytes) -> CstNode:
     temp_list: List[CstNode] = []
     last_child_end = node.start_byte
     for child_node in node.children:
-        trivia_text = code[last_child_end:child_node.start_byte].decode('utf-8')
+        trivia_text = code[last_child_end : child_node.start_byte].decode("utf-8")
         if trivia_text:
             temp_list.append(CstVerbatim(trivia_text))
         temp_list.append(parse_to_cst(child_node, code))
         last_child_end = child_node.end_byte
 
-    final_trivia_text = code[last_child_end:node.end_byte].decode('utf-8')
+    final_trivia_text = code[last_child_end : node.end_byte].decode("utf-8")
     if final_trivia_text:
         temp_list.append(CstVerbatim(final_trivia_text))
 
@@ -234,7 +311,7 @@ def parse_nix_file(file_path: Path) -> Optional[CstNode]:
 
 def pretty_print_cst(node: CstNode, indent_level=0) -> str:
     """Generates a nicely indented string representation of the CST for printing."""
-    indent = '  ' * indent_level
+    indent = "  " * indent_level
     # Base representation for all nodes
     if isinstance(node, CstElement):
         base_repr = f"{indent}{node.__class__.__name__}(type='{node.node_type}'"
@@ -245,12 +322,14 @@ def pretty_print_cst(node: CstNode, indent_level=0) -> str:
 
     # Add post_trivia if it exists
     if node.post_trivia:
-        base_repr += f", post_trivia=[...{len(node.post_trivia)} item(s)]"
+        base_repr += f", post_trivia=[...{node.post_trivia} item(s)]"
 
     # Add children for containers
     if isinstance(node, CstContainer):
         base_repr += ", children=[\n"
-        children_str = ',\n'.join(pretty_print_cst(c, indent_level + 1) for c in node.children)
+        children_str = ",\n".join(
+            pretty_print_cst(c, indent_level + 1) for c in node.children
+        )
         footer = f"\n{indent}])"
         return base_repr + children_str + footer
     else:
@@ -263,7 +342,9 @@ def main():
         description="Parse a Nix file and rebuild it, preserving all formatting."
     )
     parser.add_argument("file", help="Path to the Nix file to process")
-    parser.add_argument("-o", "--output", help="Path to the output file for the rebuilt Nix code")
+    parser.add_argument(
+        "-o", "--output", help="Path to the output file for the rebuilt Nix code"
+    )
     args = parser.parse_args()
 
     parsed_cst = parse_nix_file(Path(args.file))
@@ -282,7 +363,7 @@ def main():
     if args.output:
         output_path = Path(args.output)
         try:
-            output_path.write_text(rebuilt_code, encoding='utf-8')
+            output_path.write_text(rebuilt_code, encoding="utf-8")
             print(f"\n--- Rebuilt Nix code written to {output_path} ---")
         except IOError as e:
             print(f"\nError writing to output file {output_path}: {e}")

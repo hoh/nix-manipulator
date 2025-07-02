@@ -55,7 +55,6 @@ nixpkgs_trl_default = FunctionDefinition(
                     "pyproject",
                     NixExpression(
                         value=True,
-
                     ),
                     before=[
                         Comment(text="This is something else"),
