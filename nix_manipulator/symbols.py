@@ -46,6 +46,7 @@ class FunctionDefinition(NixObject):
 
     def rebuild(self, indent: int = 0) -> str:
         """Reconstruct function definition."""
+        indent += 2
         before_str = self._format_trivia(self.before, indent=indent)
         after_str = self._format_trivia(self.after, indent=indent)
 
@@ -55,8 +56,9 @@ class FunctionDefinition(NixObject):
         else:
             args = []
             for arg in self.argument_set:
-                args.append(f"{self._format_trivia(arg.before)}{arg.name}")
-            args_str = "{\n  " + ",\n  ".join(args) + "\n}"
+                indented_line = " " * indent + f"{arg.name}"
+                args.append(f"{self._format_trivia(arg.before, indent)}{indented_line}")
+            args_str = "{\n  " + ",\n".join(args) + "\n}"
 
         # Build let statements
         let_str = ""
@@ -167,6 +169,7 @@ class FunctionCall(NixObject):
 
     def rebuild(self, indent: int = 0) -> str:
         """Reconstruct function call."""
+        indent += 2
         before_str = self._format_trivia(self.before, indent=indent)
         after_str = self._format_trivia(self.after, indent=indent)
 
@@ -175,7 +178,7 @@ class FunctionCall(NixObject):
 
         args = []
         for binding in self.argument.values:
-            args.append(binding.rebuild(indent=2))
+            args.append(binding.rebuild(indent=indent))
 
         args_str: str = " {\n" + "\n".join(args) + "\n}"
         rec_str = " rec" if self.recursive else ""
