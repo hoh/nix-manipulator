@@ -46,7 +46,7 @@ class TriviaProcessor:
         trivia = []
 
         # Check if the node has post_trivia attribute
-        if not hasattr(cst_node, 'post_trivia'):
+        if not hasattr(cst_node, "post_trivia"):
             return trivia
 
         for trivia_node in cst_node.post_trivia:
@@ -75,7 +75,7 @@ class TriviaProcessor:
         trivia = []
 
         # Check if the node has pre_trivia or similar attribute
-        if hasattr(cst_node, 'pre_trivia'):
+        if hasattr(cst_node, "pre_trivia"):
             for trivia_node in cst_node.pre_trivia:
                 if isinstance(trivia_node, NixComment):
                     text = trivia_node.text.strip()
@@ -220,10 +220,20 @@ class CstToSymbolConverter:
                         if isinstance(formal_child, NixFormal):
                             if formal_child.identifier:
                                 arg_name = formal_child.identifier.text
-                                before_trivia = self.trivia_processor.extract_before_trivia(formal_child)
-                                after_trivia = self.trivia_processor.extract_trivia(formal_child)
+                                before_trivia = (
+                                    self.trivia_processor.extract_before_trivia(
+                                        formal_child
+                                    )
+                                )
+                                after_trivia = self.trivia_processor.extract_trivia(
+                                    formal_child
+                                )
                                 argument_set.append(
-                                    NixIdentifier(name=arg_name, before=before_trivia, after=after_trivia)
+                                    NixIdentifier(
+                                        name=arg_name,
+                                        before=before_trivia,
+                                        after=after_trivia,
+                                    )
                                 )
                 elif not formals_found or child.node_type not in [":", "formals"]:
                     # This might be the body
@@ -232,8 +242,8 @@ class CstToSymbolConverter:
         # Convert body
         if body_node:
             if isinstance(body_node, NixLetIn) or (
-                    isinstance(body_node, CstElement)
-                    and body_node.node_type == "let_expression"
+                isinstance(body_node, CstElement)
+                and body_node.node_type == "let_expression"
             ):
                 let_data = self._convert_let_in(body_node)
                 let_statements = let_data.get("bindings", [])
@@ -278,7 +288,11 @@ class CstToSymbolConverter:
                     arg_name = child.identifier.text
                     before_trivia = self.trivia_processor.extract_before_trivia(child)
                     after_trivia = self.trivia_processor.extract_trivia(child)
-                    argument_set.append(NixIdentifier(name=arg_name, before=before_trivia, after=after_trivia))
+                    argument_set.append(
+                        NixIdentifier(
+                            name=arg_name, before=before_trivia, after=after_trivia
+                        )
+                    )
 
         # Convert body
         if body_node:
@@ -346,7 +360,12 @@ class CstToSymbolConverter:
 
         before_trivia = self.trivia_processor.extract_before_trivia(node)
         after_trivia = self.trivia_processor.extract_trivia(node)
-        return NixAttributeSet(values=bindings, recursive=recursive, before=before_trivia, after=after_trivia)
+        return NixAttributeSet(
+            values=bindings,
+            recursive=recursive,
+            before=before_trivia,
+            after=after_trivia,
+        )
 
     def _convert_attr_set(self, node: NixAttrSet) -> NixAttributeSet:
         """Convert attribute set to NixAttributeSet."""
@@ -360,7 +379,9 @@ class CstToSymbolConverter:
         before_trivia = self.trivia_processor.extract_before_trivia(node)
         after_trivia = self.trivia_processor.extract_trivia(node)
 
-        return NixAttributeSet(values=bindings, before=before_trivia, after=after_trivia)
+        return NixAttributeSet(
+            values=bindings, before=before_trivia, after=after_trivia
+        )
 
     def _convert_binding(self, node: CstNixBinding) -> NixBinding:
         """Convert a binding node to NixBinding."""
@@ -400,7 +421,9 @@ class CstToSymbolConverter:
         before_trivia = self.trivia_processor.extract_before_trivia(node)
         after_trivia = self.trivia_processor.extract_trivia(node)
 
-        return NixBinding(name=name, value=value or "", before=before_trivia, after=after_trivia)
+        return NixBinding(
+            name=name, value=value or "", before=before_trivia, after=after_trivia
+        )
 
     def _convert_identifier(self, node: CstNixIdentifier) -> NixIdentifier:
         """Convert identifier to NixIdentifier."""
@@ -444,7 +467,13 @@ class CstToSymbolConverter:
         before_trivia = self.trivia_processor.extract_before_trivia(node)
         after_trivia = self.trivia_processor.extract_trivia(node)
 
-        return FunctionCall(name=name, argument=argument, recursive=recursive, before=before_trivia, after=after_trivia)
+        return FunctionCall(
+            name=name,
+            argument=argument,
+            recursive=recursive,
+            before=before_trivia,
+            after=after_trivia,
+        )
 
     def _extract_select_expression_name(self, node: CstElement) -> str:
         """Extract name from select expression like stdenv.mkDerivation."""
@@ -484,7 +513,9 @@ class CstToSymbolConverter:
         before_trivia = self.trivia_processor.extract_before_trivia(node)
         after_trivia = self.trivia_processor.extract_trivia(node)
 
-        return NixList(value=values, multiline=multiline, before=before_trivia, after=after_trivia)
+        return NixList(
+            value=values, multiline=multiline, before=before_trivia, after=after_trivia
+        )
 
     def _convert_with(self, node: CstElement) -> NixWith:
         """Convert with expression to NixWith."""
@@ -525,7 +556,12 @@ class CstToSymbolConverter:
 
         before_trivia = self.trivia_processor.extract_before_trivia(node)
         after_trivia = self.trivia_processor.extract_trivia(node)
-        return NixWith(expression=expression, attributes=attributes, before=before_trivia, after=after_trivia)
+        return NixWith(
+            expression=expression,
+            attributes=attributes,
+            before=before_trivia,
+            after=after_trivia,
+        )
 
     def _convert_string_value(self, node: NixString) -> str:
         """Convert string node to string value."""
@@ -566,7 +602,7 @@ class CstToSymbolConverter:
         return NixExpression(value=value, before=before_trivia, after=after_trivia)
 
     def _find_child_by_type(
-            self, node: CstContainer, node_type: str
+        self, node: CstContainer, node_type: str
     ) -> Optional[CstNode]:
         """Find a child node by its type."""
         for child in node.children:
