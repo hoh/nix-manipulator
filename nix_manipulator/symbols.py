@@ -111,7 +111,25 @@ class Comment(NixObject):
 
 class MultilineComment(Comment):
     def rebuild(self, indent: int = 0) -> str:
-        return f"/* {self.text} */".replace("\n", "\n" + " " * indent)
+        if "\n" in self.text:
+            # Multiline
+            text = self.text
+            result: str
+            if self.text.startswith("\n"):
+                result = " " * indent + "/*"
+            else:
+                result = "/* "
+
+            result += self.text.replace("\n", "\n" + " " * indent)
+
+            if not self.text.endswith("\n"):
+                result += " */"
+            else:
+                result += "*/"
+            return result
+        else:
+            # Single line
+            return f"/* {self.text} */"
 
 
 class NixBinding(NixObject):
