@@ -142,8 +142,8 @@ def test_function_definition():
                                 NixIdentifier("setuptools"),
                                 NixIdentifier("setuptools-scm"),
                             ],
-                            before=[empty_line],
-                        )
+                        ),
+                        before=[empty_line],
                     ),
                     NixBinding(
                         "dependencies",
@@ -154,14 +154,14 @@ def test_function_definition():
                                 NixIdentifier("rich"),
                                 NixIdentifier("transformers"),
                             ],
-                            before=[
-                                empty_line,
-                                MultilineComment(
-                                    text="\nWe love\nmultiline comments\nhere\n"
-                                ),
-                                empty_line,
-                            ],
-                        )
+                        ),
+                        before=[
+                            empty_line,
+                            MultilineComment(
+                                text="\nWe love\nmultiline comments\nhere\n"
+                            ),
+                            empty_line,
+                        ],
                     ),
                     NixBinding(
                         "doCheck",

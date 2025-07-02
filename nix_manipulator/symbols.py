@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import OrderedDict
+from textwrap import indent
 from typing import Dict, List, Union, Any
 
 from pydantic import BaseModel
@@ -109,7 +110,7 @@ class Comment(NixObject):
 
 
 class MultilineComment(Comment):
-    def __str__(self):
+    def rebuild(self, indent: int = 0) -> str:
         return f"/* {self.text} */"
 
 
@@ -170,23 +171,23 @@ class NixAttributeSet(NixObject):
 
 class FunctionCall(NixObject):
     name: str
-    argument: NixAttributeSet = NixAttributeSet({})
+    argument: NixAttributeSet = None
     recursive: bool = False
 
     def rebuild(self, indent: int = 0) -> str:
         """Reconstruct function call."""
-        indent += 2
-        before_str = self._format_trivia(self.before, indent=indent)
-        after_str = self._format_trivia(self.after, indent=indent)
+        indented = indent + 2
+        before_str = self._format_trivia(self.before, indent=indented)
+        after_str = self._format_trivia(self.after, indent=indented)
 
         if not self.argument:
             return f"{before_str}{self.name}{after_str}"
 
         args = []
         for binding in self.argument.values:
-            args.append(binding.rebuild(indent=indent))
+            args.append(binding.rebuild(indent=indented))
 
-        args_str: str = " {\n" + "\n".join(args) + "\n}"
+        args_str: str = " {\n" + "\n".join(args) + "\n" + " " * indent+ "}"
         rec_str = " rec" if self.recursive else ""
         return f"{before_str}{self.name}{rec_str}{args_str}{after_str}"
 
@@ -220,8 +221,9 @@ class NixList(NixExpression):
 
     def rebuild(self, indent: int = 0) -> str:
         """Reconstruct list."""
-        before_str = self._format_trivia(self.before, indent=indent)
-        after_str = self._format_trivia(self.after, indent=indent)
+        indented = indent + 2
+        before_str = self._format_trivia(self.before, indent=indented)
+        after_str = self._format_trivia(self.after, indent=indented)
 
         if not self.value:
             return f"{before_str}[]{after_str}"
@@ -229,7 +231,7 @@ class NixList(NixExpression):
         items = []
         for item in self.value:
             if isinstance(item, NixObject):
-                items.append(f"{item.rebuild()}")
+                items.append(f"{item.rebuild(indent=indented)}")
             elif isinstance(item, str):
                 items.append(f'"{item}"')
             elif isinstance(item, bool):
@@ -239,9 +241,9 @@ class NixList(NixExpression):
 
         if self.multiline:
             # Add proper indentation for multiline lists
-            indented_items = [f"  {item}" for item in items]
+            indented_items = [" " * indented + f"{item}" for item in items]
             items_str = "\n".join(indented_items)
-            return f"{before_str}[\n{items_str}\n]{after_str}"
+            return f"{before_str}[\n{items_str}\n" + " " * indent + f"]{after_str}"
         else:
             items_str = " ".join(items)
             return f"{before_str}[ {items_str} ]{after_str}"

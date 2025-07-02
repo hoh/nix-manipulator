@@ -24,7 +24,7 @@ def test_rebuild_nix_identifier():
                 Comment(text="dependencies"),
             ],
         ).rebuild()
-        == "\ns# dependencies\naccelerate"
+        == "\n# dependencies\naccelerate"
     )
 
 
@@ -173,7 +173,7 @@ def test_nix_function_definition():
             let_statements=[],
             result=NixAttributeSet({"pkgs": NixIdentifier("pkgs")}),
         ).rebuild()
-        == "{\n  pkgs\n}:\n{\n  pkgs = pkgs;\n}"
+        == "{\n  pkgs,\n}:\n{\n  pkgs = pkgs;\n}"
     )
 
     assert (
@@ -222,7 +222,7 @@ def test_nix_function_definition():
             ],
             result=NixAttributeSet({"pkgs-again": NixIdentifier("pkgs-copy")}),
         ).rebuild()
-        == '{\n  pkgs\n}:\nlet\n  pkgs-copy = pkgs;\n  alice = "bob";\nin\n{\n  pkgs-again = pkgs-copy;\n}'
+        == '{\n  pkgs,\n}:\nlet\n  pkgs-copy = pkgs;\n  alice = "bob";\nin\n{\n  pkgs-again = pkgs-copy;\n}'
     )
 
 
@@ -269,7 +269,7 @@ def test_function_definition_with_function_call():
                 ),
             ),
         ).rebuild()
-        == """{\n  pkgs\n}:\nbuildPythonPackage rec {\n  pkgs = pkgs;\n  alice = "bob";\n}"""
+        == """{\n  pkgs,\n}:\nbuildPythonPackage rec {\n  pkgs = pkgs;\n  alice = "bob";\n}"""
     )
 
 
@@ -287,3 +287,71 @@ def test_function_call_recursive():
         ).rebuild()
         == 'foo rec {\n  foo = bar;\n  alice = "bob";\n}'
     )
+
+
+expected_list = """
+[
+  setuptools
+  setuptools-scm
+]
+""".strip("\n")
+
+
+def test_list():
+    assert NixList(
+        value=[
+            NixIdentifier("setuptools"),
+            NixIdentifier("setuptools-scm"),
+        ],
+
+    ).rebuild() == expected_list
+
+
+expected_binding_list = """
+build-system = [
+  setuptools
+  setuptools-scm
+];
+""".strip("\n")
+
+
+def test_binding_list():
+    assert NixBinding(
+        "build-system",
+        NixList(
+            value=[
+                NixIdentifier("setuptools"),
+                NixIdentifier("setuptools-scm"),
+            ],
+        )
+    ).rebuild() == expected_binding_list
+
+
+def test_indented_function_call():
+    assert NixList(
+        value=[
+            FunctionCall(
+                name="fetchFromGitHub"
+            ),
+        ],
+    ).rebuild() == "[\n  fetchFromGitHub\n]"
+
+    assert NixList(
+        value=[
+            FunctionCall(
+                name="fetchFromGitHub",
+                argument=NixAttributeSet(
+                    values=[
+                        NixBinding(
+                            name="owner",
+                            value="huggingface",
+                        ),
+                        NixBinding(
+                            name="repo",
+                            value="trl",
+                        ),
+                    ]
+                ),
+            ),
+        ],
+    ).rebuild() == "[\n  fetchFromGitHub {\n    owner = \"huggingface\";\n    repo = \"trl\";\n  }\n]"
