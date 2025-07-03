@@ -1,6 +1,4 @@
 import tree_sitter_nix as ts_nix
-from pygments.lexers.nix import NixLexer
-from pygments.lexers.python import PythonLexer
 from tree_sitter import Language, Parser, Node
 
 from . import models

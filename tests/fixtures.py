@@ -40,7 +40,7 @@ nixpkgs_trl_default = FunctionDefinition(
         NixBinding(name="owner", value="huggingface"),
         NixBinding(
             name="acc",
-            value=NixIdentifier("accelerate"),
+            value=NixIdentifier(name="accelerate"),
             before=[Comment(text="We love comments here")],
         ),
     ],
@@ -48,7 +48,7 @@ nixpkgs_trl_default = FunctionDefinition(
         name="buildPythonPackage",
         recursive=True,
         argument=NixAttributeSet(
-            [
+            values=[
                 NixBinding("pname", "trl"),
                 NixBinding("version", "0.19.0"),
                 NixBinding(
@@ -68,7 +68,7 @@ nixpkgs_trl_default = FunctionDefinition(
                             values=[
                                 NixBinding(
                                     name="owner",
-                                    value=NixIdentifier("owner"),
+                                    value=NixIdentifier(name="owner"),
                                     before=[
                                         Comment(text="Something cool"),
                                     ],
@@ -88,8 +88,8 @@ nixpkgs_trl_default = FunctionDefinition(
                     "build-system",
                     NixList(
                         value=[
-                            NixIdentifier("setuptools"),
-                            NixIdentifier("setuptools-scm"),
+                            NixIdentifier(name="setuptools"),
+                            NixIdentifier(name="setuptools-scm"),
                         ],
                     ),
                     before=[empty_line],
@@ -98,10 +98,10 @@ nixpkgs_trl_default = FunctionDefinition(
                     "dependencies",
                     NixList(
                         value=[
-                            NixIdentifier("acc"),
-                            NixIdentifier("datasets"),
-                            NixIdentifier("rich"),
-                            NixIdentifier("transformers"),
+                            NixIdentifier(name="acc"),
+                            NixIdentifier(name="datasets"),
+                            NixIdentifier(name="rich"),
+                            NixIdentifier(name="transformers"),
                         ],
                     ),
                     before=[
@@ -132,15 +132,15 @@ nixpkgs_trl_default = FunctionDefinition(
                 ),
                 NixBinding(
                     "meta",
-                    NixAttributeSet(
+                    NixAttributeSet.from_dict(
                         {
                             "description": "Train transformer language models with reinforcement learning",
                             "homepage": "https://github.com/huggingface/trl",
                             "changelog": "https://github.com/huggingface/trl/releases/tag/${src.tag}",
-                            "license": NixIdentifier("lib.licenses.asl20"),
+                            "license": NixIdentifier(name="lib.licenses.asl20"),
                             "maintainers": NixWith(
-                                expression=NixIdentifier("lib.maintainers"),
-                                attributes=[NixIdentifier("hoh")],
+                                expression=NixIdentifier(name="lib.maintainers"),
+                                attributes=[NixIdentifier(name="hoh")],
                             ),
                         },
                     ),

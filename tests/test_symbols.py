@@ -84,13 +84,13 @@ expected_from_test_issue = """
 def test_issue():
     assert (
         NixAttributeSet(
-            [
+            values=[
                 NixBinding("pname", "trl"),
                 NixBinding(
                     "dependencies",
                     NixList(
                         value=[
-                            NixIdentifier("acc"),
+                            NixIdentifier(name="acc"),
                         ],
                     ),
                     before=[

@@ -113,9 +113,6 @@ class FunctionDefinition(NixObject):
 class NixIdentifier(NixObject):
     name: str
 
-    def __init__(self, name: str, **kwargs):
-        super().__init__(name=name, **kwargs)
-
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         """Reconstruct identifier."""
         before_str = self._format_trivia(self.before, indent=indent)
@@ -151,7 +148,6 @@ class MultilineComment(Comment):
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         if "\n" in self.text:
             # Multiline
-            text = self.text
             result: str
             if self.text.startswith("\n"):
                 result = " " * indent + "/*"
@@ -181,8 +177,6 @@ class NixBinding(NixObject):
         """Reconstruct binding."""
         before_str = self._format_trivia(self.before, indent=indent)
         after_str = self._format_trivia(self.after, indent=indent)
-        indented = indent + 2
-        indentation = " " * indented
 
         print("BINDING", [self.name, self.value, self.before, before_str, indent])
 
@@ -232,17 +226,12 @@ class NixBinding(NixObject):
 class NixAttributeSet(NixObject):
     values: List[NixBinding]
 
-    def __init__(self, values: List[NixBinding] | Dict[str, NixObject], **kwargs):
-        # Convert dict to
-        if isinstance(values, dict):
-            values_list = []
-            for key, value in values.items():
-                values_list.append(NixBinding(key, value))
-            values = values_list
-
-        print("V", [values])
-
-        super().__init__(values=values, **kwargs)
+    @classmethod
+    def from_dict(cls, values: Dict[str, NixObject]):
+        values_list = []
+        for key, value in values.items():
+            values_list.append(NixBinding(key, value))
+        return cls(values=values_list)
 
     @classmethod
     def from_cst(cls, node: Node):
