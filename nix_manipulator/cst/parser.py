@@ -2,6 +2,7 @@ import tree_sitter_nix as ts_nix
 from tree_sitter import Language, Node, Parser
 
 from . import models
+from ..symbols import NixObject, NixSourceCode
 
 # Initialize the tree-sitter parser only once for efficiency.
 NIX_LANGUAGE = Language(ts_nix.language())
@@ -18,13 +19,11 @@ def parse_nix_cst(source_code: bytes | str):
 
 
 def parse_to_cst(node: Node):
-    cls = models.NODE_TYPE_TO_CLASS.get(node.type)
+    cls: NixObject | NixSourceCode | None = models.NODE_TYPE_TO_CLASS.get(node.type)
     print()
     print("CLS", cls, node.__class__, node.type)
 
     if not cls:
         raise ValueError(f"Unknown node type: {node.type} {node}")
 
-    obj = cls.from_cst(node)
-
-    return obj
+    return cls.from_cst(node=node)

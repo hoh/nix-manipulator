@@ -86,10 +86,10 @@ def test_issue():
     assert (
         NixAttributeSet(
             values=[
-                NixBinding("pname", "trl"),
+                NixBinding(name="pname", value="trl"),
                 NixBinding(
-                    "dependencies",
-                    NixList(
+                    name="dependencies",
+                    value=NixList(
                         value=[
                             NixIdentifier(name="acc"),
                         ],

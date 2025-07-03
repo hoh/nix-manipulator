@@ -31,7 +31,7 @@ def test_rebuild_nix_identifier():
 def test_rebuild_nix_list_single_line():
     assert (
         NixList(
-            [
+            value=[
                 NixIdentifier(name="foo"),
                 NixIdentifier(name="bar"),
             ],
@@ -44,7 +44,7 @@ def test_rebuild_nix_list_single_line():
 def test_rebuild_nix_list_multiline():
     assert (
         NixList(
-            [
+            value=[
                 NixIdentifier(name="foo"),
                 NixIdentifier(name="bar"),
             ],
@@ -58,7 +58,7 @@ def test_rebuild_nix_list_multiline_not_specified():
     # Multiline is the default
     assert (
         NixList(
-            [
+            value=[
                 NixIdentifier(name="foo"),
                 NixIdentifier(name="bar"),
             ]
@@ -103,7 +103,7 @@ def test_nix_binding():
         NixBinding(
             name="foo",
             value=NixList(
-                [
+                value=[
                     NixIdentifier(name="bar"),
                     NixIdentifier(name="baz"),
                 ],
@@ -129,7 +129,7 @@ def test_nix_comment():
     )
 
     assert (
-        NixBinding("alice", "bob", before=[Comment(text="This is a comment")]).rebuild()
+        NixBinding(name="alice", value="bob", before=[Comment(text="This is a comment")]).rebuild()
         == '# This is a comment\nalice = "bob";'
     )
 
@@ -144,7 +144,7 @@ def test_nix_set():
             {
                 "foo": NixIdentifier(name="bar"),
                 "baz": NixList(
-                    [
+                    value=[
                         NixIdentifier(name="qux"),
                         NixIdentifier(name="quux"),
                     ],
@@ -180,8 +180,8 @@ def test_nix_function_definition():
         FunctionDefinition(
             argument_set=[],
             let_statements=[
-                NixBinding("foo", NixIdentifier(name="bar")),
-                NixBinding("alice", "bob"),
+                NixBinding(name="foo", value=NixIdentifier(name="bar")),
+                NixBinding(name="alice", value="bob"),
             ],
             result=NixAttributeSet(values=[]),
         ).rebuild()
@@ -193,8 +193,8 @@ def test_nix_function_definition():
         FunctionDefinition(
             argument_set=[],
             let_statements=[
-                NixBinding("foo", NixIdentifier(name="bar")),
-                NixBinding("alice", "bob", before=[Comment(text="This is a comment")]),
+                NixBinding(name="foo", value=NixIdentifier(name="bar")),
+                NixBinding(name="alice", value="bob", before=[Comment(text="This is a comment")]),
             ],
             result=NixAttributeSet(values=[]),
         ).rebuild()
@@ -205,8 +205,8 @@ def test_nix_function_definition():
         FunctionDefinition(
             argument_set=[],
             let_statements=[
-                NixBinding("foo", NixIdentifier(name="bar")),
-                NixBinding("alice", "bob", before=[Comment(text="This is a comment")]),
+                NixBinding(name="foo", value=NixIdentifier(name="bar")),
+                NixBinding(name="alice", value="bob", before=[Comment(text="This is a comment")]),
             ],
             result=NixAttributeSet(values=[]),
         ).rebuild()
@@ -217,8 +217,8 @@ def test_nix_function_definition():
         FunctionDefinition(
             argument_set=[NixIdentifier(name="pkgs")],
             let_statements=[
-                NixBinding("pkgs-copy", NixIdentifier(name="pkgs")),
-                NixBinding("alice", "bob"),
+                NixBinding(name="pkgs-copy", value=NixIdentifier(name="pkgs")),
+                NixBinding(name="alice", value="bob"),
             ],
             result=NixAttributeSet.from_dict(
                 {"pkgs-again": NixIdentifier(name="pkgs-copy")}
@@ -247,11 +247,11 @@ def test_function_with_comments():
             argument=NixAttributeSet(
                 values=[
                     NixBinding(
-                        "foo",
-                        NixIdentifier(name="bar"),
+                        name="foo",
+                        value=NixIdentifier(name="bar"),
                         before=[Comment(text="This is a comment")],
                     ),
-                    NixBinding("alice", "bob"),
+                    NixBinding(name="alice", value="bob"),
                 ]
             ),
         ).rebuild()
@@ -322,8 +322,8 @@ build-system = [
 def test_binding_list():
     assert (
         NixBinding(
-            "build-system",
-            NixList(
+            name="build-system",
+            value=NixList(
                 value=[
                     NixIdentifier(name="setuptools"),
                     NixIdentifier(name="setuptools-scm"),
