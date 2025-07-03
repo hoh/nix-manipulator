@@ -50,10 +50,10 @@ def test_rebuild_function_call_with_arguments():
     assert source == parse_and_rebuild(source)
 
 
-
 # def test_rebuild_function_call_with_multiple_arguments():
 #     source = 'builtins.fetchFromGitHub { owner = "foo"; repo = "bar"; rev = "123"; sha256 = "abc"; } // { owner = "bar"; repo = "baz"; rev = "456"; sha256 = "def"; }'
 #     assert source == parse_and_rebuild(source)
+
 
 def test_rebuild_function_call_with_comment():
     source = """
@@ -65,6 +65,7 @@ builtins.fetchFromGitHub {
 }
 """.strip("\n")
     assert source == parse_and_rebuild(source)
+
 
 def test_rebuild_list_with_comment():
     source = """
