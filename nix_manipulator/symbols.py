@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Dict, List, Union, Any, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseModel
 from tree_sitter import Node
@@ -220,8 +220,9 @@ class NixBinding(NixObject):
         return f"{before_str}{indented_line}{after_str}"
 
     @classmethod
-    def from_cst(cls, node: Node, before: List[Any] | None = None, after: List[Any] | None = None):
-
+    def from_cst(
+        cls, node: Node, before: List[Any] | None = None, after: List[Any] | None = None
+    ):
         before = before or []
         after = after or []
 
@@ -422,6 +423,7 @@ class NixList(NixObject):
     @classmethod
     def from_cst(cls, node: Node):
         from nix_manipulator.cst.parser import parse_to_cst
+
         if node.text is None:
             raise ValueError("List has no code")
 
