@@ -12,6 +12,7 @@ let
     ps.mypy
     ps.ruff
     ps.pytest
+    ps.isort
   ]);
 in pkgs.mkShell {
   packages = [ pkgs.tree-sitter pyEnv ];

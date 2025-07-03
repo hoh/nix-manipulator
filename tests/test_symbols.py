@@ -1,15 +1,16 @@
 from pathlib import Path
 
 from nix_manipulator.symbols import (
+    Comment,
     FunctionDefinition,
-    NixIdentifier,
-    NixList,
+    MultilineComment,
     NixAttributeSet,
     NixBinding,
-    Comment,
+    NixIdentifier,
+    NixList,
     empty_line,
-    MultilineComment,
 )
+
 from .fixtures import nixpkgs_trl_default
 
 expected_function_argument_set = """

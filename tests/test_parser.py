@@ -5,7 +5,6 @@ from pygments.lexers.nix import NixLexer
 from nix_manipulator.converter import CstToSymbolConverter, parse_nix_cst
 from nix_manipulator.parser import pretty_print_cst
 
-
 # def test_parse_file():
 #     source_path = Path(__file__).parent / "nix_files/trl-default-new.nix"
 #

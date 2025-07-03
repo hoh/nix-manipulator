@@ -1,5 +1,5 @@
 import tree_sitter_nix as ts_nix
-from tree_sitter import Language, Parser, Node
+from tree_sitter import Language, Node, Parser
 
 from . import models
 

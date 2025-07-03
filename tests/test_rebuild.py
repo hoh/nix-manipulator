@@ -1,14 +1,14 @@
 from nix_manipulator.symbols import (
-    NixIdentifier,
-    NixList,
-    NixAttributeSet,
-    NixWith,
-    NixBinding,
-    NixExpression,
     Comment,
-    empty_line,
     FunctionCall,
     FunctionDefinition,
+    NixAttributeSet,
+    NixBinding,
+    NixExpression,
+    NixIdentifier,
+    NixList,
+    NixWith,
+    empty_line,
 )
 
 
@@ -220,7 +220,9 @@ def test_nix_function_definition():
                 NixBinding("pkgs-copy", NixIdentifier(name="pkgs")),
                 NixBinding("alice", "bob"),
             ],
-            result=NixAttributeSet.from_dict({"pkgs-again": NixIdentifier(name="pkgs-copy")}),
+            result=NixAttributeSet.from_dict(
+                {"pkgs-again": NixIdentifier(name="pkgs-copy")}
+            ),
         ).rebuild()
         == '{\n  pkgs,\n}:\nlet\n  pkgs-copy = pkgs;\n  alice = "bob";\nin\n{\n  pkgs-again = pkgs-copy;\n}'
     )

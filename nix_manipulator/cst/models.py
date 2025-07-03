@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from nix_manipulator.symbols import (
+    Comment,
+    FunctionCall,
+    FunctionDefinition,
     NixExpression,
     NixList,
-    FunctionCall,
-    Comment,
-    FunctionDefinition, NixObject,
-NixSourceCode,
+    NixObject,
+    NixSourceCode,
 )
 
 NODE_TYPE_TO_CLASS: dict[str, type[NixObject]] = {
