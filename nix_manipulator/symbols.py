@@ -61,15 +61,16 @@ class FunctionDefinition(NixObject):
     @classmethod
     def from_cst(cls, node: Node):
         print("F", node, node.type, dir(node), node.text)
-        name = node.text
-        argument_set = []
-        let_statements = []
-        result = None
-        recursive = False
-        for child in node.children:
-            print("C", child, child.type, dir(child), child.text)
+        raise NotImplementedError
+        # name = node.text
+        # argument_set = []
+        # let_statements = []
+        # result = None
+        # recursive = False
+        # for child in node.children:
+        #     print("C", child, child.type, dir(child), child.text)
 
-    def rebuild(self, indent: int = 0) -> str:
+    def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         """Reconstruct function definition."""
         indent += 2
         before_str = self._format_trivia(self.before, indent=indent)
@@ -97,7 +98,7 @@ class FunctionDefinition(NixObject):
             let_bindings: List[str] = []
             for binding in self.let_statements:
                 let_bindings.append(binding.rebuild(indent=2))
-            let_str = f"let\n" + "\n".join(let_bindings) + "\nin\n"
+            let_str = "let\n" + "\n".join(let_bindings) + "\nin\n"
 
         # Build result
         result_str = self.result.rebuild() if self.result else "{ }"
@@ -141,13 +142,13 @@ class Comment(NixObject):
                 text = text[1:]
         return cls(text=text)
 
-    def rebuild(self, indent: int = 0) -> str:
+    def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         print("INN DENT", indent, [self.text])
         return " " * indent + str(self)
 
 
 class MultilineComment(Comment):
-    def rebuild(self, indent: int = 0) -> str:
+    def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         if "\n" in self.text:
             # Multiline
             text = self.text
@@ -162,7 +163,7 @@ class MultilineComment(Comment):
             if not self.text.endswith("\n"):
                 result += " */"
             else:
-                result += "*/\n"
+                result += "*/"
             return result
         else:
             # Single line
@@ -362,17 +363,16 @@ class NixExpression(NixObject):
     @classmethod
     def from_cst(cls, node: Node):
         print("N", node, node.type, dir(node), node.text)
-        # return parse_to_cst(node)
         if node.type == "string_expression":
             value = json.loads(node.text)
         elif node.type == "integer_expression":
             value = int(node.text)
         elif node.type == "variable_expression":
-            print("V", node, dir(node))
-            value = node.text == "true"
+            assert node.text in (b"true", b"false")
+            value = node.text == b"true"
         else:
             raise ValueError(f"Unsupported expression type: {node.type}")
-        return cls(value=json.loads(node.text))
+        return cls(value=value)
 
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         """Reconstruct expression."""
@@ -384,7 +384,7 @@ class NixExpression(NixObject):
         if isinstance(self.value, str):
             value_str = f'"{self.value}"'
         elif isinstance(self.value, bool):
-            value_str = f"true" if self.value else f"false"
+            value_str = "true" if self.value else "false"
         elif isinstance(self.value, int):
             value_str = f"{self.value}"
         else:
@@ -418,7 +418,7 @@ class NixList(NixExpression):
         """Reconstruct list."""
         before_str = self._format_trivia(self.before, indent=indent)
         after_str = self._format_trivia(self.after, indent=indent)
-        indented = indent + 2 if self.multiline else 0
+        indented = indent + 2 if self.multiline else indent
         indentation = " " * indented
 
         if not self.value:
