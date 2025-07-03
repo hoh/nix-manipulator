@@ -25,7 +25,7 @@ def parse_to_cst(node: Node):
     print("CLS", cls, node.__class__, node.type)
 
     if not cls:
-        raise ValueError(f"Unknown node type: {node.type}")
+        raise ValueError(f"Unknown node type: {node.type} {node}")
 
     obj = cls.from_cst(node)
 
