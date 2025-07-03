@@ -30,7 +30,7 @@ class NixObject(BaseModel):
     before: List[Any] = []
     after: List[Any] = []
 
-    def rebuild(self, indent: int = 0) -> str:
+    def rebuild(self, indent: int = 0, inline: bool=False) -> str:
         """Reconstruct the Nix source code for this object."""
         raise NotImplementedError
 
@@ -115,11 +115,12 @@ class NixIdentifier(NixObject):
     def __init__(self, name: str, **kwargs):
         super().__init__(name=name, **kwargs)
 
-    def rebuild(self, indent: int = 0) -> str:
+    def rebuild(self, indent: int = 0, inline: bool=False) -> str:
         """Reconstruct identifier."""
         before_str = self._format_trivia(self.before, indent=indent)
         after_str = self._format_trivia(self.after, indent=indent)
-        indentation = " " * indent
+        indentation = " " * indent if not inline else ""
+        print("ID", [self.name, self.before, before_str, indent, inline])
         return f"{before_str}{indentation}{self.name}{after_str}"
 
 
@@ -175,7 +176,7 @@ class NixBinding(NixObject):
     def __init__(self, name: str, value, **kwargs: Any):
         super().__init__(name=name, value=value, **kwargs)
 
-    def rebuild(self, indent: int = 0) -> str:
+    def rebuild(self, indent: int = 0, inline: bool=False) -> str:
         """Reconstruct binding."""
         before_str = self._format_trivia(self.before, indent=indent)
         after_str = self._format_trivia(self.after, indent=indent)
@@ -185,7 +186,7 @@ class NixBinding(NixObject):
         print("BINDING", [self.name, self.value, self.before, before_str, indent])
 
         if isinstance(self.value, NixObject):
-            value_str = self.value.rebuild(indent=0)
+            value_str = self.value.rebuild(indent=0, inline=True)
         elif isinstance(self.value, str):
             value_str = f'"{self.value}"'
         elif isinstance(self.value, bool):
@@ -282,7 +283,7 @@ class NixAttributeSet(NixObject):
 
         return cls(values=values)
 
-    def rebuild(self, indent: int = 0) -> str:
+    def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         """Reconstruct attribute set."""
         indented = indent + 2
         before_str = self._format_trivia(self.before, indent=indented)
@@ -292,7 +293,7 @@ class NixAttributeSet(NixObject):
             return f"{before_str}{{ }}{after_str}"
 
         bindings_str = "\n".join(
-            [value.rebuild(indent=indented) for value in self.values]
+            [value.rebuild(indent=indented, inline=inline) for value in self.values]
         )
         return (
             f"{before_str}{{" + f"\n{bindings_str}\n" + " " * indent + f"}}{after_str}"
@@ -321,7 +322,7 @@ class FunctionCall(NixObject):
                 recursive = True
         return cls(name=name, argument=argument, recursive=recursive)
 
-    def rebuild(self, indent: int = 0) -> str:
+    def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         """Reconstruct function call."""
         indented = indent + 2
         before_str = self._format_trivia(self.before, indent=indented)
@@ -362,7 +363,7 @@ class NixExpression(NixObject):
             raise ValueError(f"Unsupported expression type: {node.type}")
         return cls(value=json.loads(node.text))
 
-    def rebuild(self, indent: int = 0) -> str:
+    def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         """Reconstruct expression."""
         before_str = self._format_trivia(self.before, indent=indent)
         after_str = self._format_trivia(self.after, indent=indent)
@@ -402,7 +403,7 @@ class NixList(NixExpression):
         ]
         return cls(value=value, multiline=multiline)
 
-    def rebuild(self, indent: int = 0) -> str:
+    def rebuild(self, indent: int = 0, inline: bool=False) -> str:
         """Reconstruct list."""
         before_str = self._format_trivia(self.before, indent=indent)
         after_str = self._format_trivia(self.after, indent=indent)
@@ -415,9 +416,11 @@ class NixList(NixExpression):
         items = []
         for item in self.value:
             if isinstance(item, NixExpression):
-                items.append(f"{indentation}{item.rebuild(indent=indented)}")
+                items.append(f"{item.rebuild(indent=indent if inline else indented)}")
+            elif isinstance(item, NixIdentifier):
+                items.append(f"{item.rebuild(indent=indented if (inline or self.multiline) else indented, inline=not self.multiline)}")
             elif isinstance(item, NixObject):
-                items.append(f"{item.rebuild(indent=indented)}")
+                items.append(f"{item.rebuild(indent=indent if inline else indented)}")
             elif isinstance(item, str):
                 items.append(f'{indentation}"{item}"')
             elif isinstance(item, bool):
@@ -431,9 +434,10 @@ class NixList(NixExpression):
 
         if self.multiline:
             # Add proper indentation for multiline lists
-            indented_items = [f"{item}" for item in items]
-            items_str = "\n".join(indented_items)
-            return f"{before_str}" + " " * indent + f"[\n{items_str}\n" + " " * indent + f"]{after_str}"
+            items_str = "\n".join(items)
+            print("item_str", [items_str])
+            indentor = "" if inline else (" " * indent)
+            return f"{before_str}" + indentor + f"[\n{items_str}\n" + indentor + f"]{after_str}"
         else:
             items_str = " ".join(items)
             return f"{before_str}[ {items_str} ]{after_str}"
@@ -446,7 +450,7 @@ class NixWith(NixObject):
     expression: NixIdentifier
     attributes: List[NixIdentifier] = []
 
-    def rebuild(self, indent: int = 0) -> str:
+    def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         """Reconstruct with expression."""
         before_str = self._format_trivia(self.before, indent=indent)
         after_str = self._format_trivia(self.after, indent=indent)
