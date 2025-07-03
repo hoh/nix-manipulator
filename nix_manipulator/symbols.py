@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Dict, List, Union, Any
+from typing import Dict, List, Union, Any, Optional
 
 from pydantic import BaseModel
 from tree_sitter import Node
@@ -30,6 +30,11 @@ class NixObject(BaseModel):
     before: List[Any] = []
     after: List[Any] = []
 
+    @classmethod
+    def from_cst(cls, node: Node):
+        """Construct an object from a CST node."""
+        raise NotImplementedError
+
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         """Reconstruct the Nix source code for this object."""
         raise NotImplementedError
@@ -50,6 +55,25 @@ class NixObject(BaseModel):
                 raise NotImplementedError(f"Unsupported trivia item: {item}")
                 # result += str(item)
         return result
+
+
+class NixSourceCode(NixObject):
+    def __init__(self, node, value):
+        self.node = node
+        self.value = value
+
+    @classmethod
+    def from_cst(cls, node: Node):
+        from nix_manipulator.cst.parser import parse_to_cst
+
+        value = [parse_to_cst(obj) for obj in node.children]
+        return cls(node, value)
+
+    def rebuild(self):
+        return "".join(obj.rebuild() for obj in self.value)
+
+    def __repr__(self):
+        return f"NixSourceCode(\n  node={self.node}, \n  value={self.value}\n)"
 
 
 class FunctionDefinition(NixObject):
@@ -132,6 +156,8 @@ class Comment(NixObject):
     @classmethod
     def from_cst(cls, node: Node):
         print("C", node, node.type, dir(node), node.text)
+        if node.text is None:
+            raise ValueError("Missing comment")
         text = node.text.decode()
         if text.startswith("#"):
             text = text[1:]
@@ -170,9 +196,6 @@ class NixBinding(NixObject):
     name: str
     value: Union[NixObject, str, int, bool]
 
-    def __init__(self, name: str, value, **kwargs: Any):
-        super().__init__(name=name, value=value, **kwargs)
-
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         """Reconstruct binding."""
         before_str = self._format_trivia(self.before, indent=indent)
@@ -197,7 +220,11 @@ class NixBinding(NixObject):
         return f"{before_str}{indented_line}{after_str}"
 
     @classmethod
-    def from_cst(cls, node: Node, before: List[Any] = [], after: List[Any] = []):
+    def from_cst(cls, node: Node, before: List[Any] | None = None, after: List[Any] | None = None):
+
+        before = before or []
+        after = after or []
+
         print("B", node, node.type, dir(node), node.text)
         print(len(node.children), node.children)
         children = (
@@ -212,14 +239,15 @@ class NixBinding(NixObject):
                 value = NixExpression(value=json.loads(child.text.decode()))
             elif child.type == "integer_expression":
                 value = NixExpression(value=int(child.text.decode()))
-            elif child.type == "identifier":
-                print("X", child, child.type, dir(child), child.text)
-                for attr in dir(child):
-                    print("-", attr, "=", getattr(child, attr))
-                name = child.text.decode()
-                value = "FAKE"
+            # elif child.type == "identifier":
+            #     print("X", child, child.type, dir(child), child.text)
+            #     for attr in dir(child):
+            #         print("-", attr, "=", getattr(child, attr))
+            #     name = child.text.decode()
+            #     value = "FAKE"
             else:
                 raise ValueError(f"Unsupported child node: {child}")
+
         return cls(name=name, value=value, before=before, after=after)
 
 
@@ -230,7 +258,7 @@ class NixAttributeSet(NixObject):
     def from_dict(cls, values: Dict[str, NixObject]):
         values_list = []
         for key, value in values.items():
-            values_list.append(NixBinding(key, value))
+            values_list.append(NixBinding(name=key, value=value))
         return cls(values=values_list)
 
     @classmethod
@@ -292,20 +320,19 @@ class NixAttributeSet(NixObject):
 
 class FunctionCall(NixObject):
     name: str
-    argument: NixAttributeSet = None
+    argument: Optional[NixAttributeSet] = None
     recursive: bool = False
 
     @classmethod
     def from_cst(cls, node: Node):
-        print("F", node, node.type, dir(node), node.text)
-        name = node.text
+        if not node.text:
+            raise ValueError("Missing function name")
+        name = node.text.decode()
         argument = None
         recursive = False
         for child in node.children:
-            print("C", child, child.type, dir(child), child.text)
             if child.type == "select_expression":
                 name = child.text.decode()
-                print(f"name = {name}")
             elif child.type == "attrset_expression":
                 argument = NixAttributeSet.from_cst(child)
             elif child.type == "rec":
@@ -351,6 +378,9 @@ class NixExpression(NixObject):
 
     @classmethod
     def from_cst(cls, node: Node):
+        if node.text is None:
+            raise ValueError("Missing expression")
+
         print("N", node, node.type, dir(node), node.text)
         if node.type == "string_expression":
             value = json.loads(node.text)
@@ -385,16 +415,15 @@ class NixExpression(NixObject):
         return f"NixExpression(\nvalue={self.value} type={type(self.value)}\n)"
 
 
-class NixList(NixExpression):
+class NixList(NixObject):
     value: List[Union[NixObject, str, int, bool]]
     multiline: bool = True
-
-    def __init__(self, value, multiline: bool = True, **kwargs):
-        super().__init__(value=value, multiline=multiline, **kwargs)
 
     @classmethod
     def from_cst(cls, node: Node):
         from nix_manipulator.cst.parser import parse_to_cst
+        if node.text is None:
+            raise ValueError("List has no code")
 
         multiline = b"\n" in node.text
 

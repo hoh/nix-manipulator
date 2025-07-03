@@ -49,11 +49,11 @@ nixpkgs_trl_default = FunctionDefinition(
         recursive=True,
         argument=NixAttributeSet(
             values=[
-                NixBinding("pname", "trl"),
-                NixBinding("version", "0.19.0"),
+                NixBinding(name="pname", value="trl"),
+                NixBinding(name="version", value="0.19.0"),
                 NixBinding(
-                    "pyproject",
-                    NixExpression(
+                    name="pyproject",
+                    value=NixExpression(
                         value=True,
                     ),
                     before=[
@@ -61,8 +61,8 @@ nixpkgs_trl_default = FunctionDefinition(
                     ],
                 ),
                 NixBinding(
-                    "src",
-                    FunctionCall(
+                    name="src",
+                    value=FunctionCall(
                         name="fetchFromGitHub",
                         argument=NixAttributeSet(
                             values=[
@@ -73,11 +73,11 @@ nixpkgs_trl_default = FunctionDefinition(
                                         Comment(text="Something cool"),
                                     ],
                                 ),
-                                NixBinding("repo", "trl"),
-                                NixBinding("tag", "v${version}"),
+                                NixBinding(name="repo", value="trl"),
+                                NixBinding(name="tag", value="v${version}"),
                                 NixBinding(
-                                    "hash",
-                                    "sha256-TlTq3tIQfNuI+CPvIy/qPFiKPhoSQd7g7FDj4F7C3CQ=",
+                                    name="hash",
+                                    value="sha256-TlTq3tIQfNuI+CPvIy/qPFiKPhoSQd7g7FDj4F7C3CQ=",
                                 ),
                             ]
                         ),
@@ -85,8 +85,8 @@ nixpkgs_trl_default = FunctionDefinition(
                     before=[empty_line],
                 ),
                 NixBinding(
-                    "build-system",
-                    NixList(
+                    name="build-system",
+                    value=NixList(
                         value=[
                             NixIdentifier(name="setuptools"),
                             NixIdentifier(name="setuptools-scm"),
@@ -95,8 +95,8 @@ nixpkgs_trl_default = FunctionDefinition(
                     before=[empty_line],
                 ),
                 NixBinding(
-                    "dependencies",
-                    NixList(
+                    name="dependencies",
+                    value=NixList(
                         value=[
                             NixIdentifier(name="acc"),
                             NixIdentifier(name="datasets"),
@@ -113,8 +113,8 @@ nixpkgs_trl_default = FunctionDefinition(
                     ],
                 ),
                 NixBinding(
-                    "doCheck",
-                    NixExpression(
+                    name="doCheck",
+                    value=NixExpression(
                         value=False,
                     ),
                     before=[
@@ -123,16 +123,16 @@ nixpkgs_trl_default = FunctionDefinition(
                     ],
                 ),
                 NixBinding(
-                    "pythonImportsCheck",
-                    NixList(
+                    name="pythonImportsCheck",
+                    value=NixList(
                         value=["trl"],
                         multiline=False,
                     ),
                     before=[empty_line],
                 ),
                 NixBinding(
-                    "meta",
-                    NixAttributeSet.from_dict(
+                    name="meta",
+                    value=NixAttributeSet.from_dict(
                         {
                             "description": "Train transformer language models with reinforcement learning",
                             "homepage": "https://github.com/huggingface/trl",
