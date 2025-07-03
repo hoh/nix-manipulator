@@ -132,7 +132,12 @@ class Comment(NixObject):
     @classmethod
     def from_cst(cls, node: Node):
         print("C", node, node.type, dir(node), node.text)
-        return cls(text=node.text.decode())
+        text = node.text.decode()
+        if text.startswith("#"):
+            text = text[1:]
+            if text.startswith(" "):
+                text = text[1:]
+        return cls(text=text)
 
     def rebuild(self, indent: int = 0) -> str:
         return " " * indent + str(self) + "\n"
@@ -188,7 +193,7 @@ class NixBinding(NixObject):
         return f"{before_str}{indented_line}{after_str}"
 
     @classmethod
-    def from_cst(cls, node: Node):
+    def from_cst(cls, node: Node, before: List[Any] = [], after: List[Any] = []):
         print("B", node, node.type, dir(node), node.text)
         print(len(node.children), node.children)
         children = (
@@ -211,7 +216,7 @@ class NixBinding(NixObject):
                 value = "FAKE"
             else:
                 raise ValueError(f"Unsupported child node: {child}")
-        return cls(name=name, value=value)
+        return cls(name=name, value=value, before=before, after=after)
 
 
 class NixAttributeSet(NixObject):
@@ -239,13 +244,27 @@ class NixAttributeSet(NixObject):
                 continue
             elif child.type == "binding_set":
                 if child.named_children:
+                    comment = None
                     for grandchild in child.named_children:
                         if grandchild.type == "binding":
-                            values.append(
-                                NixBinding.from_cst(grandchild),
-                            )
+                            if not comment:
+                                values.append(
+                                    NixBinding.from_cst(grandchild),
+                                )
+                            else:
+                                values.append(
+                                    NixBinding.from_cst(grandchild, before=[comment]),
+                                )
+                                comment = None
+                                continue
+                        elif grandchild.type == "comment":
+                            comment = Comment.from_cst(grandchild)
+                            continue
                         else:
                             raise ValueError(f"Unknown binding child: {grandchild}")
+                    if comment:
+                        # No binding followed the comment so it could not be attached to it
+                        values[-1].after.append(comment)
                 else:
                     values.append(
                         NixBinding.from_cst(child),
@@ -319,6 +338,15 @@ class NixExpression(NixObject):
     def from_cst(cls, node: Node):
         print("N", node, node.type, dir(node), node.text)
         # return parse_to_cst(node)
+        if node.type == "string_expression":
+            value = json.loads(node.text)
+        elif node.type == "integer_expression":
+            value = int(node.text)
+        elif node.type == "variable_expression":
+            print("V", node, dir(node))
+            value = node.text == "true"
+        else:
+            raise ValueError(f"Unsupported expression type: {node.type}")
         return cls(value=json.loads(node.text))
 
     def rebuild(self, indent: int = 0) -> str:
@@ -336,6 +364,9 @@ class NixExpression(NixObject):
             value_str = str(self.value)
 
         return f"{before_str}{value_str}{after_str}"
+
+    def __repr__(self):
+        return f"NixExpression(\nvalue={self.value} type={type(self.value)}\n)"
 
 
 class NixList(NixExpression):
@@ -382,6 +413,9 @@ class NixList(NixExpression):
         else:
             items_str = " ".join(items)
             return f"{before_str}[ {items_str} ]{after_str}"
+
+    def __repr__(self):
+        return f"NixList(\nvalue={self.value}\n)"
 
 
 class NixWith(NixObject):

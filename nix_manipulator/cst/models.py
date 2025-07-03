@@ -26,6 +26,9 @@ class NixSourceCode:
     def rebuild(self):
         return "".join(obj.rebuild() for obj in self.value)
 
+    def __repr__(self):
+        return f"NixSourceCode(\n  node={self.node}, \n  value={self.value}\n)"
+
 
 NODE_TYPE_TO_CLASS = {
     # "comment": NixComment,
@@ -44,4 +47,5 @@ NODE_TYPE_TO_CLASS = {
     "comment": Comment,
     "string_expression": NixExpression,
     "function_expression": FunctionDefinition,
+    "variable_expression": NixExpression,
 }
