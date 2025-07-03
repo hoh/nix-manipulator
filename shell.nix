@@ -13,5 +13,10 @@ let
     ps.ruff
     ps.pytest
   ]);
-in pkgs.mkShell { packages = [ pkgs.tree-sitter pyEnv ]; }
+in pkgs.mkShell {
+  packages = [ pkgs.tree-sitter pyEnv ];
+  shellHook = ''
+    PYTHONPATH=$(pwd)
+  '';
+}
 
