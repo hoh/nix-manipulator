@@ -115,8 +115,8 @@ def test_nix_binding():
 
 
 def test_nix_comment():
-    assert Comment(text="foo").rebuild() == "# foo\n"
-    assert Comment(text="foo\nbar").rebuild() == "# foo\n# bar\n"
+    assert Comment(text="foo").rebuild() == "# foo"
+    assert Comment(text="foo\nbar").rebuild() == "# foo\n# bar"
     assert (
         NixExpression(
             value=True,

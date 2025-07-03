@@ -29,7 +29,7 @@ def test_rebuild_number():
 
 
 def test_rebuild_list():
-    source = "[\n  1\n  2\n  3\n]"
+    source = "[\n  1\n  2\n  true\n  false\n]"
     assert source == parse_and_rebuild(source)
 
 
@@ -69,9 +69,10 @@ builtins.fetchFromGitHub {
 def test_rebuild_list_with_comment():
     source = """
 [
-    1
-    true
-    3
+  1
+  2
+  # Comment
+  3
 ]
 """.strip("\n")
     assert source == parse_and_rebuild(source)

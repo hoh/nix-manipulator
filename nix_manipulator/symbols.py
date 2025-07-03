@@ -45,7 +45,7 @@ class NixObject(BaseModel):
             elif item is comma:
                 result += ","
             elif isinstance(item, (Comment, MultilineComment)):
-                result += item.rebuild(indent=indent)
+                result += item.rebuild(indent=indent) + "\n"
             else:
                 raise NotImplementedError(f"Unsupported trivia item: {item}")
                 # result += str(item)
@@ -119,7 +119,8 @@ class NixIdentifier(NixObject):
         """Reconstruct identifier."""
         before_str = self._format_trivia(self.before, indent=indent)
         after_str = self._format_trivia(self.after, indent=indent)
-        return f"{before_str}{self.name}{after_str}"
+        indentation = " " * indent
+        return f"{before_str}{indentation}{self.name}{after_str}"
 
 
 class Comment(NixObject):
@@ -140,7 +141,8 @@ class Comment(NixObject):
         return cls(text=text)
 
     def rebuild(self, indent: int = 0) -> str:
-        return " " * indent + str(self) + "\n"
+        print("INN DENT", indent, [self.text])
+        return " " * indent + str(self)
 
 
 class MultilineComment(Comment):
@@ -177,9 +179,13 @@ class NixBinding(NixObject):
         """Reconstruct binding."""
         before_str = self._format_trivia(self.before, indent=indent)
         after_str = self._format_trivia(self.after, indent=indent)
+        indented = indent + 2
+        indentation = " " * indented
+
+        print("BINDING", [self.name, self.value, self.before, before_str, indent])
 
         if isinstance(self.value, NixObject):
-            value_str = self.value.rebuild(indent=indent)
+            value_str = self.value.rebuild(indent=0)
         elif isinstance(self.value, str):
             value_str = f'"{self.value}"'
         elif isinstance(self.value, bool):
@@ -189,6 +195,8 @@ class NixBinding(NixObject):
 
         # Apply indentation to the entire binding, not just the value
         indented_line = " " * indent + f"{self.name} = {value_str};"
+
+        print("BINDING RESULT", [f"{before_str}{indented_line}{after_str}"])
 
         return f"{before_str}{indented_line}{after_str}"
 
@@ -318,17 +326,22 @@ class FunctionCall(NixObject):
         indented = indent + 2
         before_str = self._format_trivia(self.before, indent=indented)
         after_str = self._format_trivia(self.after, indent=indented)
+        indentation = " " * indent
+
+        print("FC", [self.name, self.argument, self.recursive, self.before, before_str, indent, indentation])
 
         if not self.argument:
-            return f"{before_str}{self.name}{after_str}"
+            return f"{before_str}{indentation}{self.name}{after_str}"
 
         args = []
         for binding in self.argument.values:
             args.append(binding.rebuild(indent=indented))
 
-        args_str: str = " {\n" + "\n".join(args) + "\n" + " " * indent + "}"
+        indented_items = [f"{item}" for item in args]
+        args_str = " {\n" + "\n".join(indented_items) + "\n" + " " * indent + "}"
+
         rec_str = " rec" if self.recursive else ""
-        return f"{before_str}{self.name}{rec_str}{args_str}{after_str}"
+        return f"{before_str}{indentation}{self.name}{rec_str}{args_str}{after_str}"
 
 
 class NixExpression(NixObject):
@@ -354,16 +367,18 @@ class NixExpression(NixObject):
         before_str = self._format_trivia(self.before, indent=indent)
         after_str = self._format_trivia(self.after, indent=indent)
 
-        if isinstance(self.value, NixObject):
-            value_str = self.value.rebuild(indent=indent)
-        elif isinstance(self.value, str):
+        indentation = " " * indent
+
+        if isinstance(self.value, str):
             value_str = f'"{self.value}"'
         elif isinstance(self.value, bool):
-            value_str = "true" if self.value else "false"
+            value_str = f"true" if self.value else f"false"
+        elif isinstance(self.value, int):
+            value_str = f"{self.value}"
         else:
-            value_str = str(self.value)
+            raise ValueError(f"Unsupported expression type: {type(self.value)}")
 
-        return f"{before_str}{value_str}{after_str}"
+        return f"{before_str}{indentation}{value_str}{after_str}"
 
     def __repr__(self):
         return f"NixExpression(\nvalue={self.value} type={type(self.value)}\n)"
@@ -380,36 +395,45 @@ class NixList(NixExpression):
     def from_cst(cls, node: Node):
         from nix_manipulator.cst.parser import parse_to_cst
 
+        multiline = b"\n" in node.text
+
         value = [
             parse_to_cst(obj) for obj in node.children if obj.type not in ("[", "]")
         ]
-        return cls(value=value)
+        return cls(value=value, multiline=multiline)
 
     def rebuild(self, indent: int = 0) -> str:
         """Reconstruct list."""
-        indented = indent + 2
-        before_str = self._format_trivia(self.before, indent=indented)
-        after_str = self._format_trivia(self.after, indent=indented)
+        before_str = self._format_trivia(self.before, indent=indent)
+        after_str = self._format_trivia(self.after, indent=indent)
+        indented = indent + 2 if self.multiline else 0
+        indentation = " " * indented
 
         if not self.value:
             return f"{before_str}[]{after_str}"
 
         items = []
         for item in self.value:
-            if isinstance(item, NixObject):
+            if isinstance(item, NixExpression):
+                items.append(f"{indentation}{item.rebuild(indent=indented)}")
+            elif isinstance(item, NixObject):
                 items.append(f"{item.rebuild(indent=indented)}")
             elif isinstance(item, str):
-                items.append(f'"{item}"')
+                items.append(f'{indentation}"{item}"')
             elif isinstance(item, bool):
-                items.append(f"{'true' if item else 'false'}")
+                items.append(f"{indentation}{'true' if item else 'false'}")
+            elif isinstance(item, int):
+                items.append(f"{indentation}{item}")
             else:
-                items.append(f"{str(item)}")
+                raise ValueError(f"Unsupported list item type: {type(item)}")
+
+        print("I", items, self.multiline, indented, [indentation], self.multiline)
 
         if self.multiline:
             # Add proper indentation for multiline lists
-            indented_items = [" " * indented + f"{item}" for item in items]
+            indented_items = [f"{item}" for item in items]
             items_str = "\n".join(indented_items)
-            return f"{before_str}[\n{items_str}\n" + " " * indent + f"]{after_str}"
+            return f"{before_str}" + " " * indent + f"[\n{items_str}\n" + " " * indent + f"]{after_str}"
         else:
             items_str = " ".join(items)
             return f"{before_str}[ {items_str} ]{after_str}"
