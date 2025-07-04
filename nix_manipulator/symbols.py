@@ -90,7 +90,7 @@ class NixSourceCode:
 class FunctionDefinition(NixObject):
     argument_set: List[NixIdentifier] = []
     argument_set_is_multiline: bool = True
-    break_after_semicolon: Optional[bool] = None
+    breaks_after_semicolon: Optional[int] = None
     let_statements: List[NixBinding] = []
     output: Union[NixAttributeSet, NixObject, None] = None
 
@@ -193,18 +193,18 @@ class FunctionDefinition(NixObject):
         after_semicolon: bytes = node.text[
             get_semicolon_index(node) : node.child_by_field_name("body").start_byte
         ]
-        break_after_semicolon: bool = after_semicolon == b"\n"  # or let_statements...
+        breaks_after_semicolon: int = after_semicolon.count(b"\n")  # or let_statements...
 
         print(
             dict(
                 argument_set=argument_set,
                 let_statements=let_statements,
                 output=output,
-                break_after_semicolon=break_after_semicolon,
+                breaks_after_semicolon=breaks_after_semicolon,
             )
         )
         return cls(
-            break_after_semicolon=break_after_semicolon,
+            breaks_after_semicolon=breaks_after_semicolon,
             argument_set=argument_set,
             let_statements=let_statements,
             output=output,
@@ -243,22 +243,23 @@ class FunctionDefinition(NixObject):
         # Build result)
         output_str = self.output.rebuild() if self.output else "{ }"
 
-        if self.let_statements:
-            break_after_semicolon = True
-        elif self.break_after_semicolon is not None:
-            break_after_semicolon = self.break_after_semicolon
+        breaks_after_semicolon: int
+        if self.breaks_after_semicolon is not None:
+            breaks_after_semicolon = self.breaks_after_semicolon
+        elif self.let_statements:
+            breaks_after_semicolon = 1
         else:
-            break_after_semicolon = self.let_statements or (
+            breaks_after_semicolon = 1 if self.let_statements or (
                 self.argument_set_is_multiline and len(self.argument_set) > 0
-            )
-        line_break = "\n" if break_after_semicolon is True else ""
+            ) else 0
+        line_break = "\n" * breaks_after_semicolon
 
         # Format the final string - use single line format when no arguments and no let statements
-        if not self.argument_set and not self.let_statements:
-            split = ": " if not line_break else ":\n"
+        if (not self.argument_set) and (not self.let_statements):
+            split = ": " if not line_break else ":" + line_break
             return f"{before_str}{args_str}{split}{output_str}{after_str}"
         else:
-            split = ": " if not line_break else ":\n"
+            split = ": " if not line_break else ":" + line_break
             return f"{before_str}{args_str}{split}{let_str}{output_str}{after_str}"
 
 
