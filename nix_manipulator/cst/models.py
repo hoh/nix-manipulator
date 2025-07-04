@@ -11,6 +11,7 @@ from nix_manipulator.symbols import (
     NixSourceCode,
     Primitive,
     NixSelect,
+    NixWith,
 )
 
 NODE_TYPE_TO_CLASS: dict[str, type[NixObject]] = {
@@ -25,4 +26,5 @@ NODE_TYPE_TO_CLASS: dict[str, type[NixObject]] = {
     "attrset_expression": NixAttributeSet,
     "binary_expression": NixBinaryExpression,
     "select_expression": NixSelect,
+    "with_expression": NixWith,
 }

@@ -139,8 +139,8 @@ nixpkgs_trl_default = FunctionDefinition(
                             "changelog": "https://github.com/huggingface/trl/releases/tag/${src.tag}",
                             "license": NixIdentifier(name="lib.licenses.asl20"),
                             "maintainers": NixWith(
-                                expression=NixIdentifier(name="lib.maintainers"),
-                                attributes=[NixIdentifier(name="hoh")],
+                                environment=NixIdentifier(name="lib.maintainers"),
+                                body=NixList(value=[NixIdentifier(name="hoh")], multiline=False),
                             ),
                         },
                     ),

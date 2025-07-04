@@ -375,8 +375,11 @@ class NixBinding(NixObject):
                 value = NixAttributeSet.from_cst(child)
             elif child.type == "apply_expression":
                 value = FunctionCall.from_cst(child)
+            elif child.type == "select_expression":
+                value = NixSelect.from_cst(child)
+            elif child.type == "with_expression":
+                value = NixWith.from_cst(child)
             else:
-                print("\n", [child.text.decode()], "\n")
                 raise ValueError(f"Unsupported child node: {child} {child.type}")
 
         return cls(name=name, value=value, before=before, after=after)
@@ -654,8 +657,31 @@ class NixList(NixObject):
 
 
 class NixWith(NixObject):
-    expression: NixIdentifier
-    attributes: List[NixIdentifier] = []
+    environment: NixObject
+    body: NixObject
+    multiline: bool = True
+
+    @classmethod
+    def from_cst(cls, node: Node):
+        print("W", node, node.type, dir(node), node.text)
+        environment_node = node.child_by_field_name("environment")
+        body_node = node.child_by_field_name("body")
+        multiline = b"\n" in node.text
+
+        print("M", body_node, [body_node.text])
+
+        from nix_manipulator.cst.models import NODE_TYPE_TO_CLASS
+
+        def parse_to_cst_(node: Node) -> NixObject:
+            assert node.type
+            node_class: type[NixObject] = NODE_TYPE_TO_CLASS[node.type]
+            return node_class.from_cst(node)
+
+        environment = parse_to_cst_(environment_node)
+        body = parse_to_cst_(body_node)
+        print(dict(environment=environment, body=body, multiline=multiline))
+        return cls(environment=environment, body=body, multiline=multiline)
+
 
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         """Reconstruct with expression."""
@@ -663,9 +689,12 @@ class NixWith(NixObject):
         after_str = self._format_trivia(self.after, indent=indent)
 
         # expr_str = self.expression.rebuild() if self.expression else ""
-        attrs_str = " ".join(attr.name for attr in self.attributes)
+        # attrs_str = " ".join(attr.name for attr in self.attributes)
 
-        return f"{before_str}with {self.expression.name}; [ {attrs_str} ]{after_str}"
+        environment_str = self.environment.rebuild(indent=indent, inline=True)
+        body_str = self.body.rebuild(indent=indent, inline=True)
+
+        return f"{before_str}with {environment_str}; {body_str}{after_str}"
 
 
 class NixExpression(NixObject):

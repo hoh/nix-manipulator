@@ -185,3 +185,18 @@ def test_select():
 def test_select_three_levels():
     source = "foo.bar.zoo"
     assert source == parse_and_rebuild(source)
+
+
+def test_nix_with():
+    source = "with lib.maintainers; [ hoh ]"
+    assert source == parse_and_rebuild(source)
+
+
+def test_nix_with_multiple_attributes():
+    source = "with lib.maintainers; [ hoh mic92 ]"
+    assert source == parse_and_rebuild(source)
+
+
+def test_nix_with_using_selectors():
+    source = "with lib.maintainers; [ foo.bar ]"
+    assert source == parse_and_rebuild(source)

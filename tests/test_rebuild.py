@@ -70,8 +70,8 @@ def test_rebuild_nix_list_multiline_not_specified():
 def test_nix_with():
     assert (
         NixWith(
-            expression=NixIdentifier(name="lib.maintainers"),
-            attributes=[NixIdentifier(name="hoh")],
+            environment=NixIdentifier(name="lib.maintainers"),
+            body=NixList(value=[NixIdentifier(name="hoh")], multiline=False),
         ).rebuild()
         == "with lib.maintainers; [ hoh ]"
     )
@@ -80,11 +80,9 @@ def test_nix_with():
 def test_nix_with_multiple_attributes():
     assert (
         NixWith(
-            expression=NixIdentifier(name="lib.maintainers"),
-            attributes=[
-                NixIdentifier(name="hoh"),
-                NixIdentifier(name="mic92"),
-            ],
+            environment=NixIdentifier(name="lib.maintainers"),
+            body=NixList(value=[NixIdentifier(name="hoh"), NixIdentifier(name="mic92")],
+                         multiline=False),
         ).rebuild()
         == "with lib.maintainers; [ hoh mic92 ]"
     )
