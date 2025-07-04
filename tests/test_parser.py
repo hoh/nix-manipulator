@@ -222,3 +222,22 @@ def test_nix_function_definition_empty_lines_in_argument_set():
     assert source == parse_and_rebuild(source)
 
 
+def test_nix_function_definition_empty_lines_in_output_set():
+    source = """
+{
+  pkgs,
+}:
+{
+  # Packages
+  pkgs = pkgs;
+
+  # Some integers...
+  a = 2;
+  b = "3";
+
+  # Finishing here.
+}
+""".strip("\n")
+    assert source == parse_and_rebuild(source)
+
+

@@ -141,7 +141,6 @@ class FunctionDefinition(NixObject):
                             if re.match(r"[ ]*\n[ ]*\n[ ]*", gap):
                                 before.append(empty_line)
                                 is_empty_line = True
-                            print("GAP", previous_child.end_byte, child.start_byte, [gap], [child.text], is_empty_line)
 
                         argument_set.append(
                             NixIdentifier.from_cst(grandchild, before=before)
@@ -355,9 +354,12 @@ class NixBinding(NixObject):
         # Apply indentation to the entire binding, not just the value
         indented_line = indentation + f"{self.name} = {value_str};"
 
+        if self.after and self.after[-1] != linebreak and after_str[-1] == "\n":
+            after_str = after_str[:-1]
+
         print("BINDING RESULT", [f"{before_str}{indented_line}{after_str}"])
 
-        return f"{before_str}{indented_line}{after_str}"
+        return f"{before_str}{indented_line}" + (f"\n{after_str}" if after_str else "")
 
     @classmethod
     def from_cst(
@@ -418,49 +420,56 @@ class NixAttributeSet(NixObject):
         return cls(values=values_list)
 
     @classmethod
-    def from_cst(cls, node: Node):
-        print("A", node, node.type, dir(node), node.text)
+    def from_cst(cls, node: Node) -> "NixAttributeSet":
+        """
+        Parse an attr-set, preserving comments and blank lines.
+
+        Handles both the outer `attrset_expression` and the inner
+        `binding_set` wrapper that tree-sitter-nix inserts.
+        """
         multiline = b"\n" in node.text
-        values = []
-        for child in node.children:
-            print("C", child, child.type, dir(child), child.text)
-            if child.type in ("{", "}", "rec"):
-                continue
-            elif child.type == "binding_set":
-                if child.named_children:
-                    comment = None
-                    for grandchild in child.named_children:
-                        if grandchild.type == "binding":
-                            if not comment:
-                                values.append(
-                                    NixBinding.from_cst(grandchild),
-                                )
-                            else:
-                                values.append(
-                                    NixBinding.from_cst(grandchild, before=[comment]),
-                                )
-                                comment = None
-                                continue
-                        elif grandchild.type == "comment":
-                            comment = Comment.from_cst(grandchild)
-                            continue
-                        else:
-                            raise ValueError(f"Unknown binding child: {grandchild}")
-                    if comment:
-                        # No binding followed the comment so it could not be attached to it
-                        values[-1].after.append(comment)
-                else:
-                    values.append(
-                        NixBinding.from_cst(child),
-                    )
-            elif child.type == "variable_expression":
-                # Used for function calls
-                print("VV", [child, child.children])
-                attrset_expression = node.child_by_field_name("argument")
-                values.append(FunctionCall.from_cst(child))
+        values: list[NixBinding] = []
+        before: list[Any] = []
+
+        def push_gap(prev: Optional[Node], cur: Node) -> None:
+            """Detect an empty line between *prev* and *cur*."""
+            if prev is None:
+                return
+            start = prev.end_byte - node.start_byte
+            end = cur.start_byte - node.start_byte
+            gap = node.text[start:end].decode()
+            if re.search(r"\n[ \t]*\n", gap):
+                before.append(empty_line)
+
+        # Flatten content: unwrap `binding_set` if present
+        content_nodes: list[Node] = []
+        for child in node.named_children:
+            if child.type == "binding_set":
+                content_nodes.extend(child.named_children)
             else:
-                print("X", child, child.type, child.text.decode())
-                raise ValueError(f"Unsupported child node: {child} {child.type} {child.text.decode()}")
+                content_nodes.append(child)
+
+        prev_content: Optional[Node] = None
+        for child in content_nodes:
+            if child.type in ("binding", "comment", "variable_expression"):
+                push_gap(prev_content, child)
+
+                if child.type == "binding":
+                    values.append(NixBinding.from_cst(child, before=before))
+                    before = []
+                elif child.type == "comment":
+                    before.append(Comment.from_cst(child))
+                else:  # variable_expression – a function call
+                    values.append(FunctionCall.from_cst(child, before=before))
+                    before = []
+
+                prev_content = child
+            else:
+                raise ValueError(f"Unsupported attrset child: {child.type}")
+
+        # Attach dangling trivia to the last binding
+        if before and values:
+            values[-1].after.extend(before)
 
         return cls(values=values, multiline=multiline)
 
@@ -497,7 +506,7 @@ class FunctionCall(NixObject):
     multiline: bool = True
 
     @classmethod
-    def from_cst(cls, node: Node):
+    def from_cst(cls, node: Node, before: List[Any] | None = None, after: List[Any] | None = None):
         multiline = b"\n" in node.text
 
         if not node.text:
@@ -522,7 +531,8 @@ class FunctionCall(NixObject):
         #     else:
         #         raise ValueError(f"Unsupported child node: {child} {child.type}")
         return cls(
-            name=name, argument=argument, recursive=recursive, multiline=multiline
+            name=name, argument=argument, recursive=recursive, multiline=multiline,
+            before=before or [], after=after or []
         )
 
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:
