@@ -207,13 +207,13 @@ class NixBinding(NixObject):
         print("BINDING", [self.name, self.value, self.before, before_str, indent])
 
         if isinstance(self.value, NixObject):
-            value_str = self.value.rebuild(indent=0, inline=True)
+            value_str = self.value.rebuild(indent=indent, inline=True)
         elif isinstance(self.value, str):
             value_str = f'"{self.value}"'
         elif isinstance(self.value, bool):
             value_str = "true" if self.value else "false"
         else:
-            value_str = str(self.value)
+            raise ValueError(f"Unsupported value type: {type(self.value)}")
 
         # Apply indentation to the entire binding, not just the value
         indented_line = " " * indent + f"{self.name} = {value_str};"
@@ -402,7 +402,7 @@ class NixExpression(NixObject):
         before_str = self._format_trivia(self.before, indent=indent)
         after_str = self._format_trivia(self.after, indent=indent)
 
-        indentation = " " * indent
+        indentation = "" if inline else " " * indent
 
         if isinstance(self.value, str):
             value_str = f'"{self.value}"'
@@ -477,7 +477,7 @@ class NixList(NixObject):
                 f"{before_str}"
                 + indentor
                 + f"[\n{items_str}\n"
-                + indentor
+                + " " * indent
                 + f"]{after_str}"
             )
         else:

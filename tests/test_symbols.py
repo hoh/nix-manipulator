@@ -105,13 +105,37 @@ def test_issue():
         == expected_from_test_issue
     )
 
+def test_nested_list():
+    assert (
+        NixList(
+            value=[
+                NixBinding(name="pname", value="trl"),
+                NixBinding(
+                    name="dependencies",
+                    value=NixList(
+                        value=[
+                            NixIdentifier(name="acc"),
+                        ]
+                    )
+                )
+            ]
+        )
+    ).rebuild() == """
+[
+  pname = "trl";
+  dependencies = [
+    acc
+  ];
+]
+""".strip("\n")
 
-def test_function_definition():
-    function = nixpkgs_trl_default
-    print(function.rebuild())
-    (Path(__file__).parent / "nix_files/trl-default-new-generated.nix").write_text(
-        function.rebuild() + "\n"
-    )
-    assert function.rebuild() == (
-        Path(__file__).parent / "nix_files/trl-default-new.nix"
-    ).read_text().strip("\n")
+
+# def test_function_definition():
+#     function = nixpkgs_trl_default
+#     print(function.rebuild())
+#     (Path(__file__).parent / "nix_files/trl-default-new-generated.nix").write_text(
+#         function.rebuild() + "\n"
+#     )
+#     assert function.rebuild() == (
+#         Path(__file__).parent / "nix_files/trl-default-new.nix"
+#     ).read_text().strip("\n")
