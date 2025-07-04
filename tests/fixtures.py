@@ -1,15 +1,15 @@
 from nix_manipulator.symbols import (
-    FunctionDefinition,
+    Comment,
     FunctionCall,
-    NixIdentifier,
-    NixList,
+    FunctionDefinition,
+    MultilineComment,
     NixAttributeSet,
-    NixWith,
     NixBinding,
     NixExpression,
-    Comment,
+    NixIdentifier,
+    NixList,
+    NixWith,
     empty_line,
-    MultilineComment,
 )
 
 nixpkgs_trl_default = FunctionDefinition(
