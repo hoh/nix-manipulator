@@ -129,7 +129,9 @@ def test_nix_comment():
     )
 
     assert (
-        NixBinding(name="alice", value="bob", before=[Comment(text="This is a comment")]).rebuild()
+        NixBinding(
+            name="alice", value="bob", before=[Comment(text="This is a comment")]
+        ).rebuild()
         == '# This is a comment\nalice = "bob";'
     )
 
@@ -194,7 +196,11 @@ def test_nix_function_definition():
             argument_set=[],
             let_statements=[
                 NixBinding(name="foo", value=NixIdentifier(name="bar")),
-                NixBinding(name="alice", value="bob", before=[Comment(text="This is a comment")]),
+                NixBinding(
+                    name="alice",
+                    value="bob",
+                    before=[Comment(text="This is a comment")],
+                ),
             ],
             result=NixAttributeSet(values=[]),
         ).rebuild()
@@ -206,7 +212,11 @@ def test_nix_function_definition():
             argument_set=[],
             let_statements=[
                 NixBinding(name="foo", value=NixIdentifier(name="bar")),
-                NixBinding(name="alice", value="bob", before=[Comment(text="This is a comment")]),
+                NixBinding(
+                    name="alice",
+                    value="bob",
+                    before=[Comment(text="This is a comment")],
+                ),
             ],
             result=NixAttributeSet(values=[]),
         ).rebuild()
