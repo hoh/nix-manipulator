@@ -8,8 +8,8 @@ from nix_manipulator.symbols import (
     NixBinding,
     NixIdentifier,
     NixList,
-    empty_line,
     Primitive,
+    empty_line,
 )
 
 from .fixtures import nixpkgs_trl_default

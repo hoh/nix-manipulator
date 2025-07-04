@@ -29,7 +29,8 @@ comma = Comma()
 
 class NixObject(BaseModel):
     """Base class for all Nix objects."""
-    model_config = ConfigDict(extra = 'forbid')
+
+    model_config = ConfigDict(extra="forbid")
 
     before: List[Any] = []
     after: List[Any] = []
@@ -96,30 +97,42 @@ class FunctionDefinition(NixObject):
         for child in node.children:
             print("C", child, [child.type], dir(child), child.text)
 
-        print("FORMALS", node.child_by_field_name('formals'))
+        print("FORMALS", node.child_by_field_name("formals"))
 
         children_types = [child.type for child in node.children]
-        assert children_types == ["formals", ":", "attrset_expression"], f"Output other than attrset_expression not supported yet. You used {children_types}"
+        assert children_types == ["formals", ":", "attrset_expression"], (
+            f"Output other than attrset_expression not supported yet. You used {children_types}"
+        )
 
         argument_set = []
-        argument_set_is_multiline = b"\n" in node.child_by_field_name('formals').text
-        for child in node.child_by_field_name('formals').children:
+        argument_set_is_multiline = b"\n" in node.child_by_field_name("formals").text
+        for child in node.child_by_field_name("formals").children:
             print("F", child, [child.type], dir(child), child.text)
             if child.type in ("{", "}", ","):
                 continue
             elif child.type == "formal":
                 print("FF", child.children)
                 for grandchild in child.children:
-                    print("GF", grandchild, [grandchild.type], dir(grandchild), grandchild.text)
+                    print(
+                        "GF",
+                        grandchild,
+                        [grandchild.type],
+                        dir(grandchild),
+                        grandchild.text,
+                    )
                     if grandchild.type == "identifier":
                         if grandchild.text == b"":
                             # Trailing commas add a "MISSING identifier" element with body b""
                             continue
                         argument_set.append(NixIdentifier.from_cst(grandchild))
                     else:
-                        raise ValueError(f"Unsupported child node: {grandchild} {grandchild.type}")
+                        raise ValueError(
+                            f"Unsupported child node: {grandchild} {grandchild.type}"
+                        )
             elif child.type == "ERROR" and child.text == b",":
-                logger.debug("Trailing commas are RFC compliant but add a 'ERROR' element...")
+                logger.debug(
+                    "Trailing commas are RFC compliant but add a 'ERROR' element..."
+                )
                 continue
             else:
                 raise ValueError(f"Unsupported child node: {child} {child.type}")
@@ -134,11 +147,26 @@ class FunctionDefinition(NixObject):
                     return child.end_byte
             return -1
 
-        after_semicolon: bytes = node.text[get_semicolon_index(node) : node.child_by_field_name("body").start_byte]
-        break_after_semicolon: bool = (after_semicolon == b"\n") # or let_statements...
+        after_semicolon: bytes = node.text[
+            get_semicolon_index(node) : node.child_by_field_name("body").start_byte
+        ]
+        break_after_semicolon: bool = after_semicolon == b"\n"  # or let_statements...
 
-        print(dict(argument_set=argument_set, let_statements=let_statements, output=output, break_after_semicolon = break_after_semicolon))
-        return cls(break_after_semicolon = break_after_semicolon, argument_set=argument_set, let_statements=let_statements, output=output, argument_set_is_multiline=argument_set_is_multiline)
+        print(
+            dict(
+                argument_set=argument_set,
+                let_statements=let_statements,
+                output=output,
+                break_after_semicolon=break_after_semicolon,
+            )
+        )
+        return cls(
+            break_after_semicolon=break_after_semicolon,
+            argument_set=argument_set,
+            let_statements=let_statements,
+            output=output,
+            argument_set_is_multiline=argument_set_is_multiline,
+        )
 
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         """Reconstruct function definition."""
@@ -183,7 +211,9 @@ class FunctionDefinition(NixObject):
         elif self.break_after_semicolon is not None:
             break_after_semicolon = self.break_after_semicolon
         else:
-            break_after_semicolon = self.let_statements or (self.argument_set_is_multiline and len(self.argument_set) > 0)
+            break_after_semicolon = self.let_statements or (
+                self.argument_set_is_multiline and len(self.argument_set) > 0
+            )
         line_break = "\n" if break_after_semicolon is True else ""
 
         # Format the final string - use single line format when no arguments and no let statements
@@ -310,7 +340,7 @@ class NixBinding(NixObject):
             elif child.type == "list_expression":
                 value = NixList.from_cst(child)
             elif child.type == "binary_expression":
-                raise ValueError("Binary expression not supported yet")
+                value = NixBinaryExpression.from_cst(child)
             elif child.type == "variable_expression":
                 value = NixIdentifier.from_cst(child)
             # elif child.type == "identifier":
@@ -391,15 +421,16 @@ class NixAttributeSet(NixObject):
                 [value.rebuild(indent=indented, inline=False) for value in self.values]
             )
             return (
-                f"{before_str}{{" + f"\n{bindings_str}\n" + " " * indent + f"}}{after_str}"
+                f"{before_str}{{"
+                + f"\n{bindings_str}\n"
+                + " " * indent
+                + f"}}{after_str}"
             )
         else:
             bindings_str = " ".join(
                 [value.rebuild(indent=indented, inline=True) for value in self.values]
             )
-            return (
-                f"{before_str}{{ {bindings_str} }}{after_str}"
-            )
+            return f"{before_str}{{ {bindings_str} }}{after_str}"
 
 
 class FunctionCall(NixObject):
@@ -424,7 +455,9 @@ class FunctionCall(NixObject):
                 argument = NixAttributeSet.from_cst(child)
             elif child.type == "rec":
                 recursive = True
-        return cls(name=name, argument=argument, recursive=recursive, multiline=multiline)
+        return cls(
+            name=name, argument=argument, recursive=recursive, multiline=multiline
+        )
 
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         """Reconstruct function call."""
@@ -591,3 +624,36 @@ class NixWith(NixObject):
         attrs_str = " ".join(attr.name for attr in self.attributes)
 
         return f"{before_str}with {self.expression.name}; [ {attrs_str} ]{after_str}"
+
+
+class NixExpression(NixObject):
+    pass
+
+
+class NixBinaryExpression(NixExpression):
+    operator: str
+    left: NixObject
+    right: NixObject
+
+    @classmethod
+    def from_cst(cls, node: Node):
+        from nix_manipulator.cst.models import NODE_TYPE_TO_CLASS
+
+        print("B", node, node.type, dir(node), node.text)
+        if node.type == "binary_expression":
+            left_node, operator_node, right_node = node.children
+            operator = operator_node.text.decode()
+            left = NODE_TYPE_TO_CLASS.get(left_node.type).from_cst(left_node)
+            right = NODE_TYPE_TO_CLASS.get(right_node.type).from_cst(right_node)
+        return cls(operator=operator, left=left, right=right)
+
+    def rebuild(self, indent: int = 0, inline: bool = False) -> str:
+        """Reconstruct binary expression."""
+        before_str = self._format_trivia(self.before, indent=indent)
+        after_str = self._format_trivia(self.after, indent=indent)
+        indentation = "" if inline else " " * indent
+
+        left_str = self.left.rebuild(indent=indent, inline=True)
+        right_str = self.right.rebuild(indent=indent, inline=True)
+
+        return f"{before_str}{indentation}{left_str} {self.operator} {right_str}{after_str}"

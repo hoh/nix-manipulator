@@ -4,11 +4,12 @@ from nix_manipulator.symbols import (
     Comment,
     FunctionCall,
     FunctionDefinition,
-    Primitive,
+    NixAttributeSet,
+    NixBinaryExpression,
     NixList,
     NixObject,
     NixSourceCode,
-    NixAttributeSet,
+    Primitive,
 )
 
 NODE_TYPE_TO_CLASS: dict[str, type[NixObject]] = {
@@ -21,4 +22,5 @@ NODE_TYPE_TO_CLASS: dict[str, type[NixObject]] = {
     "function_expression": FunctionDefinition,
     "variable_expression": Primitive,
     "attrset_expression": NixAttributeSet,
+    "binary_expression": NixBinaryExpression,
 }

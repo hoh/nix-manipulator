@@ -1,6 +1,5 @@
 from nix_manipulator.cst.parser import parse_nix_cst
 
-
 # def test_parse_file():
 #     source_path = Path(__file__).parent / "nix_files/trl-default-new.nix"
 #
@@ -44,7 +43,7 @@ def test_rebuild_set():
 
 
 def test_rebuild_function_call():
-    source = "builtins.fetchFromGitHub { name = \"foo\"; }"
+    source = 'builtins.fetchFromGitHub { name = "foo"; }'
     assert source == parse_and_rebuild(source)
 
 
@@ -137,8 +136,14 @@ def test_function_definition_expression():
 """.strip("\n")
     assert source == parse_and_rebuild(source)
 
+
 def test_function_definition_single_line():
     source = """
 { a }: { a = a; b = a; }
 """.strip("\n")
+    assert source == parse_and_rebuild(source)
+
+
+def test_binary_expression():
+    source = "1 + 2"
     assert source == parse_and_rebuild(source)

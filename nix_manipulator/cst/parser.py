@@ -1,8 +1,8 @@
 import tree_sitter_nix as ts_nix
 from tree_sitter import Language, Node, Parser
 
-from . import models
 from ..symbols import NixObject, NixSourceCode
+from . import models
 
 # Initialize the tree-sitter parser only once for efficiency.
 NIX_LANGUAGE = Language(ts_nix.language())

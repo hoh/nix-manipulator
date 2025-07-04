@@ -4,10 +4,10 @@ from nix_manipulator.symbols import (
     FunctionDefinition,
     NixAttributeSet,
     NixBinding,
-    Primitive,
     NixIdentifier,
     NixList,
     NixWith,
+    Primitive,
     empty_line,
 )
 
@@ -118,14 +118,14 @@ def test_nix_comment():
     assert Comment(text="foo").rebuild() == "# foo"
     assert Comment(text="foo\nbar").rebuild() == "# foo\n# bar"
     assert (
-            Primitive(
+        Primitive(
             value=True,
             before=[
                 Comment(text="Many tests require internet access."),
                 empty_line,
             ],
         ).rebuild()
-            == "# Many tests require internet access.\n\ntrue"
+        == "# Many tests require internet access.\n\ntrue"
     )
 
     assert (
@@ -180,6 +180,7 @@ def test_nix_function_definition_one_binding():
         == "{\n  pkgs,\n}:\n{\n  pkgs = pkgs;\n}"
     )
 
+
 def test_nix_function_definition_let_bindings():
     assert (
         FunctionDefinition(
@@ -192,6 +193,7 @@ def test_nix_function_definition_let_bindings():
         ).rebuild()
         == '{ }:\nlet\n  foo = bar;\n  alice = "bob";\nin\n{ }'
     )
+
 
 def test_nix_function_definition_multiple_let_bindings():
     # Let statement with comments
@@ -211,6 +213,7 @@ def test_nix_function_definition_multiple_let_bindings():
         == '{ }:\nlet\n  foo = bar;\n  # This is a comment\n  alice = "bob";\nin\n{ }'
     )
 
+
 def test_nix_function_definition_let_statements_with_comment():
     assert (
         FunctionDefinition(
@@ -227,6 +230,7 @@ def test_nix_function_definition_let_statements_with_comment():
         ).rebuild()
         == '{ }:\nlet\n  foo = bar;\n  # This is a comment\n  alice = "bob";\nin\n{ }'
     )
+
 
 def test_nix_function_definition_multiple_let_bindings_complex():
     assert (

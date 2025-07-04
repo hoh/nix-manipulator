@@ -5,10 +5,10 @@ from nix_manipulator.symbols import (
     MultilineComment,
     NixAttributeSet,
     NixBinding,
-    Primitive,
     NixIdentifier,
     NixList,
     NixWith,
+    Primitive,
     empty_line,
 )
 
