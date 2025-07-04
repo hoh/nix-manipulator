@@ -138,7 +138,7 @@ def test_nix_comment_after_identifier():
         NixIdentifier(
             name="alice", after=[Comment(text="This is a comment")]
         ).rebuild()
-        == 'alice\n# This is a comment\n'
+        == 'alice\n# This is a comment'
     )
 
 
@@ -149,7 +149,7 @@ def test_nix_comment_before_and_after_identifier():
             before=[Comment(text="A first comment"), empty_line],
             after=[empty_line, Comment(text="This is a comment")]
         ).rebuild()
-        == '# A first comment\n\nalice\n\n# This is a comment\n'
+        == '# A first comment\n\nalice\n\n# This is a comment'
     )
 
 
