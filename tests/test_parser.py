@@ -48,7 +48,7 @@ def test_rebuild_set():
 
 
 def test_rebuild_function_call():
-    source = "builtins.fetchFromGitHub { ... }"
+    source = "builtins.fetchFromGitHub { name = \"foo\"; }"
     assert source == parse_and_rebuild(source)
 
 
@@ -89,5 +89,12 @@ builtins.fetchFromGitHub {
   repo = "bar";
   rev = "123";
 }
+""".strip("\n")
+    assert source == parse_and_rebuild(source)
+
+
+def test_function_definition():
+    source = """
+{}: {}
 """.strip("\n")
     assert source == parse_and_rebuild(source)

@@ -88,14 +88,14 @@ class FunctionDefinition(NixObject):
     @classmethod
     def from_cst(cls, node: Node):
         print("F", node, node.type, dir(node), node.text)
+        name = node.text
+        argument_set = []
+        let_statements = []
+        result = None
+        recursive = False
+        for child in node.children:
+            print("C", child, child.type, dir(child), child.text)
         raise NotImplementedError
-        # name = node.text
-        # argument_set = []
-        # let_statements = []
-        # result = None
-        # recursive = False
-        # for child in node.children:
-        #     print("C", child, child.type, dir(child), child.text)
 
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         """Reconstruct function definition."""
@@ -337,9 +337,12 @@ class FunctionCall(NixObject):
     name: str
     argument: Optional[NixAttributeSet] = None
     recursive: bool = False
+    multiline: bool = True
 
     @classmethod
     def from_cst(cls, node: Node):
+        multiline = b"\n" in node.text
+
         if not node.text:
             raise ValueError("Missing function name")
         name = node.text.decode()
@@ -352,7 +355,7 @@ class FunctionCall(NixObject):
                 argument = NixAttributeSet.from_cst(child)
             elif child.type == "rec":
                 recursive = True
-        return cls(name=name, argument=argument, recursive=recursive)
+        return cls(name=name, argument=argument, recursive=recursive, multiline=multiline)
 
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         """Reconstruct function call."""
@@ -379,10 +382,15 @@ class FunctionCall(NixObject):
 
         args = []
         for binding in self.argument.values:
-            args.append(binding.rebuild(indent=indented))
+            args.append(binding.rebuild(indent=indented, inline=not self.multiline))
 
         indented_items = [f"{item}" for item in args]
-        args_str = " {\n" + "\n".join(indented_items) + "\n" + " " * indent + "}"
+
+        if self.multiline:
+            args_str = " {\n" + "\n".join(indented_items) + "\n" + " " * indent + "}"
+        else:
+            items_str = " ".join(indented_items)
+            args_str = f" {{ {items_str} }}"
 
         rec_str = " rec" if self.recursive else ""
         return f"{before_str}{indentation}{self.name}{rec_str}{args_str}{after_str}"
