@@ -200,3 +200,25 @@ def test_nix_with_multiple_attributes():
 def test_nix_with_using_selectors():
     source = "with lib.maintainers; [ foo.bar ]"
     assert source == parse_and_rebuild(source)
+
+def test_nix_function_definition_empty_lines_in_argument_set():
+    source = """
+{
+
+  pkgs,
+  # This is a comment
+
+  pkgs-2,
+
+  # Another comment
+  pkg-3,
+
+  # A final comment
+}:
+{
+  pkgs = pkgs;
+}
+""".strip("\n")
+    assert source == parse_and_rebuild(source)
+
+

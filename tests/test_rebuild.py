@@ -133,6 +133,25 @@ def test_nix_comment():
         == '# This is a comment\nalice = "bob";'
     )
 
+def test_nix_comment_after_identifier():
+    assert (
+        NixIdentifier(
+            name="alice", after=[Comment(text="This is a comment")]
+        ).rebuild()
+        == 'alice\n# This is a comment\n'
+    )
+
+
+def test_nix_comment_before_and_after_identifier():
+    assert (
+        NixIdentifier(
+            name="alice",
+            before=[Comment(text="A first comment"), empty_line],
+            after=[empty_line, Comment(text="This is a comment")]
+        ).rebuild()
+        == '# A first comment\n\nalice\n\n# This is a comment\n'
+    )
+
 
 def test_nix_expression():
     assert Primitive(value=True, before=[]).rebuild() == "true"
@@ -188,6 +207,17 @@ def test_nix_function_definition_empty_lines_in_argument_set():
                     Comment(text="This is a comment"),
                     empty_line
                 ]),
+                NixIdentifier(
+                    name="pkg-3",
+                    before=[
+                        empty_line,
+                        Comment(text="Another comment"),
+                    ],
+                    after=[
+                        empty_line,
+                        Comment(text="A final comment")
+                    ],
+                ),
             ],
             let_statements=[],
             output=NixAttributeSet.from_dict({"pkgs": NixIdentifier(name="pkgs")}),
@@ -198,6 +228,11 @@ def test_nix_function_definition_empty_lines_in_argument_set():
   # This is a comment
 
   pkgs-2,
+
+  # Another comment
+  pkg-3,
+
+  # A final comment
 }:
 {
   pkgs = pkgs;

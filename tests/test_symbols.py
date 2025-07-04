@@ -138,7 +138,7 @@ def test_nested_list():
 def test_function_definition():
     function = nixpkgs_trl_default
     print(function.rebuild())
-    (Path(__file__).parent / "nix_files/trl-default-new-generated.nix").write_text(
+    (Path(__file__).parent / "nix_files/pkgs/trl-default.nix").write_text(
         function.rebuild() + "\n"
     )
     assert function.rebuild() == (
