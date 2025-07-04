@@ -203,6 +203,7 @@ class NixBinding(NixObject):
         """Reconstruct binding."""
         before_str = self._format_trivia(self.before, indent=indent)
         after_str = self._format_trivia(self.after, indent=indent)
+        indentation = "" if inline else " " * indent
 
         print("BINDING", [self.name, self.value, self.before, before_str, indent])
 
@@ -216,7 +217,7 @@ class NixBinding(NixObject):
             raise ValueError(f"Unsupported value type: {type(self.value)}")
 
         # Apply indentation to the entire binding, not just the value
-        indented_line = " " * indent + f"{self.name} = {value_str};"
+        indented_line = indentation + f"{self.name} = {value_str};"
 
         print("BINDING RESULT", [f"{before_str}{indented_line}{after_str}"])
 
@@ -257,6 +258,7 @@ class NixBinding(NixObject):
 
 class NixAttributeSet(NixObject):
     values: List[NixBinding]
+    multiline: bool = True
 
     @classmethod
     def from_dict(cls, values: Dict[str, NixObject]):
@@ -268,6 +270,7 @@ class NixAttributeSet(NixObject):
     @classmethod
     def from_cst(cls, node: Node):
         print("A", node, node.type, dir(node), node.text)
+        multiline = b"\n" in node.text
         values = []
         for child in node.children:
             print("C", child, child.type, dir(child), child.text)
@@ -303,7 +306,7 @@ class NixAttributeSet(NixObject):
             else:
                 raise ValueError(f"Unsupported child node: {child}")
 
-        return cls(values=values)
+        return cls(values=values, multiline=multiline)
 
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         """Reconstruct attribute set."""
@@ -314,12 +317,20 @@ class NixAttributeSet(NixObject):
         if not self.values:
             return f"{before_str}{{ }}{after_str}"
 
-        bindings_str = "\n".join(
-            [value.rebuild(indent=indented, inline=inline) for value in self.values]
-        )
-        return (
-            f"{before_str}{{" + f"\n{bindings_str}\n" + " " * indent + f"}}{after_str}"
-        )
+        if self.multiline:
+            bindings_str = "\n".join(
+                [value.rebuild(indent=indented, inline=False) for value in self.values]
+            )
+            return (
+                f"{before_str}{{" + f"\n{bindings_str}\n" + " " * indent + f"}}{after_str}"
+            )
+        else:
+            bindings_str = " ".join(
+                [value.rebuild(indent=indented, inline=True) for value in self.values]
+            )
+            return (
+                f"{before_str}{{ {bindings_str} }}{after_str}"
+            )
 
 
 class FunctionCall(NixObject):

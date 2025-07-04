@@ -8,6 +8,7 @@ from nix_manipulator.symbols import (
     NixList,
     NixObject,
     NixSourceCode,
+    NixAttributeSet,
 )
 
 NODE_TYPE_TO_CLASS: dict[str, type[NixObject]] = {
@@ -19,4 +20,5 @@ NODE_TYPE_TO_CLASS: dict[str, type[NixObject]] = {
     "string_expression": NixExpression,
     "function_expression": FunctionDefinition,
     "variable_expression": NixExpression,
+    "attrset_expression": NixAttributeSet,
 }
