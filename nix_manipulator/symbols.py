@@ -119,11 +119,18 @@ class FunctionDefinition(NixObject):
             else:
                 raise ValueError(f"Unsupported child node: {child} {child.type}")
 
-        output = NixAttributeSet.from_cst(node.child_by_field_name("body"))
+        output: NixObject = NixAttributeSet.from_cst(node.child_by_field_name("body"))
 
-        break_after_semicolon = node.child_by_field_name("body").text.startswith(b"\n")
+        def get_semicolon_index(text) -> int:
+            for child in node.children:
+                if child.type == ":":
+                    return child.end_byte
+            return -1
 
-        print(dict(argument_set=argument_set, let_statements=let_statements, output=output))
+        after_semicolon: bytes = node.text[get_semicolon_index(node) : node.child_by_field_name("body").start_byte]
+        break_after_semicolon: bool = (after_semicolon == b"\n")
+
+        print(dict(argument_set=argument_set, let_statements=let_statements, output=output, break_after_semicolon = break_after_semicolon))
         return cls(break_after_semicolon = break_after_semicolon, argument_set=argument_set, let_statements=let_statements, output=output, argument_set_is_multiline=argument_set_is_multiline)
 
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:
@@ -144,7 +151,7 @@ class FunctionDefinition(NixObject):
                 args.append(f"{self._format_trivia(arg.before, indent)}{indented_line}")
 
             # Add a trailing comma to the last argument
-            if args and self.argument_set_is_multiline:
+            if args and self.argument_set_is_multiline and len(args) > 1:
                 args[-1] += ","
 
             if self.argument_set_is_multiline:

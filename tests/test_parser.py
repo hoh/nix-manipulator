@@ -129,7 +129,6 @@ def test_function_definition_multiline_longer():
 }
 """.strip("\n")
     assert source == parse_and_rebuild(source)
-    assert False
 
 
 def test_function_definition_expression():
