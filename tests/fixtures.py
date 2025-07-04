@@ -5,7 +5,7 @@ from nix_manipulator.symbols import (
     MultilineComment,
     NixAttributeSet,
     NixBinding,
-    NixExpression,
+    Primitive,
     NixIdentifier,
     NixList,
     NixWith,
@@ -44,7 +44,7 @@ nixpkgs_trl_default = FunctionDefinition(
             before=[Comment(text="We love comments here")],
         ),
     ],
-    result=FunctionCall(
+    output=FunctionCall(
         name="buildPythonPackage",
         recursive=True,
         argument=NixAttributeSet(
@@ -53,7 +53,7 @@ nixpkgs_trl_default = FunctionDefinition(
                 NixBinding(name="version", value="0.19.0"),
                 NixBinding(
                     name="pyproject",
-                    value=NixExpression(
+                    value=Primitive(
                         value=True,
                     ),
                     before=[
@@ -114,7 +114,7 @@ nixpkgs_trl_default = FunctionDefinition(
                 ),
                 NixBinding(
                     name="doCheck",
-                    value=NixExpression(
+                    value=Primitive(
                         value=False,
                     ),
                     before=[

@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from tree_sitter import Node
 
 
@@ -26,6 +26,7 @@ comma = Comma()
 
 class NixObject(BaseModel):
     """Base class for all Nix objects."""
+    model_config = ConfigDict(extra = 'forbid')
 
     before: List[Any] = []
     after: List[Any] = []
@@ -82,15 +83,13 @@ class NixSourceCode:
 class FunctionDefinition(NixObject):
     argument_set: List[NixIdentifier] = []
     argument_set_is_multiline: bool = True
-    break_after_semicolon: bool = True
+    break_after_semicolon: Optional[bool] = None
     let_statements: List[NixBinding] = []
     output: Union[NixAttributeSet, NixObject, None] = None
-    multiline: bool = True
 
     @classmethod
     def from_cst(cls, node: Node):
         print("F", node, node.type, dir(node), node.text)
-        let_statements = []
         for child in node.children:
             print("C", child, [child.type], dir(child), child.text)
 
@@ -119,6 +118,8 @@ class FunctionDefinition(NixObject):
             else:
                 raise ValueError(f"Unsupported child node: {child} {child.type}")
 
+        let_statements = []
+
         output: NixObject = NixAttributeSet.from_cst(node.child_by_field_name("body"))
 
         def get_semicolon_index(text) -> int:
@@ -128,7 +129,7 @@ class FunctionDefinition(NixObject):
             return -1
 
         after_semicolon: bytes = node.text[get_semicolon_index(node) : node.child_by_field_name("body").start_byte]
-        break_after_semicolon: bool = (after_semicolon == b"\n")
+        break_after_semicolon: bool = (after_semicolon == b"\n") # or let_statements...
 
         print(dict(argument_set=argument_set, let_statements=let_statements, output=output, break_after_semicolon = break_after_semicolon))
         return cls(break_after_semicolon = break_after_semicolon, argument_set=argument_set, let_statements=let_statements, output=output, argument_set_is_multiline=argument_set_is_multiline)
@@ -151,7 +152,8 @@ class FunctionDefinition(NixObject):
                 args.append(f"{self._format_trivia(arg.before, indent)}{indented_line}")
 
             # Add a trailing comma to the last argument
-            if args and self.argument_set_is_multiline and len(args) > 1:
+            print("MULTILINE", self.argument_set_is_multiline)
+            if args and self.argument_set_is_multiline:
                 args[-1] += ","
 
             if self.argument_set_is_multiline:
@@ -167,10 +169,16 @@ class FunctionDefinition(NixObject):
                 let_bindings.append(binding.rebuild(indent=2))
             let_str = "let\n" + "\n".join(let_bindings) + "\nin\n"
 
-        # Build result
+        # Build result)
         output_str = self.output.rebuild() if self.output else "{ }"
 
-        line_break = "\n" if self.break_after_semicolon else ""
+        if self.let_statements:
+            break_after_semicolon = True
+        elif self.break_after_semicolon is not None:
+            break_after_semicolon = self.break_after_semicolon
+        else:
+            break_after_semicolon = self.let_statements or (self.argument_set_is_multiline and len(self.argument_set) > 0)
+        line_break = "\n" if break_after_semicolon is True else ""
 
         # Format the final string - use single line format when no arguments and no let statements
         if not self.argument_set and not self.let_statements:
@@ -290,9 +298,9 @@ class NixBinding(NixObject):
             elif child.type in "attrpath":
                 name = child.text.decode()
             elif child.type == "string_expression":
-                value = NixExpression(value=json.loads(child.text.decode()))
+                value = Primitive(value=json.loads(child.text.decode()))
             elif child.type == "integer_expression":
-                value = NixExpression(value=int(child.text.decode()))
+                value = Primitive(value=int(child.text.decode()))
             elif child.type == "list_expression":
                 value = NixList.from_cst(child)
             elif child.type == "binary_expression":
@@ -451,7 +459,7 @@ class FunctionCall(NixObject):
         return f"{before_str}{indentation}{self.name}{rec_str}{args_str}{after_str}"
 
 
-class NixExpression(NixObject):
+class Primitive(NixObject):
     value: Union[str, int, bool]
 
     @classmethod
@@ -525,7 +533,7 @@ class NixList(NixObject):
 
         items = []
         for item in self.value:
-            if isinstance(item, NixExpression):
+            if isinstance(item, Primitive):
                 items.append(f"{item.rebuild(indent=indent if inline else indented)}")
             elif isinstance(item, NixIdentifier):
                 items.append(

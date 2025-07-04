@@ -1,10 +1,10 @@
-from .models import NixExpression, NixList, NixSourceCode
+from .models import Primitive, NixList, NixSourceCode
 
 
 def pretty_print_cst(node, indent_level=0) -> str:
     indent = "  " * indent_level
     # Base representation for all nodes
-    if isinstance(node, NixExpression):
+    if isinstance(node, Primitive):
         base_repr = f"{indent}{node.__class__.__name__}({node.value}'"
     elif isinstance(node, NixList):
         base_repr = f"{indent}{node.__class__.__name__}({node.value}"

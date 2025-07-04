@@ -4,7 +4,7 @@ from nix_manipulator.symbols import (
     Comment,
     FunctionCall,
     FunctionDefinition,
-    NixExpression,
+    Primitive,
     NixList,
     NixObject,
     NixSourceCode,
@@ -13,12 +13,12 @@ from nix_manipulator.symbols import (
 
 NODE_TYPE_TO_CLASS: dict[str, type[NixObject]] = {
     "list_expression": NixList,
-    "integer_expression": NixExpression,
+    "integer_expression": Primitive,
     "source_code": NixSourceCode,
     "apply_expression": FunctionCall,
     "comment": Comment,
-    "string_expression": NixExpression,
+    "string_expression": Primitive,
     "function_expression": FunctionDefinition,
-    "variable_expression": NixExpression,
+    "variable_expression": Primitive,
     "attrset_expression": NixAttributeSet,
 }

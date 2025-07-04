@@ -4,7 +4,7 @@ from nix_manipulator.symbols import (
     FunctionDefinition,
     NixAttributeSet,
     NixBinding,
-    NixExpression,
+    Primitive,
     NixIdentifier,
     NixList,
     NixWith,
@@ -118,14 +118,14 @@ def test_nix_comment():
     assert Comment(text="foo").rebuild() == "# foo"
     assert Comment(text="foo\nbar").rebuild() == "# foo\n# bar"
     assert (
-        NixExpression(
+            Primitive(
             value=True,
             before=[
                 Comment(text="Many tests require internet access."),
                 empty_line,
             ],
         ).rebuild()
-        == "# Many tests require internet access.\n\ntrue"
+            == "# Many tests require internet access.\n\ntrue"
     )
 
     assert (
@@ -137,7 +137,7 @@ def test_nix_comment():
 
 
 def test_nix_expression():
-    assert NixExpression(value=True, before=[]).rebuild() == "true"
+    assert Primitive(value=True, before=[]).rebuild() == "true"
 
 
 def test_nix_set():
@@ -158,26 +158,29 @@ def test_nix_set():
     )
 
 
-def test_nix_function_definition():
+def test_nix_function_definition_empty_set():
     # Empty sets as input and output
     assert (
         FunctionDefinition(
             argument_set=[],
             let_statements=[],
-            result=NixAttributeSet(values=[]),
+            output=NixAttributeSet(values=[]),
         ).rebuild()
         == "{ }: { }"
     )
 
+
+def test_nix_function_definition_one_binding():
     assert (
         FunctionDefinition(
             argument_set=[NixIdentifier(name="pkgs")],
             let_statements=[],
-            result=NixAttributeSet.from_dict({"pkgs": NixIdentifier(name="pkgs")}),
+            output=NixAttributeSet.from_dict({"pkgs": NixIdentifier(name="pkgs")}),
         ).rebuild()
         == "{\n  pkgs,\n}:\n{\n  pkgs = pkgs;\n}"
     )
 
+def test_nix_function_definition_let_bindings():
     assert (
         FunctionDefinition(
             argument_set=[],
@@ -185,11 +188,12 @@ def test_nix_function_definition():
                 NixBinding(name="foo", value=NixIdentifier(name="bar")),
                 NixBinding(name="alice", value="bob"),
             ],
-            result=NixAttributeSet(values=[]),
+            output=NixAttributeSet(values=[]),
         ).rebuild()
         == '{ }:\nlet\n  foo = bar;\n  alice = "bob";\nin\n{ }'
     )
 
+def test_nix_function_definition_multiple_let_bindings():
     # Let statement with comments
     assert (
         FunctionDefinition(
@@ -202,11 +206,12 @@ def test_nix_function_definition():
                     before=[Comment(text="This is a comment")],
                 ),
             ],
-            result=NixAttributeSet(values=[]),
+            output=NixAttributeSet(values=[]),
         ).rebuild()
         == '{ }:\nlet\n  foo = bar;\n  # This is a comment\n  alice = "bob";\nin\n{ }'
     )
 
+def test_nix_function_definition_let_statements_with_comment():
     assert (
         FunctionDefinition(
             argument_set=[],
@@ -218,11 +223,12 @@ def test_nix_function_definition():
                     before=[Comment(text="This is a comment")],
                 ),
             ],
-            result=NixAttributeSet(values=[]),
+            output=NixAttributeSet(values=[]),
         ).rebuild()
         == '{ }:\nlet\n  foo = bar;\n  # This is a comment\n  alice = "bob";\nin\n{ }'
     )
 
+def test_nix_function_definition_multiple_let_bindings_complex():
     assert (
         FunctionDefinition(
             argument_set=[NixIdentifier(name="pkgs")],
@@ -230,7 +236,7 @@ def test_nix_function_definition():
                 NixBinding(name="pkgs-copy", value=NixIdentifier(name="pkgs")),
                 NixBinding(name="alice", value="bob"),
             ],
-            result=NixAttributeSet.from_dict(
+            output=NixAttributeSet.from_dict(
                 {"pkgs-again": NixIdentifier(name="pkgs-copy")}
             ),
         ).rebuild()
@@ -273,7 +279,7 @@ def test_function_definition_with_function_call():
     assert (
         FunctionDefinition(
             argument_set=[NixIdentifier(name="pkgs")],
-            result=FunctionCall(
+            output=FunctionCall(
                 name="buildPythonPackage",
                 recursive=True,
                 argument=NixAttributeSet.from_dict(

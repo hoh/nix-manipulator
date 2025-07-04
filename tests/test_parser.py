@@ -1,10 +1,5 @@
-from pygments import highlight
-from pygments.formatters import TerminalFormatter
-from pygments.lexers.nix import NixLexer
-
-from nix_manipulator.converter import CstToSymbolConverter
 from nix_manipulator.cst.parser import parse_nix_cst
-from nix_manipulator.parser import pretty_print_cst
+
 
 # def test_parse_file():
 #     source_path = Path(__file__).parent / "nix_files/trl-default-new.nix"
@@ -104,7 +99,7 @@ def test_function_definition_empty():
 def test_function_definition_multiline():
     source = """
 {
-  a
+  a,
 }:
 {
   b = "hello";
@@ -134,7 +129,7 @@ def test_function_definition_multiline_longer():
 def test_function_definition_expression():
     source = """
 {
-  a
+  a,c
 }:
 {
   b = a + 2;

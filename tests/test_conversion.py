@@ -1,8 +1,6 @@
 from pygments import highlight
 from pygments.formatters import TerminalFormatter
-from pygments.lexers.nix import NixLexer
 
-from nix_manipulator.converter import CstToSymbolConverter
 from nix_manipulator.cst.parser import parse_nix_cst
 from nix_manipulator.cst.utils import pretty_print_cst
 
@@ -10,11 +8,8 @@ from nix_manipulator.cst.utils import pretty_print_cst
 def parse_and_rebuild(source: str):
     parsed_cst = parse_nix_cst(source.encode("utf-8"))
     print(pretty_print_cst(parsed_cst))
-    converter = CstToSymbolConverter()
-    print([converter.convert(parsed_cst)])
     print(parsed_cst)
     rebuilt_code = parsed_cst.rebuild()
-    print(highlight(rebuilt_code, NixLexer(), TerminalFormatter()))
     return rebuilt_code
 
 

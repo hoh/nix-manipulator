@@ -9,7 +9,7 @@ from nix_manipulator.symbols import (
     NixIdentifier,
     NixList,
     empty_line,
-    NixExpression,
+    Primitive,
 )
 
 from .fixtures import nixpkgs_trl_default
@@ -87,7 +87,7 @@ def test_issue():
     assert (
         NixAttributeSet(
             values=[
-                NixBinding(name="pname", value=NixExpression(value="trl")),
+                NixBinding(name="pname", value=Primitive(value="trl")),
                 NixBinding(
                     name="dependencies",
                     value=NixList(
