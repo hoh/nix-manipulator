@@ -13,23 +13,16 @@
   rich,
   transformers,
 }:
-let
-  owner = "huggingface";
-  # We love comments here
-  acc = accelerate;
-in
 buildPythonPackage rec {
   pname = "trl";
-  version = "0.19.0";
-  # This is something else
+  version = "0.15.2";
   pyproject = true;
 
   src = fetchFromGitHub {
-    # Something cool
-    owner = owner;
+    owner = "huggingface";
     repo = "trl";
     tag = "v${version}";
-    hash = "sha256-TlTq3tIQfNuI+CPvIy/qPFiKPhoSQd7g7FDj4F7C3CQ=";
+    hash = "sha256-HsSmFXFqDOWVLa6VXdPZVS9C3bjYcsliR0TwNpPiQx4=";
   };
 
   build-system = [
@@ -37,14 +30,8 @@ buildPythonPackage rec {
     setuptools-scm
   ];
 
-  /*
-    We love
-    multiline comments
-    here
-  */
-
   dependencies = [
-    acc
+    accelerate
     datasets
     rich
     transformers
@@ -58,7 +45,7 @@ buildPythonPackage rec {
   meta = {
     description = "Train transformer language models with reinforcement learning";
     homepage = "https://github.com/huggingface/trl";
-    changelog = "https://github.com/huggingface/trl/releases/tag/${src.tag}";
+    changelog = "https://github.com/huggingface/trl/releases/tag/v${version}";
     license = lib.licenses.asl20;
     maintainers = with lib.maintainers; [ hoh ];
   };

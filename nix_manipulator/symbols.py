@@ -649,13 +649,13 @@ class NixList(NixObject):
         items = []
         for item in self.value:
             if isinstance(item, Primitive):
-                items.append(f"{item.rebuild(indent=indent if inline else indented)}")
+                items.append(f"{item.rebuild(indent=indented if (inline or self.multiline) else indented, inline=not self.multiline)}")
             elif isinstance(item, NixIdentifier):
                 items.append(
                     f"{item.rebuild(indent=indented if (inline or self.multiline) else indented, inline=not self.multiline)}"
                 )
             elif isinstance(item, NixObject):
-                items.append(f"{item.rebuild(indent=indent if inline else indented)}")
+                items.append(f"{item.rebuild(indent=indented if (inline or self.multiline) else indented, inline=not self.multiline)}")
             elif isinstance(item, str):
                 items.append(f'{indentation}"{item}"')
             elif isinstance(item, bool):
