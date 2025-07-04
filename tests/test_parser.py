@@ -176,3 +176,12 @@ someFunction rec {
 }
 """.strip("\n")
     assert source == parse_and_rebuild(source)
+
+
+def test_select():
+    source = "foo.bar"
+    assert source == parse_and_rebuild(source)
+
+def test_select_three_levels():
+    source = "foo.bar.zoo"
+    assert source == parse_and_rebuild(source)

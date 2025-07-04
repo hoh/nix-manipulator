@@ -1,4 +1,4 @@
-from .models import Primitive, NixList, NixSourceCode
+from .models import NixList, NixSourceCode, Primitive
 
 
 def pretty_print_cst(node, indent_level=0) -> str:

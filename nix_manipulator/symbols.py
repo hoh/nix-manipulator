@@ -371,7 +371,12 @@ class NixBinding(NixObject):
             #         print("-", attr, "=", getattr(child, attr))
             #     name = child.text.decode()
             #     value = "FAKE"
+            elif child.type == "attrset_expression":
+                value = NixAttributeSet.from_cst(child)
+            elif child.type == "apply_expression":
+                value = FunctionCall.from_cst(child)
             else:
+                print("\n", [child.text.decode()], "\n")
                 raise ValueError(f"Unsupported child node: {child} {child.type}")
 
         return cls(name=name, value=value, before=before, after=after)
@@ -694,3 +699,23 @@ class NixBinaryExpression(NixExpression):
         right_str = self.right.rebuild(indent=indent, inline=True)
 
         return f"{before_str}{indentation}{left_str} {self.operator} {right_str}{after_str}"
+
+
+class NixSelect(NixObject):
+    expression: NixIdentifier
+    attribute: NixIdentifier
+
+    @classmethod
+    def from_cst(cls, node: Node) -> NixSelect:
+        return cls(
+            expression = NixIdentifier(name=node.child_by_field_name("expression").text.decode()),
+            attribute = NixIdentifier(name=node.child_by_field_name("attrpath").text.decode()),
+        )
+
+
+    def rebuild(self, indent: int = 0, inline: bool = False) -> str:
+        """Reconstruct select expression."""
+        before_str = self._format_trivia(self.before, indent=indent)
+        after_str = self._format_trivia(self.after, indent=indent)
+        indentation = "" if inline else " " * indent
+        return f"{before_str}{indentation}{self.expression.name}.{self.attribute.name}{after_str}"
