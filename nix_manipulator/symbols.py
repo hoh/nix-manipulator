@@ -348,7 +348,7 @@ class FunctionCall(NixObject):
         indented = indent + 2
         before_str = self._format_trivia(self.before, indent=indented)
         after_str = self._format_trivia(self.after, indent=indented)
-        indentation = " " * indent
+        indentation = "" if inline else " " * indent
 
         print(
             "FC",
@@ -442,7 +442,7 @@ class NixList(NixObject):
         before_str = self._format_trivia(self.before, indent=indent)
         after_str = self._format_trivia(self.after, indent=indent)
         indented = indent + 2 if self.multiline else indent
-        indentation = " " * indented
+        indentation = "" if inline else " " * indented
 
         if not self.value:
             return f"{before_str}[]{after_str}"

@@ -9,6 +9,7 @@ from nix_manipulator.symbols import (
     NixIdentifier,
     NixList,
     empty_line,
+    NixExpression,
 )
 
 from .fixtures import nixpkgs_trl_default
@@ -86,7 +87,7 @@ def test_issue():
     assert (
         NixAttributeSet(
             values=[
-                NixBinding(name="pname", value="trl"),
+                NixBinding(name="pname", value=NixExpression(value="trl")),
                 NixBinding(
                     name="dependencies",
                     value=NixList(
@@ -105,22 +106,25 @@ def test_issue():
         == expected_from_test_issue
     )
 
+
 def test_nested_list():
     assert (
-        NixList(
-            value=[
-                NixBinding(name="pname", value="trl"),
-                NixBinding(
-                    name="dependencies",
-                    value=NixList(
-                        value=[
-                            NixIdentifier(name="acc"),
-                        ]
-                    )
-                )
-            ]
-        )
-    ).rebuild() == """
+        (
+            NixList(
+                value=[
+                    NixBinding(name="pname", value="trl"),
+                    NixBinding(
+                        name="dependencies",
+                        value=NixList(
+                            value=[
+                                NixIdentifier(name="acc"),
+                            ]
+                        ),
+                    ),
+                ]
+            )
+        ).rebuild()
+        == """
 [
   pname = "trl";
   dependencies = [
@@ -128,14 +132,15 @@ def test_nested_list():
   ];
 ]
 """.strip("\n")
+    )
 
 
-# def test_function_definition():
-#     function = nixpkgs_trl_default
-#     print(function.rebuild())
-#     (Path(__file__).parent / "nix_files/trl-default-new-generated.nix").write_text(
-#         function.rebuild() + "\n"
-#     )
-#     assert function.rebuild() == (
-#         Path(__file__).parent / "nix_files/trl-default-new.nix"
-#     ).read_text().strip("\n")
+def test_function_definition():
+    function = nixpkgs_trl_default
+    print(function.rebuild())
+    (Path(__file__).parent / "nix_files/trl-default-new-generated.nix").write_text(
+        function.rebuild() + "\n"
+    )
+    assert function.rebuild() == (
+        Path(__file__).parent / "nix_files/trl-default-new.nix"
+    ).read_text().strip("\n")
