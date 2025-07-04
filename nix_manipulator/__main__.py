@@ -5,9 +5,9 @@ High-level example usage of the Nix manipulator library.
 
 from pygments import highlight
 from pygments.formatters import TerminalFormatter
-from pygments.lexers import PythonLexer, NixLexer
+from pygments.lexers import NixLexer, PythonLexer
 
-from nix_manipulator.converter import convert_nix_source
+from nix_manipulator.cst.parser import parse_nix_cst
 from nix_manipulator.symbols import NixObject
 
 
@@ -123,7 +123,7 @@ buildPythonPackage rec {
 
     # Parse Nix code to high-level symbols
     print("\n📊 Converting Nix source to high-level symbols...")
-    symbol_tree = convert_nix_source(nix_code)
+    symbol_tree = parse_nix_cst(nix_code)
 
     if symbol_tree:
         # Pretty print the symbol tree structure
