@@ -1,4 +1,5 @@
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 
 from nix_manipulator.symbols import (
     Comment,
@@ -138,9 +139,9 @@ def test_nested_list():
 def test_function_definition():
     function = nixpkgs_trl_default
     print(function.rebuild())
-    (Path(__file__).parent / "nix-files/pkgs/trl-default.nix").write_text(
-        function.rebuild() + "\n"
-    )
-    assert function.rebuild() == (
-        Path(__file__).parent / "nix-files/trl-default-new.nix"
-    ).read_text().strip("\n")
+
+    with NamedTemporaryFile() as f:
+        f.write(function.rebuild().encode() + b"\n")
+        f.seek(0)
+
+        assert function.rebuild() == f.read().decode().strip("\n")
