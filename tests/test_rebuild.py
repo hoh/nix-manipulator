@@ -179,6 +179,33 @@ def test_nix_function_definition_one_binding():
     )
 
 
+def test_nix_function_definition_empty_lines_in_argument_set():
+    assert (
+        FunctionDefinition(
+            argument_set=[
+                NixIdentifier(name="pkgs", before=[empty_line]),
+                NixIdentifier(name="pkgs-2", before=[
+                    Comment(text="This is a comment"),
+                    empty_line
+                ]),
+            ],
+            let_statements=[],
+            output=NixAttributeSet.from_dict({"pkgs": NixIdentifier(name="pkgs")}),
+        ).rebuild() == """
+{
+
+  pkgs,
+  # This is a comment
+
+  pkgs-2,
+}:
+{
+  pkgs = pkgs;
+}
+""".strip("\n")
+    )
+
+
 def test_nix_function_definition_let_bindings():
     assert (
         FunctionDefinition(
