@@ -128,7 +128,8 @@ def test_function_definition_multiline_longer():
 def test_function_definition_expression():
     source = """
 {
-  a,c
+  a,
+  c,
 }:
 {
   b = a + 2;
@@ -146,4 +147,32 @@ def test_function_definition_single_line():
 
 def test_binary_expression():
     source = "1 + 2"
+    assert source == parse_and_rebuild(source)
+
+
+def test_function_calls_function():
+    source = """
+{
+  a,
+  b,
+}:
+someFunction {
+  a = a;
+  b = b;
+}
+""".strip("\n")
+    assert source == parse_and_rebuild(source)
+
+
+def test_function_calls_recursive_function():
+    source = """
+{
+  a,
+  b,
+}:
+someFunction rec {
+  a = a;
+  b = b;
+}
+""".strip("\n")
     assert source == parse_and_rebuild(source)

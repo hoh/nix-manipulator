@@ -100,12 +100,13 @@ class FunctionDefinition(NixObject):
         print("FORMALS", node.child_by_field_name("formals"))
 
         children_types = [child.type for child in node.children]
-        assert children_types == ["formals", ":", "attrset_expression"], (
+        assert children_types in (["formals", ":", "attrset_expression"], ["formals", ":", "apply_expression"]), (
             f"Output other than attrset_expression not supported yet. You used {children_types}"
         )
 
         argument_set = []
         argument_set_is_multiline = b"\n" in node.child_by_field_name("formals").text
+        comment = None
         for child in node.child_by_field_name("formals").children:
             print("F", child, [child.type], dir(child), child.text)
             if child.type in ("{", "}", ","):
@@ -124,11 +125,22 @@ class FunctionDefinition(NixObject):
                         if grandchild.text == b"":
                             # Trailing commas add a "MISSING identifier" element with body b""
                             continue
-                        argument_set.append(NixIdentifier.from_cst(grandchild))
+                        if not comment:
+                            argument_set.append(
+                                NixIdentifier.from_cst(grandchild)
+                            )
+                        else:
+                            argument_set.append(
+                                NixIdentifier.from_cst(grandchild, before=[comment])
+                            )
+                            comment = None
+                            continue
                     else:
                         raise ValueError(
                             f"Unsupported child node: {grandchild} {grandchild.type}"
                         )
+            elif child.type == "comment":
+                comment = Comment.from_cst(child)
             elif child.type == "ERROR" and child.text == b",":
                 logger.debug(
                     "Trailing commas are RFC compliant but add a 'ERROR' element..."
@@ -137,9 +149,19 @@ class FunctionDefinition(NixObject):
             else:
                 raise ValueError(f"Unsupported child node: {child} {child.type}")
 
+        if comment:
+            # No binding followed the comment so it could not be attached to it
+            argument_set[-1].after.append(comment)
+
         let_statements = []
 
-        output: NixObject = NixAttributeSet.from_cst(node.child_by_field_name("body"))
+        body: Node = node.child_by_field_name("body")
+        if body.type == "attrset_expression":
+            output: NixObject = NixAttributeSet.from_cst(body)
+        elif body.type == "apply_expression":
+            output: NixObject = FunctionCall.from_cst(body)
+        else:
+            raise ValueError(f"Unsupported output node: {body} {body.type}")
 
         def get_semicolon_index(text) -> int:
             for child in node.children:
@@ -229,9 +251,9 @@ class NixIdentifier(NixObject):
     name: str
 
     @classmethod
-    def from_cst(cls, node: Node):
+    def from_cst(cls, node: Node, before: List[Any] | None = None):
         name = node.text.decode()
-        return cls(name=name)
+        return cls(name=name, before=before or [])
 
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         """Reconstruct identifier."""
@@ -373,7 +395,7 @@ class NixAttributeSet(NixObject):
         values = []
         for child in node.children:
             print("C", child, child.type, dir(child), child.text)
-            if child.type in ("{", "}"):
+            if child.type in ("{", "}", "rec"):
                 continue
             elif child.type == "binding_set":
                 if child.named_children:
@@ -402,8 +424,14 @@ class NixAttributeSet(NixObject):
                     values.append(
                         NixBinding.from_cst(child),
                     )
+            elif child.type == "variable_expression":
+                # Used for function calls
+                print("VV", [child, child.children])
+                attrset_expression = node.child_by_field_name("argument")
+                values.append(FunctionCall.from_cst(child))
             else:
-                raise ValueError(f"Unsupported child node: {child}")
+                print("X", child, child.type, child.text.decode())
+                raise ValueError(f"Unsupported child node: {child} {child.type} {child.text.decode()}")
 
         return cls(values=values, multiline=multiline)
 
@@ -445,16 +473,25 @@ class FunctionCall(NixObject):
 
         if not node.text:
             raise ValueError("Missing function name")
-        name = node.text.decode()
-        argument = None
-        recursive = False
-        for child in node.children:
-            if child.type == "select_expression":
-                name = child.text.decode()
-            elif child.type == "attrset_expression":
-                argument = NixAttributeSet.from_cst(child)
-            elif child.type == "rec":
-                recursive = True
+        name = node.child_by_field_name("function").text.decode()
+
+        print("NODE", node.child_by_field_name("argument").children)
+        recursive = node.child_by_field_name("argument").type == "rec_attrset_expression"
+
+        argument = NixAttributeSet.from_cst(node.child_by_field_name("argument"))
+
+        # argument = None
+        # for child in node.child_by_field_name("argument").children:
+        #     if child.type in ("{", "}", "rec"):
+        #         continue
+        #     elif child.type == "select_expression":
+        #         name = child.text.decode()
+        #     elif child.type == "attrset_expression":
+        #         argument = NixAttributeSet.from_cst(child)
+        #     elif child.type == "variable_expression":
+        #         argument = Primitive.from_cst(child)
+        #     else:
+        #         raise ValueError(f"Unsupported child node: {child} {child.type}")
         return cls(
             name=name, argument=argument, recursive=recursive, multiline=multiline
         )
