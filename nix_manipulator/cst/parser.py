@@ -9,7 +9,7 @@ NIX_LANGUAGE = Language(ts_nix.language())
 PARSER = Parser(NIX_LANGUAGE)
 
 
-def parse_nix_cst(source_code: bytes | str):
+def parse_nix_cst(source_code: bytes | str) -> NixObject | NixSourceCode:
     """Parse Nix source code and return the root of its CST."""
     code_bytes = (
         source_code.encode("utf-8") if isinstance(source_code, str) else source_code
@@ -18,7 +18,7 @@ def parse_nix_cst(source_code: bytes | str):
     return parse_to_cst(tree.root_node)
 
 
-def parse_to_cst(node: Node):
+def parse_to_cst(node: Node) -> NixObject | NixSourceCode:
     cls: NixObject | NixSourceCode | None = models.NODE_TYPE_TO_CLASS.get(node.type)
     print()
     print("CLS", cls, node.__class__, node.type)

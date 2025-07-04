@@ -80,22 +80,51 @@ class NixSourceCode:
 
 
 class FunctionDefinition(NixObject):
-    recursive: bool = False
     argument_set: List[NixIdentifier] = []
+    argument_set_is_multiline: bool = True
+    break_after_semicolon: bool = True
     let_statements: List[NixBinding] = []
-    result: Union[NixAttributeSet, NixObject, None] = None
+    output: Union[NixAttributeSet, NixObject, None] = None
+    multiline: bool = True
 
     @classmethod
     def from_cst(cls, node: Node):
         print("F", node, node.type, dir(node), node.text)
-        name = node.text
-        argument_set = []
         let_statements = []
-        result = None
-        recursive = False
         for child in node.children:
-            print("C", child, child.type, dir(child), child.text)
-        raise NotImplementedError
+            print("C", child, [child.type], dir(child), child.text)
+
+        print("FORMALS", node.child_by_field_name('formals'))
+
+        children_types = [child.type for child in node.children]
+        assert children_types == ["formals", ":", "attrset_expression"], f"Output other than attrset_expression not supported yet. You used {children_types}"
+
+        argument_set = []
+        argument_set_is_multiline = b"\n" in node.child_by_field_name('formals').text
+        for child in node.child_by_field_name('formals').children:
+            print("F", child, [child.type], dir(child), child.text)
+            if child.type in ("{", "}", ","):
+                continue
+            elif child.type == "formal":
+                print("FF", child.children)
+                for grandchild in child.children:
+                    print("GF", grandchild, [grandchild.type], dir(grandchild), grandchild.text)
+                    if grandchild.type == "identifier":
+                        if grandchild.text == b"":
+                            # Trailing commas add a "MISSING identifier" element with body b""
+                            continue
+                        argument_set.append(NixIdentifier.from_cst(grandchild))
+                    else:
+                        raise ValueError(f"Unsupported child node: {grandchild} {grandchild.type}")
+            else:
+                raise ValueError(f"Unsupported child node: {child} {child.type}")
+
+        output = NixAttributeSet.from_cst(node.child_by_field_name("body"))
+
+        break_after_semicolon = node.child_by_field_name("body").text.startswith(b"\n")
+
+        print(dict(argument_set=argument_set, let_statements=let_statements, output=output))
+        return cls(break_after_semicolon = break_after_semicolon, argument_set=argument_set, let_statements=let_statements, output=output, argument_set_is_multiline=argument_set_is_multiline)
 
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         """Reconstruct function definition."""
@@ -108,16 +137,20 @@ class FunctionDefinition(NixObject):
             args_str = "{ }"
         else:
             args = []
+            indentation = " " * indent if self.argument_set_is_multiline else ""
             for arg in self.argument_set:
-                indented_line = " " * indent + f"{arg.name}"
+                indented_line = indentation + f"{arg.name}"
                 print([indented_line])
                 args.append(f"{self._format_trivia(arg.before, indent)}{indented_line}")
 
             # Add a trailing comma to the last argument
-            if args:
+            if args and self.argument_set_is_multiline:
                 args[-1] += ","
 
-            args_str = "{\n" + ",\n".join(args) + "\n}"
+            if self.argument_set_is_multiline:
+                args_str = "{\n" + ",\n".join(args) + "\n}"
+            else:
+                args_str = "{ " + ", ".join(args) + " }"
 
         # Build let statements
         let_str = ""
@@ -128,17 +161,26 @@ class FunctionDefinition(NixObject):
             let_str = "let\n" + "\n".join(let_bindings) + "\nin\n"
 
         # Build result
-        result_str = self.result.rebuild() if self.result else "{ }"
+        output_str = self.output.rebuild() if self.output else "{ }"
+
+        line_break = "\n" if self.break_after_semicolon else ""
 
         # Format the final string - use single line format when no arguments and no let statements
         if not self.argument_set and not self.let_statements:
-            return f"{before_str}{args_str}: {result_str}{after_str}"
+            split = ": " if not line_break else ":\n"
+            return f"{before_str}{args_str}{split}{output_str}{after_str}"
         else:
-            return f"{before_str}{args_str}:\n{let_str}{result_str}{after_str}"
+            split = ": " if not line_break else ":\n"
+            return f"{before_str}{args_str}{split}{let_str}{output_str}{after_str}"
 
 
 class NixIdentifier(NixObject):
     name: str
+
+    @classmethod
+    def from_cst(cls, node: Node):
+        name = node.text.decode()
+        return cls(name=name)
 
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         """Reconstruct identifier."""
@@ -244,6 +286,12 @@ class NixBinding(NixObject):
                 value = NixExpression(value=json.loads(child.text.decode()))
             elif child.type == "integer_expression":
                 value = NixExpression(value=int(child.text.decode()))
+            elif child.type == "list_expression":
+                value = NixList.from_cst(child)
+            elif child.type == "binary_expression":
+                raise ValueError("Binary expression not supported yet")
+            elif child.type == "variable_expression":
+                value = NixIdentifier.from_cst(child)
             # elif child.type == "identifier":
             #     print("X", child, child.type, dir(child), child.text)
             #     for attr in dir(child):
@@ -251,7 +299,7 @@ class NixBinding(NixObject):
             #     name = child.text.decode()
             #     value = "FAKE"
             else:
-                raise ValueError(f"Unsupported child node: {child}")
+                raise ValueError(f"Unsupported child node: {child} {child.type}")
 
         return cls(name=name, value=value, before=before, after=after)
 
@@ -410,8 +458,10 @@ class NixExpression(NixObject):
         elif node.type == "integer_expression":
             value = int(node.text)
         elif node.type == "variable_expression":
-            assert node.text in (b"true", b"false")
-            value = node.text == b"true"
+            if node.text in (b"true", b"false"):
+                value = node.text == b"true"
+            else:
+                return NixIdentifier(name=node.text.decode())
         else:
             raise ValueError(f"Unsupported expression type: {node.type}")
         return cls(value=value)

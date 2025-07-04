@@ -23,6 +23,7 @@ from nix_manipulator.parser import pretty_print_cst
 
 def parse_and_rebuild(source: str):
     parsed_cst = parse_nix_cst(source.encode("utf-8"))
+    # print(parsed_cst.model_dump())
     rebuilt_code = parsed_cst.rebuild()
     return rebuilt_code
 
@@ -93,8 +94,57 @@ builtins.fetchFromGitHub {
     assert source == parse_and_rebuild(source)
 
 
-def test_function_definition():
+def test_function_definition_empty():
     source = """
-{}: {}
+{ }: { }
+""".strip("\n")
+    assert source == parse_and_rebuild(source)
+
+
+def test_function_definition_multiline():
+    source = """
+{
+  a
+}:
+{
+  b = "hello";
+  c = [ a ];
+}
+""".strip("\n")
+    assert source == parse_and_rebuild(source)
+
+
+def test_function_definition_multiline_longer():
+    source = """
+{
+  arg1,
+  arg2,
+  arg3,
+}:
+{
+  b = "hello";
+  c = [ arg1 ];
+  d = 123;
+  e = true;
+}
+""".strip("\n")
+    assert source == parse_and_rebuild(source)
+    assert False
+
+
+def test_function_definition_expression():
+    source = """
+{
+  a
+}:
+{
+  b = a + 2;
+}
+""".strip("\n")
+    assert source == parse_and_rebuild(source)
+
+def test_function_definition_single_line():
+    source = """
+{ a }: { a = a; b = a; }
 """.strip("\n")
     assert source == parse_and_rebuild(source)
