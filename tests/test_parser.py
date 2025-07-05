@@ -1,19 +1,5 @@
 from nix_manipulator.cst.parser import parse_nix_cst
 
-# def test_parse_file():
-#     source_path = Path(__file__).parent / "nix_files/trl-default-new.nix"
-#
-#     parsed = convert_nix_file(source_path)
-#     print(parsed)
-#     assert parsed == nixpkgs_trl_default
-#
-#
-# def test_regenerate():
-#     source_path = Path(__file__).parent / "nix_files/trl-default-new.nix"
-#
-#     parsed = convert_nix_file(source_path)
-#     (Path(__file__).parent / "nix_files/trl-default-new-generated-parsed.nix").write_text(parsed.rebuild() + "\n")
-
 
 def parse_and_rebuild(source: str):
     parsed_cst = parse_nix_cst(source.encode("utf-8"))
@@ -182,6 +168,7 @@ def test_select():
     source = "foo.bar"
     assert source == parse_and_rebuild(source)
 
+
 def test_select_three_levels():
     source = "foo.bar.zoo"
     assert source == parse_and_rebuild(source)
@@ -200,6 +187,7 @@ def test_nix_with_multiple_attributes():
 def test_nix_with_using_selectors():
     source = "with lib.maintainers; [ foo.bar ]"
     assert source == parse_and_rebuild(source)
+
 
 def test_nix_function_definition_empty_lines_in_argument_set():
     source = """
@@ -239,5 +227,3 @@ def test_nix_function_definition_empty_lines_in_output_set():
 }
 """.strip("\n")
     assert source == parse_and_rebuild(source)
-
-

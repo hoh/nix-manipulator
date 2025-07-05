@@ -10,7 +10,6 @@ def pretty_print_cst(node, indent_level=0) -> str:
         base_repr = f"{indent}{node.__class__.__name__}({node.value}"
     elif isinstance(node, NixSourceCode):
         base_repr = f"{indent}{node.__class__.__name__}({node.node}"
-        print(dir(node.node))
         for child in node.node.children:
             base_repr += f"\n{indent}    {child}"
         base_repr += ")"

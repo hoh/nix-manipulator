@@ -8,10 +8,10 @@ from nix_manipulator.symbols import (
     NixBinaryExpression,
     NixList,
     NixObject,
-    NixSourceCode,
-    Primitive,
     NixSelect,
+    NixSourceCode,
     NixWith,
+    Primitive,
 )
 
 NODE_TYPE_TO_CLASS: dict[str, type[NixObject]] = {

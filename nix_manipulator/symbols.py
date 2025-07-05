@@ -96,14 +96,11 @@ class FunctionDefinition(NixObject):
 
     @classmethod
     def from_cst(cls, node: Node):
-        print("F", node, node.type, dir(node), node.text)
-        for child in node.children:
-            print("C", child, [child.type], dir(child), child.text)
-
-        print("FORMALS", node.child_by_field_name("formals"))
-
         children_types = [child.type for child in node.children]
-        assert children_types in (["formals", ":", "attrset_expression"], ["formals", ":", "apply_expression"]), (
+        assert children_types in (
+            ["formals", ":", "attrset_expression"],
+            ["formals", ":", "apply_expression"],
+        ), (
             f"Output other than attrset_expression not supported yet. You used {children_types}"
         )
 
@@ -114,29 +111,22 @@ class FunctionDefinition(NixObject):
         previous_child = node.child_by_field_name("formals").children[0]
         assert previous_child.type == "{"
         for child in node.child_by_field_name("formals").children:
-            print("F", child, [child.type], dir(child), child.text)
             if child.type in ("{", "}"):
                 continue
             elif child.type == ",":
                 # Don't continue, we want to have it as previous_child
                 pass
             elif child.type == "formal":
-                print("FF", child.children)
                 for grandchild in child.children:
-                    print(
-                        "GF",
-                        grandchild,
-                        [grandchild.type],
-                        dir(grandchild),
-                        grandchild.text,
-                    )
                     if grandchild.type == "identifier":
                         if grandchild.text == b"":
                             # Trailing commas add a "MISSING identifier" element with body b""
                             continue
 
                         if previous_child:
-                            gap = node.text[previous_child.end_byte : child.start_byte].decode()
+                            gap = node.text[
+                                previous_child.end_byte : child.start_byte
+                            ].decode()
                             is_empty_line = False
                             if re.match(r"[ ]*\n[ ]*\n[ ]*", gap):
                                 before.append(empty_line)
@@ -152,12 +142,11 @@ class FunctionDefinition(NixObject):
                         )
             elif child.type == "comment":
                 if previous_child:
-                    gap = node.text[previous_child.end_byte: child.start_byte].decode()
+                    gap = node.text[previous_child.end_byte : child.start_byte].decode()
                     is_empty_line = False
                     if re.match(r"[ ]*\n[ ]*\n[ ]*", gap):
                         before.append(empty_line)
                         is_empty_line = True
-                    print("CGAP", previous_child.end_byte, child.start_byte, [gap], [child.text], is_empty_line)
 
                 before.append(Comment.from_cst(child))
             elif child.type == "ERROR" and child.text == b",":
@@ -171,8 +160,6 @@ class FunctionDefinition(NixObject):
         if before:
             # No binding followed the comment so it could not be attached to it
             argument_set[-1].after += before
-
-        print("ARG", argument_set)
 
         let_statements = []
 
@@ -193,16 +180,10 @@ class FunctionDefinition(NixObject):
         after_semicolon: bytes = node.text[
             get_semicolon_index(node) : node.child_by_field_name("body").start_byte
         ]
-        breaks_after_semicolon: int = after_semicolon.count(b"\n")  # or let_statements...
+        breaks_after_semicolon: int = after_semicolon.count(
+            b"\n"
+        )  # or let_statements...
 
-        print(
-            dict(
-                argument_set=argument_set,
-                let_statements=let_statements,
-                output=output,
-                breaks_after_semicolon=breaks_after_semicolon,
-            )
-        )
         return cls(
             breaks_after_semicolon=breaks_after_semicolon,
             argument_set=argument_set,
@@ -225,7 +206,13 @@ class FunctionDefinition(NixObject):
             indentation = " " * indent if self.argument_set_is_multiline else ""
             for i, arg in enumerate(self.argument_set):
                 is_last_argument: bool = i == len(self.argument_set) - 1
-                args.append(arg.rebuild(indent=indent, inline=not self.argument_set_is_multiline ,trailing_comma=self.argument_set_is_multiline))
+                args.append(
+                    arg.rebuild(
+                        indent=indent,
+                        inline=not self.argument_set_is_multiline,
+                        trailing_comma=self.argument_set_is_multiline,
+                    )
+                )
 
             if self.argument_set_is_multiline:
                 args_str = "{\n" + "\n".join(args) + "\n}"
@@ -249,9 +236,12 @@ class FunctionDefinition(NixObject):
         elif self.let_statements:
             breaks_after_semicolon = 1
         else:
-            breaks_after_semicolon = 1 if self.let_statements or (
-                self.argument_set_is_multiline and len(self.argument_set) > 0
-            ) else 0
+            breaks_after_semicolon = (
+                1
+                if self.let_statements
+                or (self.argument_set_is_multiline and len(self.argument_set) > 0)
+                else 0
+            )
         line_break = "\n" * breaks_after_semicolon
 
         # Format the final string - use single line format when no arguments and no let statements
@@ -271,20 +261,21 @@ class NixIdentifier(NixObject):
         name = node.text.decode()
         return cls(name=name, before=before or [])
 
-    def rebuild(self, indent: int = 0, inline: bool = False, trailing_comma: bool = False) -> str:
+    def rebuild(
+        self, indent: int = 0, inline: bool = False, trailing_comma: bool = False
+    ) -> str:
         """Reconstruct identifier."""
         before_str = self._format_trivia(self.before, indent=indent)
         after_str = self._format_trivia(self.after, indent=indent)
         comma = "," if trailing_comma else ""
 
-        print("SAF", self.after, [after_str])
         if self.after and self.after[-1] != linebreak and after_str[-1] == "\n":
             after_str = after_str[:-1]
 
-        print("IDENTIF", self.model_dump())
         indentation = " " * indent if not inline else ""
-        print("ID", [self.name, self.before, before_str, indent, inline])
-        return f"{before_str}{indentation}{self.name}{comma}" + (f"\n{after_str}" if after_str else "")
+        return f"{before_str}{indentation}{self.name}{comma}" + (
+            f"\n{after_str}" if after_str else ""
+        )
 
 
 class Comment(NixObject):
@@ -296,7 +287,6 @@ class Comment(NixObject):
 
     @classmethod
     def from_cst(cls, node: Node):
-        print("C", node, node.type, dir(node), node.text)
         if node.text is None:
             raise ValueError("Missing comment")
         text = node.text.decode()
@@ -307,7 +297,6 @@ class Comment(NixObject):
         return cls(text=text)
 
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:
-        print("INN DENT", indent, [self.text])
         return " " * indent + str(self)
 
 
@@ -363,9 +352,11 @@ class NixBinding(NixObject):
 
         if self.after and self.after[0] is linebreak:
             trailing = self._format_trivia(self.after[1:], indent=indent)
-            if not trailing.startswith("\n"):          # ensure one newline *before* the first “#”
+            if not trailing.startswith(
+                "\n"
+            ):  # ensure one newline *before* the first “#”
                 trailing = "\n" + trailing
-            if trailing.endswith("\n"):                # …but trim the **last** one
+            if trailing.endswith("\n"):  # …but trim the **last** one
                 trailing = trailing[:-1]
             return f"{before_str}{indented_line}{trailing}"
 
@@ -381,8 +372,6 @@ class NixBinding(NixObject):
         before = before or []
         after = after or []
 
-        print("B", node, node.type, dir(node), node.text)
-        print(len(node.children), node.children)
         children = (
             node.children[0].children if len(node.children) == 1 else node.children
         )
@@ -401,12 +390,6 @@ class NixBinding(NixObject):
                 value = NixBinaryExpression.from_cst(child)
             elif child.type == "variable_expression":
                 value = NixIdentifier.from_cst(child)
-            # elif child.type == "identifier":
-            #     print("X", child, child.type, dir(child), child.text)
-            #     for attr in dir(child):
-            #         print("-", attr, "=", getattr(child, attr))
-            #     name = child.text.decode()
-            #     value = "FAKE"
             elif child.type == "attrset_expression":
                 value = NixAttributeSet.from_cst(child)
             elif child.type == "apply_expression":
@@ -454,7 +437,7 @@ class NixAttributeSet(NixObject):
             if re.search(r"\n[ \t]*\n", gap):
                 before.append(empty_line)
             elif "\n" in gap:  # exactly one line-break — keep it
-                 before.append(linebreak)
+                before.append(linebreak)
 
         # Flatten content: unwrap `binding_set` if present
         content_nodes: list[Node] = []
@@ -476,13 +459,15 @@ class NixAttributeSet(NixObject):
                     comment = Comment.from_cst(child)
                     # Inline only when comment shares the *same row* as the binding terminator
                     inline_to_prev = (
-                            prev_content is not None
-                            and prev_content.type == "binding"
-                            and child.start_point.row == prev_content.end_point.row
-                            and values
+                        prev_content is not None
+                        and prev_content.type == "binding"
+                        and child.start_point.row == prev_content.end_point.row
+                        and values
                     )
                     if inline_to_prev:
-                        values[-1].after.append(comment)  # attach to the *after*-trivia of that binding
+                        values[-1].after.append(
+                            comment
+                        )  # attach to the *after*-trivia of that binding
                     else:
                         before.append(comment)
                 else:  # variable_expression – a function call
@@ -532,33 +517,27 @@ class FunctionCall(NixObject):
     multiline: bool = True
 
     @classmethod
-    def from_cst(cls, node: Node, before: List[Any] | None = None, after: List[Any] | None = None):
+    def from_cst(
+        cls, node: Node, before: List[Any] | None = None, after: List[Any] | None = None
+    ):
         multiline = b"\n" in node.text
 
         if not node.text:
             raise ValueError("Missing function name")
         name = node.child_by_field_name("function").text.decode()
 
-        print("NODE", node.child_by_field_name("argument").children)
-        recursive = node.child_by_field_name("argument").type == "rec_attrset_expression"
-
+        recursive = (
+            node.child_by_field_name("argument").type == "rec_attrset_expression"
+        )
         argument = NixAttributeSet.from_cst(node.child_by_field_name("argument"))
 
-        # argument = None
-        # for child in node.child_by_field_name("argument").children:
-        #     if child.type in ("{", "}", "rec"):
-        #         continue
-        #     elif child.type == "select_expression":
-        #         name = child.text.decode()
-        #     elif child.type == "attrset_expression":
-        #         argument = NixAttributeSet.from_cst(child)
-        #     elif child.type == "variable_expression":
-        #         argument = Primitive.from_cst(child)
-        #     else:
-        #         raise ValueError(f"Unsupported child node: {child} {child.type}")
         return cls(
-            name=name, argument=argument, recursive=recursive, multiline=multiline,
-            before=before or [], after=after or []
+            name=name,
+            argument=argument,
+            recursive=recursive,
+            multiline=multiline,
+            before=before or [],
+            after=after or [],
         )
 
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:
@@ -567,19 +546,6 @@ class FunctionCall(NixObject):
         before_str = self._format_trivia(self.before, indent=indented)
         after_str = self._format_trivia(self.after, indent=indented)
         indentation = "" if inline else " " * indent
-
-        print(
-            "FC",
-            [
-                self.name,
-                self.argument,
-                self.recursive,
-                self.before,
-                before_str,
-                indent,
-                indentation,
-            ],
-        )
 
         if not self.argument:
             return f"{before_str}{indentation}{self.name}{after_str}"
@@ -608,7 +574,6 @@ class Primitive(NixObject):
         if node.text is None:
             raise ValueError("Missing expression")
 
-        print("N", node, node.type, dir(node), node.text)
         if node.type == "string_expression":
             value = json.loads(node.text)
         elif node.type == "integer_expression":
@@ -675,13 +640,17 @@ class NixList(NixObject):
         items = []
         for item in self.value:
             if isinstance(item, Primitive):
-                items.append(f"{item.rebuild(indent=indented if (inline or self.multiline) else indented, inline=not self.multiline)}")
+                items.append(
+                    f"{item.rebuild(indent=indented if (inline or self.multiline) else indented, inline=not self.multiline)}"
+                )
             elif isinstance(item, NixIdentifier):
                 items.append(
                     f"{item.rebuild(indent=indented if (inline or self.multiline) else indented, inline=not self.multiline)}"
                 )
             elif isinstance(item, NixObject):
-                items.append(f"{item.rebuild(indent=indented if (inline or self.multiline) else indented, inline=not self.multiline)}")
+                items.append(
+                    f"{item.rebuild(indent=indented if (inline or self.multiline) else indented, inline=not self.multiline)}"
+                )
             elif isinstance(item, str):
                 items.append(f'{indentation}"{item}"')
             elif isinstance(item, bool):
@@ -691,12 +660,9 @@ class NixList(NixObject):
             else:
                 raise ValueError(f"Unsupported list item type: {type(item)}")
 
-        print("I", items, self.multiline, indented, [indentation], self.multiline)
-
         if self.multiline:
             # Add proper indentation for multiline lists
             items_str = "\n".join(items)
-            print("item_str", [items_str])
             indentor = "" if inline else (" " * indent)
             return (
                 f"{before_str}"
@@ -720,12 +686,9 @@ class NixWith(NixObject):
 
     @classmethod
     def from_cst(cls, node: Node):
-        print("W", node, node.type, dir(node), node.text)
         environment_node = node.child_by_field_name("environment")
         body_node = node.child_by_field_name("body")
         multiline = b"\n" in node.text
-
-        print("M", body_node, [body_node.text])
 
         from nix_manipulator.cst.models import NODE_TYPE_TO_CLASS
 
@@ -736,9 +699,7 @@ class NixWith(NixObject):
 
         environment = parse_to_cst_(environment_node)
         body = parse_to_cst_(body_node)
-        print(dict(environment=environment, body=body, multiline=multiline))
         return cls(environment=environment, body=body, multiline=multiline)
-
 
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         """Reconstruct with expression."""
@@ -767,7 +728,6 @@ class NixBinaryExpression(NixExpression):
     def from_cst(cls, node: Node):
         from nix_manipulator.cst.models import NODE_TYPE_TO_CLASS
 
-        print("B", node, node.type, dir(node), node.text)
         if node.type == "binary_expression":
             left_node, operator_node, right_node = node.children
             operator = operator_node.text.decode()
@@ -794,10 +754,13 @@ class NixSelect(NixObject):
     @classmethod
     def from_cst(cls, node: Node) -> NixSelect:
         return cls(
-            expression = NixIdentifier(name=node.child_by_field_name("expression").text.decode()),
-            attribute = NixIdentifier(name=node.child_by_field_name("attrpath").text.decode()),
+            expression=NixIdentifier(
+                name=node.child_by_field_name("expression").text.decode()
+            ),
+            attribute=NixIdentifier(
+                name=node.child_by_field_name("attrpath").text.decode()
+            ),
         )
-
 
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         """Reconstruct select expression."""

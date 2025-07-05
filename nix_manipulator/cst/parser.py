@@ -20,10 +20,6 @@ def parse_nix_cst(source_code: bytes | str) -> NixObject | NixSourceCode:
 
 def parse_to_cst(node: Node) -> NixObject | NixSourceCode:
     cls: NixObject | NixSourceCode | None = models.NODE_TYPE_TO_CLASS.get(node.type)
-    print()
-    print("CLS", cls, node.__class__, node.type)
-
     if not cls:
         raise ValueError(f"Unknown node type: {node.type} {node}")
-
     return cls.from_cst(node=node)

@@ -140,7 +140,9 @@ nixpkgs_trl_default = FunctionDefinition(
                             "license": NixIdentifier(name="lib.licenses.asl20"),
                             "maintainers": NixWith(
                                 environment=NixIdentifier(name="lib.maintainers"),
-                                body=NixList(value=[NixIdentifier(name="hoh")], multiline=False),
+                                body=NixList(
+                                    value=[NixIdentifier(name="hoh")], multiline=False
+                                ),
                             ),
                         },
                     ),

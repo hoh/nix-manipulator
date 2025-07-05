@@ -81,8 +81,10 @@ def test_nix_with_multiple_attributes():
     assert (
         NixWith(
             environment=NixIdentifier(name="lib.maintainers"),
-            body=NixList(value=[NixIdentifier(name="hoh"), NixIdentifier(name="mic92")],
-                         multiline=False),
+            body=NixList(
+                value=[NixIdentifier(name="hoh"), NixIdentifier(name="mic92")],
+                multiline=False,
+            ),
         ).rebuild()
         == "with lib.maintainers; [ hoh mic92 ]"
     )
@@ -133,12 +135,11 @@ def test_nix_comment():
         == '# This is a comment\nalice = "bob";'
     )
 
+
 def test_nix_comment_after_identifier():
     assert (
-        NixIdentifier(
-            name="alice", after=[Comment(text="This is a comment")]
-        ).rebuild()
-        == 'alice\n# This is a comment'
+        NixIdentifier(name="alice", after=[Comment(text="This is a comment")]).rebuild()
+        == "alice\n# This is a comment"
     )
 
 
@@ -147,9 +148,9 @@ def test_nix_comment_before_and_after_identifier():
         NixIdentifier(
             name="alice",
             before=[Comment(text="A first comment"), empty_line],
-            after=[empty_line, Comment(text="This is a comment")]
+            after=[empty_line, Comment(text="This is a comment")],
         ).rebuild()
-        == '# A first comment\n\nalice\n\n# This is a comment'
+        == "# A first comment\n\nalice\n\n# This is a comment"
     )
 
 
@@ -203,25 +204,23 @@ def test_nix_function_definition_empty_lines_in_argument_set():
         FunctionDefinition(
             argument_set=[
                 NixIdentifier(name="pkgs", before=[empty_line]),
-                NixIdentifier(name="pkgs-2", before=[
-                    Comment(text="This is a comment"),
-                    empty_line
-                ]),
+                NixIdentifier(
+                    name="pkgs-2",
+                    before=[Comment(text="This is a comment"), empty_line],
+                ),
                 NixIdentifier(
                     name="pkg-3",
                     before=[
                         empty_line,
                         Comment(text="Another comment"),
                     ],
-                    after=[
-                        empty_line,
-                        Comment(text="A final comment")
-                    ],
+                    after=[empty_line, Comment(text="A final comment")],
                 ),
             ],
             let_statements=[],
             output=NixAttributeSet.from_dict({"pkgs": NixIdentifier(name="pkgs")}),
-        ).rebuild() == """
+        ).rebuild()
+        == """
 {
 
   pkgs,
