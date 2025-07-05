@@ -31,7 +31,7 @@ linebreak = Linebreak()
 comma = Comma()
 
 
-class NixObject(BaseModel):
+class NixExpression(BaseModel):
     """Base class for all Nix objects."""
 
     model_config = ConfigDict(extra="forbid")
@@ -87,12 +87,12 @@ class NixSourceCode:
         return f"NixSourceCode(\n  node={self.node}, \n  value={self.value}\n)"
 
 
-class FunctionDefinition(NixObject):
+class FunctionDefinition(NixExpression):
     argument_set: List[NixIdentifier] = []
     argument_set_is_multiline: bool = True
     breaks_after_semicolon: Optional[int] = None
     let_statements: List[NixBinding] = []
-    output: Union[NixAttributeSet, NixObject, None] = None
+    output: Union[NixAttributeSet, NixExpression, None] = None
 
     @classmethod
     def from_cst(cls, node: Node):
@@ -165,9 +165,9 @@ class FunctionDefinition(NixObject):
 
         body: Node = node.child_by_field_name("body")
         if body.type == "attrset_expression":
-            output: NixObject = NixAttributeSet.from_cst(body)
+            output: NixExpression = NixAttributeSet.from_cst(body)
         elif body.type == "apply_expression":
-            output: NixObject = FunctionCall.from_cst(body)
+            output: NixExpression = FunctionCall.from_cst(body)
         else:
             raise ValueError(f"Unsupported output node: {body} {body.type}")
 
@@ -253,7 +253,7 @@ class FunctionDefinition(NixObject):
             return f"{before_str}{args_str}{split}{let_str}{output_str}{after_str}"
 
 
-class NixIdentifier(NixObject):
+class NixIdentifier(NixExpression):
     name: str
 
     @classmethod
@@ -278,7 +278,7 @@ class NixIdentifier(NixObject):
         )
 
 
-class NixInherit(NixObject):
+class NixInherit(NixExpression):
     names: List[NixIdentifier]
 
     @classmethod
@@ -316,7 +316,7 @@ class NixInherit(NixObject):
         )
 
 
-class NixPath(NixObject):
+class NixPath(NixExpression):
     path: str
 
     @classmethod
@@ -338,7 +338,7 @@ class NixPath(NixObject):
         return f"{before_str}{indentation}{self.path}{after_str}"
 
 
-class Comment(NixObject):
+class Comment(NixExpression):
     text: str
 
     def __str__(self):
@@ -382,9 +382,9 @@ class MultilineComment(Comment):
             return f"/* {self.text} */"
 
 
-class NixBinding(NixObject):
+class NixBinding(NixExpression):
     name: str
-    value: Union[NixObject, str, int, bool]
+    value: Union[NixExpression, str, int, bool]
     newline_after_equals: bool = False
 
     @classmethod
@@ -449,7 +449,7 @@ class NixBinding(NixObject):
         # Decide how the *value* itself has to be rendered
         val_indent = indent + 2 if self.newline_after_equals else indent
 
-        if isinstance(self.value, NixObject):
+        if isinstance(self.value, NixExpression):
             value_str = self.value.rebuild(indent=val_indent, inline=not self.newline_after_equals)
         elif isinstance(self.value, str):
             value_str = (" " * val_indent if self.newline_after_equals else "") + f'"{self.value}"'
@@ -484,13 +484,13 @@ class NixBinding(NixObject):
         return f"{before_str}{core}" + (f"\n{after_str}" if after_str else "")
 
 
-class NixAttributeSet(NixObject):
+class NixAttributeSet(NixExpression):
     values: List[NixBinding | NixInherit | FunctionCall]
     multiline: bool = True
     recursive: bool = False
 
     @classmethod
-    def from_dict(cls, values: Dict[str, NixObject]):
+    def from_dict(cls, values: Dict[str, NixExpression]):
         values_list = []
         for key, value in values.items():
             values_list.append(NixBinding(name=key, value=value))
@@ -612,9 +612,9 @@ class RecursiveAttributeSet(NixAttributeSet):
     recursive: bool = True
 
 
-class FunctionCall(NixObject):
+class FunctionCall(NixExpression):
     name: str
-    argument: Optional[NixObject] = None
+    argument: Optional[NixExpression] = None
     recursive: bool = False
     multiline: bool = True
 
@@ -676,7 +676,7 @@ class FunctionCall(NixObject):
         return f"{before_str}{indentation}{self.name}{rec_str} {args_str}{after_str}"
 
 
-class Primitive(NixObject):
+class Primitive(NixExpression):
     value: Union[str, int, bool]
 
     @classmethod
@@ -721,8 +721,8 @@ class Primitive(NixObject):
         return f"NixExpression(\nvalue={self.value} type={type(self.value)}\n)"
 
 
-class NixList(NixObject):
-    value: List[Union[NixObject, str, int, bool]]
+class NixList(NixExpression):
+    value: List[Union[NixExpression, str, int, bool]]
     multiline: bool = True
 
     @classmethod
@@ -759,7 +759,7 @@ class NixList(NixObject):
                 items.append(
                     f"{item.rebuild(indent=indented if (inline or self.multiline) else indented, inline=not self.multiline)}"
                 )
-            elif isinstance(item, NixObject):
+            elif isinstance(item, NixExpression):
                 items.append(
                     f"{item.rebuild(indent=indented if (inline or self.multiline) else indented, inline=not self.multiline)}"
                 )
@@ -791,9 +791,9 @@ class NixList(NixObject):
         return f"NixList(\nvalue={self.value}\n)"
 
 
-class NixWith(NixObject):
-    environment: NixObject
-    body: NixObject
+class NixWith(NixExpression):
+    environment: NixExpression
+    body: NixExpression
     multiline: bool = True
 
     @classmethod
@@ -804,9 +804,9 @@ class NixWith(NixObject):
 
         from nix_manipulator.cst.models import NODE_TYPE_TO_CLASS
 
-        def parse_to_cst_(node: Node) -> NixObject:
+        def parse_to_cst_(node: Node) -> NixExpression:
             assert node.type
-            node_class: type[NixObject] = NODE_TYPE_TO_CLASS[node.type]
+            node_class: type[NixExpression] = NODE_TYPE_TO_CLASS[node.type]
             return node_class.from_cst(node)
 
         environment = parse_to_cst_(environment_node)
@@ -827,14 +827,10 @@ class NixWith(NixObject):
         return f"{before_str}with {environment_str}; {body_str}{after_str}"
 
 
-class NixExpression(NixObject):
-    pass
-
-
 class NixBinaryExpression(NixExpression):
     operator: str
-    left: NixObject
-    right: NixObject
+    left: NixExpression
+    right: NixExpression
 
     @classmethod
     def from_cst(cls, node: Node):
@@ -859,7 +855,7 @@ class NixBinaryExpression(NixExpression):
         return f"{before_str}{indentation}{left_str} {self.operator} {right_str}{after_str}"
 
 
-class NixSelect(NixObject):
+class NixSelect(NixExpression):
     expression: NixIdentifier
     attribute: NixIdentifier
 

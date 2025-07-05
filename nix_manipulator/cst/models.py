@@ -8,7 +8,7 @@ from nix_manipulator.symbols import (
     NixBinaryExpression,
     NixInherit,
     NixList,
-    NixObject,
+    NixExpression,
     NixPath,
     NixSelect,
     NixSourceCode,
@@ -17,7 +17,7 @@ from nix_manipulator.symbols import (
     RecursiveAttributeSet,
 )
 
-NODE_TYPE_TO_CLASS: dict[str, type[NixObject]] = {
+NODE_TYPE_TO_CLASS: dict[str, type[NixExpression]] = {
     "list_expression": NixList,
     "integer_expression": Primitive,
     "source_code": NixSourceCode,

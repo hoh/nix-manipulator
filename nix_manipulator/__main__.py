@@ -8,10 +8,10 @@ from pygments.formatters import TerminalFormatter
 from pygments.lexers import NixLexer, PythonLexer
 
 from nix_manipulator.cst.parser import parse_nix_cst
-from nix_manipulator.symbols import NixObject
+from nix_manipulator.symbols import NixExpression
 
 
-def pretty_print_symbols(obj: NixObject, indent: int = 0) -> str:
+def pretty_print_symbols(obj: NixExpression, indent: int = 0) -> str:
     """Pretty print symbol objects in a tree structure."""
     indent_str = "  " * indent
 
@@ -22,10 +22,10 @@ def pretty_print_symbols(obj: NixObject, indent: int = 0) -> str:
             if key.startswith("_"):
                 continue
 
-            if isinstance(value, NixObject):
+            if isinstance(value, NixExpression):
                 lines.append(f"{indent_str}  {key}=")
                 lines.append(pretty_print_symbols(value, indent + 2))
-            elif isinstance(value, list) and value and isinstance(value[0], NixObject):
+            elif isinstance(value, list) and value and isinstance(value[0], NixExpression):
                 lines.append(f"{indent_str}  {key}=[")
                 for item in value:
                     lines.append(pretty_print_symbols(item, indent + 2))
@@ -33,7 +33,7 @@ def pretty_print_symbols(obj: NixObject, indent: int = 0) -> str:
             elif isinstance(value, dict):
                 lines.append(f"{indent_str}  {key}={{")
                 for k, v in value.items():
-                    if isinstance(v, NixObject):
+                    if isinstance(v, NixExpression):
                         lines.append(f"{indent_str}    {k}=")
                         lines.append(pretty_print_symbols(v, indent + 3))
                     else:
