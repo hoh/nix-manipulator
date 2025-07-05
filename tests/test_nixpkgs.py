@@ -5,15 +5,15 @@ from nix_manipulator.cst.parser import parse_nix_cst
 NIXPKGS_PATH = Path("/home/sepal/Repos/hoh/nixpkgs")
 
 
-def parse_and_rebuild(source: str):
-    parsed_cst = parse_nix_cst(source.encode("utf-8"))
-    return parsed_cst.rebuild()
-
-
 def check_package_can_be_reproduced(path: Path):
     source = path.read_text().strip("\n")
-    rebuilt_code = parse_and_rebuild(source)
-    assert source == rebuilt_code
+    parsed_cst = parse_nix_cst(source.encode("utf-8"))
+    rebuilt_code = parsed_cst.rebuild()
+    try:
+        assert source == rebuilt_code
+    except:
+        print(parsed_cst)
+        raise
 
 
 def test_some_nixpkgs_packages():
