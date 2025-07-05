@@ -278,6 +278,43 @@ class NixIdentifier(NixObject):
         )
 
 
+class NixInherit(NixObject):
+    names: List[NixIdentifier]
+
+    @classmethod
+    def from_cst(
+        cls, node: Node, before: List[Any] | None = None, after: List[Any] | None = None
+    ):
+        names: list[NixIdentifier]
+        for child in node.children:
+            if child.type == "inherited_attrs":
+                names = [
+                    NixIdentifier.from_cst(grandchild) for grandchild in child.children
+                ]
+                break
+        else:
+            names = []
+
+        return cls(names=names, before=before or [], after=after or [])
+
+    def rebuild(
+        self, indent: int = 0, inline: bool = False, trailing_comma: bool = False
+    ) -> str:
+        """Reconstruct identifier."""
+        before_str = self._format_trivia(self.before, indent=indent)
+        after_str = self._format_trivia(self.after, indent=indent)
+        comma = "," if trailing_comma else ""
+
+        if self.after and self.after[-1] != linebreak and after_str[-1] == "\n":
+            after_str = after_str[:-1]
+
+        indentation = " " * indent if not inline else ""
+        names = " ".join(name.rebuild(inline=True) for name in self.names)
+        return f"{before_str}{indentation}inherit {names};" + (
+            f"\n{after_str}" if after_str else ""
+        )
+
+
 class Comment(NixObject):
     text: str
 
@@ -405,7 +442,7 @@ class NixBinding(NixObject):
 
 
 class NixAttributeSet(NixObject):
-    values: List[NixBinding]
+    values: List[NixBinding | NixInherit | FunctionCall]
     multiline: bool = True
 
     @classmethod
@@ -424,7 +461,7 @@ class NixAttributeSet(NixObject):
         `binding_set` wrapper that tree-sitter-nix inserts.
         """
         multiline = b"\n" in node.text
-        values: list[NixBinding] = []
+        values: list[NixBinding | NixInherit] = []
         before: list[Any] = []
 
         def push_gap(prev: Optional[Node], cur: Node) -> None:
@@ -449,7 +486,7 @@ class NixAttributeSet(NixObject):
 
         prev_content: Optional[Node] = None
         for child in content_nodes:
-            if child.type in ("binding", "comment", "variable_expression"):
+            if child.type in ("binding", "comment", "variable_expression", "inherit"):
                 push_gap(prev_content, child)
 
                 if child.type == "binding":
@@ -470,9 +507,15 @@ class NixAttributeSet(NixObject):
                         )  # attach to the *after*-trivia of that binding
                     else:
                         before.append(comment)
-                else:  # variable_expression – a function call
+                elif child.type == "inherit":
+                    values.append(NixInherit.from_cst(child, before=before))
+                    before = []
+                elif child.type == "variable_expression":
+                    # variable_expression – a function call
                     values.append(FunctionCall.from_cst(child, before=before))
                     before = []
+                else:
+                    raise ValueError(f"Unsupported child node: {child} {child.type}")
 
                 prev_content = child
             else:

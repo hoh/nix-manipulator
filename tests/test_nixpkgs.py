@@ -20,6 +20,8 @@ def test_some_nixpkgs_packages():
     packages = [
         "pkgs/development/python-modules/trl/default.nix",
         "pkgs/development/python-modules/cut-cross-entropy/default.nix",
+        "pkgs/development/python-modules/unsloth-zoo/default.nix",
+        "pkgs/development/python-modules/unsloth/default.nix",
     ]
     for package in packages:
         check_package_can_be_reproduced(NIXPKGS_PATH / package)

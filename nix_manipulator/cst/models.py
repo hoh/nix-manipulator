@@ -6,6 +6,7 @@ from nix_manipulator.symbols import (
     FunctionDefinition,
     NixAttributeSet,
     NixBinaryExpression,
+    NixInherit,
     NixList,
     NixObject,
     NixSelect,
@@ -27,4 +28,5 @@ NODE_TYPE_TO_CLASS: dict[str, type[NixObject]] = {
     "binary_expression": NixBinaryExpression,
     "select_expression": NixSelect,
     "with_expression": NixWith,
+    "inherit": NixInherit,
 }
