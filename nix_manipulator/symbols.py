@@ -385,45 +385,7 @@ class MultilineComment(Comment):
 class NixBinding(NixObject):
     name: str
     value: Union[NixObject, str, int, bool]
-
-    def rebuild(self, indent: int = 0, inline: bool = False) -> str:
-        """Reconstruct binding."""
-        before_str = self._format_trivia(self.before, indent=indent)
-        after_str = self._format_trivia(self.after, indent=indent)
-        indentation = "" if inline else " " * indent
-
-        if isinstance(self.value, NixObject):
-            value_str = self.value.rebuild(indent=indent, inline=True)
-        elif isinstance(self.value, str):
-            value_str = f'"{self.value}"'
-        elif isinstance(self.value, bool):
-            value_str = "true" if self.value else "false"
-        else:
-            raise ValueError(f"Unsupported value type: {type(self.value)}")
-
-        # Apply indentation to the entire binding, not just the value
-        indented_line = indentation + f"{self.name} = {value_str};"
-
-        if self.after and isinstance(self.after[0], Comment):
-            inline_comment = self.after[0].rebuild(indent=0)  # "# …"
-            trailing = self._format_trivia(self.after[1:], indent=indent)
-            # No extra newline here – let trailing trivia supply it
-            return f"{before_str}{indented_line} {inline_comment}{trailing}"
-
-        if self.after and self.after[0] is linebreak:
-            trailing = self._format_trivia(self.after[1:], indent=indent)
-            if not trailing.startswith(
-                "\n"
-            ):  # ensure one newline *before* the first “#”
-                trailing = "\n" + trailing
-            if trailing.endswith("\n"):  # …but trim the **last** one
-                trailing = trailing[:-1]
-            return f"{before_str}{indented_line}{trailing}"
-
-        if self.after and self.after[-1] != linebreak and after_str.endswith("\n"):
-            after_str = after_str[:-1]
-
-        return f"{before_str}{indented_line}" + (f"\n{after_str}" if after_str else "")
+    newline_after_equals: bool = False
 
     @classmethod
     def from_cst(
@@ -435,6 +397,10 @@ class NixBinding(NixObject):
         children = (
             node.children[0].children if len(node.children) == 1 else node.children
         )
+
+        name: str | None = None
+        value: Any | None = None
+
         for child in children:
             if child.type in ("=", ";"):
                 continue
@@ -461,7 +427,61 @@ class NixBinding(NixObject):
             else:
                 raise ValueError(f"Unsupported child node: {child} {child.type}")
 
-        return cls(name=name, value=value, before=before, after=after)
+        if name is None or value is None:
+            raise ValueError("Could not parse binding")
+
+        newline_after_equals = bool(re.search(r"=\s*\n", node.text.decode()))
+
+        return cls(
+            name=name,
+            value=value,
+            before=before,
+            after=after,
+            newline_after_equals=newline_after_equals,
+        )
+
+    def rebuild(self, indent: int = 0, inline: bool = False) -> str:  # noqa: C901
+        """Reconstruct binding, preserving possible newline after '='."""
+        before_str = self._format_trivia(self.before, indent=indent)
+        after_str = self._format_trivia(self.after, indent=indent)
+        indentation = "" if inline else " " * indent
+
+        # Decide how the *value* itself has to be rendered
+        val_indent = indent + 2 if self.newline_after_equals else indent
+
+        if isinstance(self.value, NixObject):
+            value_str = self.value.rebuild(indent=val_indent, inline=not self.newline_after_equals)
+        elif isinstance(self.value, str):
+            value_str = (" " * val_indent if self.newline_after_equals else "") + f'"{self.value}"'
+        elif isinstance(self.value, bool):
+            value_str = (" " * val_indent if self.newline_after_equals else "") + ("true" if self.value else "false")
+        elif isinstance(self.value, int):
+            value_str = (" " * val_indent if self.newline_after_equals else "") + str(self.value)
+        else:
+            raise ValueError(f"Unsupported value type: {type(self.value)}")
+
+        # Assemble left-hand side
+        head = f"{indentation}{self.name} ="
+        sep = "\n" if self.newline_after_equals else " "
+        core = f"{head}{sep}{value_str};"
+
+        if self.after and isinstance(self.after[0], Comment):
+            inline_comment = self.after[0].rebuild(indent=0)
+            trailing = self._format_trivia(self.after[1:], indent=indent)
+            return f"{before_str}{core} {inline_comment}{trailing}"
+
+        if self.after and self.after[0] is linebreak:
+            trailing = self._format_trivia(self.after[1:], indent=indent)
+            if not trailing.startswith("\n"):
+                trailing = "\n" + trailing
+            if trailing.endswith("\n"):
+                trailing = trailing[:-1]
+            return f"{before_str}{core}{trailing}"
+
+        if self.after and self.after[-1] is not linebreak and after_str.endswith("\n"):
+            after_str = after_str[:-1]
+
+        return f"{before_str}{core}" + (f"\n{after_str}" if after_str else "")
 
 
 class NixAttributeSet(NixObject):
