@@ -355,10 +355,14 @@ class NixBinding(NixObject):
         # Apply indentation to the entire binding, not just the value
         indented_line = indentation + f"{self.name} = {value_str};"
 
-        if self.after and self.after[-1] != linebreak and after_str[-1] == "\n":
-            after_str = after_str[:-1]
+        if self.after and isinstance(self.after[0], Comment):
+            inline_comment = self.after[0].rebuild(indent=0)  # "# …"
+            trailing = self._format_trivia(self.after[1:], indent=indent)
+            # No extra newline here – let trailing trivia supply it
+            return f"{before_str}{indented_line} {inline_comment}{trailing}"
 
-        print("BINDING RESULT", [f"{before_str}{indented_line}{after_str}"])
+        if self.after and self.after[-1] != linebreak and after_str.endswith("\n"):
+            after_str = after_str[:-1]
 
         return f"{before_str}{indented_line}" + (f"\n{after_str}" if after_str else "")
 
@@ -459,7 +463,18 @@ class NixAttributeSet(NixObject):
                     values.append(NixBinding.from_cst(child, before=before))
                     before = []
                 elif child.type == "comment":
-                    before.append(Comment.from_cst(child))
+                    comment = Comment.from_cst(child)
+                    # Inline only when comment shares the *same row* as the binding terminator
+                    inline_to_prev = (
+                            prev_content is not None
+                            and prev_content.type == "binding"
+                            and child.start_point.row == prev_content.end_point.row
+                            and values
+                    )
+                    if inline_to_prev:
+                        values[-1].after.append(comment)  # attach to the *after*-trivia of that binding
+                    else:
+                        before.append(comment)
                 else:  # variable_expression – a function call
                     values.append(FunctionCall.from_cst(child, before=before))
                     before = []

@@ -17,6 +17,9 @@ def check_package_can_be_reproduced(path: Path):
 
 
 def test_some_nixpkgs_packages():
-    packages = ["pkgs/development/python-modules/trl/default.nix"]
+    packages = [
+        "pkgs/development/python-modules/trl/default.nix",
+        "pkgs/development/python-modules/cut-cross-entropy/default.nix",
+    ]
     for package in packages:
         check_package_can_be_reproduced(NIXPKGS_PATH / package)
