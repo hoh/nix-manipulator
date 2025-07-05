@@ -9,6 +9,7 @@ from nix_manipulator.symbols import (
     NixInherit,
     NixList,
     NixObject,
+    NixPath,
     NixSelect,
     NixSourceCode,
     NixWith,
@@ -29,4 +30,5 @@ NODE_TYPE_TO_CLASS: dict[str, type[NixObject]] = {
     "select_expression": NixSelect,
     "with_expression": NixWith,
     "inherit": NixInherit,
+    "path_expression": NixPath,
 }

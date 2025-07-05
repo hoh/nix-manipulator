@@ -298,12 +298,13 @@ class NixInherit(NixObject):
         return cls(names=names, before=before or [], after=after or [])
 
     def rebuild(
-        self, indent: int = 0, inline: bool = False, trailing_comma: bool = False
+        self,
+        indent: int = 0,
+        inline: bool = False,
     ) -> str:
         """Reconstruct identifier."""
         before_str = self._format_trivia(self.before, indent=indent)
         after_str = self._format_trivia(self.after, indent=indent)
-        comma = "," if trailing_comma else ""
 
         if self.after and self.after[-1] != linebreak and after_str[-1] == "\n":
             after_str = after_str[:-1]
@@ -313,6 +314,28 @@ class NixInherit(NixObject):
         return f"{before_str}{indentation}inherit {names};" + (
             f"\n{after_str}" if after_str else ""
         )
+
+
+class NixPath(NixObject):
+    path: str
+
+    @classmethod
+    def from_cst(
+        cls, node: Node, before: List[Any] | None = None, after: List[Any] | None = None
+    ):
+        path = node.text.decode()
+        return cls(path=path, before=before or [], after=after or [])
+
+    def rebuild(
+        self,
+        indent: int = 0,
+        inline: bool = False,
+    ) -> str:
+        """Reconstruct identifier."""
+        before_str = self._format_trivia(self.before, indent=indent)
+        after_str = self._format_trivia(self.after, indent=indent)
+        indentation = " " * indent if not inline else ""
+        return f"{before_str}{indentation}{self.path}{after_str}"
 
 
 class Comment(NixObject):
