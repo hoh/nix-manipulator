@@ -227,3 +227,17 @@ def test_nix_function_definition_empty_lines_in_output_set():
 }
 """.strip("\n")
     assert source == parse_and_rebuild(source)
+
+
+def test_nix_function_calls_a_string():
+    source = """
+callFunction "with a string"
+""".strip("\n")
+    assert source == parse_and_rebuild(source)
+
+
+def test_nix_function_calls_a_number():
+    source = """
+callFunction 32
+""".strip("\n")
+    assert source == parse_and_rebuild(source)

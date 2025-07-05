@@ -467,6 +467,7 @@ class NixBinding(NixObject):
 class NixAttributeSet(NixObject):
     values: List[NixBinding | NixInherit | FunctionCall]
     multiline: bool = True
+    recursive: bool = False
 
     @classmethod
     def from_dict(cls, values: Dict[str, NixObject]):
@@ -509,7 +510,13 @@ class NixAttributeSet(NixObject):
 
         prev_content: Optional[Node] = None
         for child in content_nodes:
-            if child.type in ("binding", "comment", "variable_expression", "inherit"):
+            if child.type in (
+                "binding",
+                "comment",
+                "variable_expression",
+                "inherit",
+                "string_fragment",
+            ):
                 push_gap(prev_content, child)
 
                 if child.type == "binding":
@@ -537,6 +544,9 @@ class NixAttributeSet(NixObject):
                     # variable_expression – a function call
                     values.append(FunctionCall.from_cst(child, before=before))
                     before = []
+                elif child.type == "string_fragment":
+                    # Used by the function call called with the previous child
+                    pass
                 else:
                     raise ValueError(f"Unsupported child node: {child} {child.type}")
 
@@ -576,9 +586,15 @@ class NixAttributeSet(NixObject):
             return f"{before_str}{{ {bindings_str} }}{after_str}"
 
 
+class RecursiveAttributeSet(NixAttributeSet):
+    values: List[NixBinding | NixInherit | FunctionCall]
+    multiline: bool = True
+    recursive: bool = True
+
+
 class FunctionCall(NixObject):
     name: str
-    argument: Optional[NixAttributeSet] = None
+    argument: Optional[NixObject] = None
     recursive: bool = False
     multiline: bool = True
 
@@ -595,7 +611,10 @@ class FunctionCall(NixObject):
         recursive = (
             node.child_by_field_name("argument").type == "rec_attrset_expression"
         )
-        argument = NixAttributeSet.from_cst(node.child_by_field_name("argument"))
+
+        from .cst.parser import parse_to_cst
+
+        argument = parse_to_cst(node.child_by_field_name("argument"))
 
         return cls(
             name=name,
@@ -616,20 +635,25 @@ class FunctionCall(NixObject):
         if not self.argument:
             return f"{before_str}{indentation}{self.name}{after_str}"
 
-        args = []
-        for binding in self.argument.values:
-            args.append(binding.rebuild(indent=indented, inline=not self.multiline))
+        if False:
+            args = []
+            for binding in self.argument.values:
+                args.append(binding.rebuild(indent=indented, inline=not self.multiline))
 
-        indented_items = [f"{item}" for item in args]
+            indented_items = [f"{item}" for item in args]
 
-        if self.multiline:
-            args_str = " {\n" + "\n".join(indented_items) + "\n" + " " * indent + "}"
+            if self.multiline:
+                args_str = (
+                    " {\n" + "\n".join(indented_items) + "\n" + " " * indent + "}"
+                )
+            else:
+                items_str = " ".join(indented_items)
+                args_str = f" {{ {items_str} }}"
         else:
-            items_str = " ".join(indented_items)
-            args_str = f" {{ {items_str} }}"
+            args_str = self.argument.rebuild(indent=indent, inline=not self.multiline)
 
         rec_str = " rec" if self.recursive else ""
-        return f"{before_str}{indentation}{self.name}{rec_str}{args_str}{after_str}"
+        return f"{before_str}{indentation}{self.name}{rec_str} {args_str}{after_str}"
 
 
 class Primitive(NixObject):
@@ -642,6 +666,8 @@ class Primitive(NixObject):
 
         if node.type == "string_expression":
             value = json.loads(node.text)
+        elif node.type == "string_fragment":
+            value = node.text.decode()
         elif node.type == "integer_expression":
             value = int(node.text)
         elif node.type == "variable_expression":
