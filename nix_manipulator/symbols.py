@@ -361,10 +361,13 @@ class NixBinding(NixObject):
             # No extra newline here – let trailing trivia supply it
             return f"{before_str}{indented_line} {inline_comment}{trailing}"
 
-        # Stand-alone comment(s) that already start on the next line
         if self.after and self.after[0] is linebreak:
             trailing = self._format_trivia(self.after[1:], indent=indent)
-            return f"{before_str}{indented_line}\n{trailing}"
+            if not trailing.startswith("\n"):          # ensure one newline *before* the first “#”
+                trailing = "\n" + trailing
+            if trailing.endswith("\n"):                # …but trim the **last** one
+                trailing = trailing[:-1]
+            return f"{before_str}{indented_line}{trailing}"
 
         if self.after and self.after[-1] != linebreak and after_str.endswith("\n"):
             after_str = after_str[:-1]
