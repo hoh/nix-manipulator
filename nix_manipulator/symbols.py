@@ -361,6 +361,11 @@ class NixBinding(NixObject):
             # No extra newline here – let trailing trivia supply it
             return f"{before_str}{indented_line} {inline_comment}{trailing}"
 
+        # Stand-alone comment(s) that already start on the next line
+        if self.after and self.after[0] is linebreak:
+            trailing = self._format_trivia(self.after[1:], indent=indent)
+            return f"{before_str}{indented_line}\n{trailing}"
+
         if self.after and self.after[-1] != linebreak and after_str.endswith("\n"):
             after_str = after_str[:-1]
 
@@ -445,6 +450,8 @@ class NixAttributeSet(NixObject):
             gap = node.text[start:end].decode()
             if re.search(r"\n[ \t]*\n", gap):
                 before.append(empty_line)
+            elif "\n" in gap:  # exactly one line-break — keep it
+                 before.append(linebreak)
 
         # Flatten content: unwrap `binding_set` if present
         content_nodes: list[Node] = []
