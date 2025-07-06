@@ -1,0 +1,180 @@
+from __future__ import annotations
+
+import re
+from typing import List, Optional, Union
+
+from tree_sitter import Node
+
+from nix_manipulator.format import _format_trivia
+from nix_manipulator.models.binding import NixBinding
+from nix_manipulator.models.comment import Comment
+from nix_manipulator.models.expression import NixExpression
+from nix_manipulator.models.function.call import FunctionCall
+from nix_manipulator.models.identifier import NixIdentifier
+from nix_manipulator.models.layout import empty_line
+from nix_manipulator.models.set import NixAttributeSet
+
+
+class FunctionDefinition(NixExpression):
+    argument_set: List[NixIdentifier] = []
+    argument_set_is_multiline: bool = True
+    breaks_after_semicolon: Optional[int] = None
+    let_statements: List[NixBinding] = []
+    output: Union[NixAttributeSet, NixExpression, None] = None
+
+    @classmethod
+    def from_cst(cls, node: Node):
+        children_types = [child.type for child in node.children]
+        assert children_types in (
+            ["formals", ":", "attrset_expression"],
+            ["formals", ":", "apply_expression"],
+        ), (
+            f"Output other than attrset_expression not supported yet. You used {children_types}"
+        )
+
+        argument_set = []
+        argument_set_is_multiline = b"\n" in node.child_by_field_name("formals").text
+
+        before = []
+        previous_child = node.child_by_field_name("formals").children[0]
+        assert previous_child.type == "{"
+        for child in node.child_by_field_name("formals").children:
+            if child.type in ("{", "}"):
+                continue
+            elif child.type == ",":
+                # Don't continue, we want to have it as previous_child
+                pass
+            elif child.type == "formal":
+                for grandchild in child.children:
+                    if grandchild.type == "identifier":
+                        if grandchild.text == b"":
+                            # Trailing commas add a "MISSING identifier" element with body b""
+                            continue
+
+                        if previous_child:
+                            gap = node.text[
+                                previous_child.end_byte : child.start_byte
+                            ].decode()
+                            is_empty_line = False
+                            if re.match(r"[ ]*\n[ ]*\n[ ]*", gap):
+                                before.append(empty_line)
+                                is_empty_line = True
+
+                        argument_set.append(
+                            NixIdentifier.from_cst(grandchild, before=before)
+                        )
+                        before = []
+                    else:
+                        raise ValueError(
+                            f"Unsupported child node: {grandchild} {grandchild.type}"
+                        )
+            elif child.type == "comment":
+                if previous_child:
+                    gap = node.text[previous_child.end_byte : child.start_byte].decode()
+                    is_empty_line = False
+                    if re.match(r"[ ]*\n[ ]*\n[ ]*", gap):
+                        before.append(empty_line)
+                        is_empty_line = True
+
+                before.append(Comment.from_cst(child))
+            elif child.type == "ERROR" and child.text == b",":
+                # Trailing commas are RFC compliant but add a 'ERROR' element..."
+                pass
+            else:
+                raise ValueError(f"Unsupported child node: {child} {child.type}")
+            previous_child = child
+
+        if before:
+            # No binding followed the comment so it could not be attached to it
+            argument_set[-1].after += before
+
+        let_statements = []
+
+        body: Node = node.child_by_field_name("body")
+        if body.type == "attrset_expression":
+            output: NixExpression = NixAttributeSet.from_cst(body)
+        elif body.type == "apply_expression":
+            output: NixExpression = FunctionCall.from_cst(body)
+        else:
+            raise ValueError(f"Unsupported output node: {body} {body.type}")
+
+        def get_semicolon_index(text) -> int:
+            for child in node.children:
+                if child.type == ":":
+                    return child.end_byte
+            return -1
+
+        after_semicolon: bytes = node.text[
+            get_semicolon_index(node) : node.child_by_field_name("body").start_byte
+        ]
+        breaks_after_semicolon: int = after_semicolon.count(
+            b"\n"
+        )  # or let_statements...
+
+        return cls(
+            breaks_after_semicolon=breaks_after_semicolon,
+            argument_set=argument_set,
+            let_statements=let_statements,
+            output=output,
+            argument_set_is_multiline=argument_set_is_multiline,
+        )
+
+    def rebuild(self, indent: int = 0, inline: bool = False) -> str:
+        """Reconstruct function definition."""
+        indent += 2
+        before_str = _format_trivia(self.before, indent=indent)
+        after_str = _format_trivia(self.after, indent=indent)
+
+        # Build argument set
+        if not self.argument_set:
+            args_str = "{ }"
+        else:
+            args = []
+            indentation = " " * indent if self.argument_set_is_multiline else ""
+            for i, arg in enumerate(self.argument_set):
+                is_last_argument: bool = i == len(self.argument_set) - 1
+                args.append(
+                    arg.rebuild(
+                        indent=indent,
+                        inline=not self.argument_set_is_multiline,
+                        trailing_comma=self.argument_set_is_multiline,
+                    )
+                )
+
+            if self.argument_set_is_multiline:
+                args_str = "{\n" + "\n".join(args) + "\n}"
+            else:
+                args_str = "{ " + ", ".join(args) + " }"
+
+        # Build let statements
+        let_str = ""
+        if self.let_statements:
+            let_bindings: List[str] = []
+            for binding in self.let_statements:
+                let_bindings.append(binding.rebuild(indent=2))
+            let_str = "let\n" + "\n".join(let_bindings) + "\nin\n"
+
+        # Build result)
+        output_str = self.output.rebuild() if self.output else "{ }"
+
+        breaks_after_semicolon: int
+        if self.breaks_after_semicolon is not None:
+            breaks_after_semicolon = self.breaks_after_semicolon
+        elif self.let_statements:
+            breaks_after_semicolon = 1
+        else:
+            breaks_after_semicolon = (
+                1
+                if self.let_statements
+                or (self.argument_set_is_multiline and len(self.argument_set) > 0)
+                else 0
+            )
+        line_break = "\n" * breaks_after_semicolon
+
+        # Format the final string - use single line format when no arguments and no let statements
+        if (not self.argument_set) and (not self.let_statements):
+            split = ": " if not line_break else ":" + line_break
+            return f"{before_str}{args_str}{split}{output_str}{after_str}"
+        else:
+            split = ": " if not line_break else ":" + line_break
+            return f"{before_str}{args_str}{split}{let_str}{output_str}{after_str}"

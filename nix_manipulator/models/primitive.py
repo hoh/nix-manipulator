@@ -1,0 +1,55 @@
+from __future__ import annotations
+
+import json
+from typing import Union
+
+from tree_sitter import Node
+
+from nix_manipulator.format import _format_trivia
+from nix_manipulator.models.expression import NixExpression
+from nix_manipulator.models.identifier import NixIdentifier
+
+
+class Primitive(NixExpression):
+    value: Union[str, int, bool]
+
+    @classmethod
+    def from_cst(cls, node: Node):
+        if node.text is None:
+            raise ValueError("Missing expression")
+
+        if node.type == "string_expression":
+            value = json.loads(node.text)
+        elif node.type == "string_fragment":
+            value = node.text.decode()
+        elif node.type == "integer_expression":
+            value = int(node.text)
+        elif node.type == "variable_expression":
+            if node.text in (b"true", b"false"):
+                value = node.text == b"true"
+            else:
+                return NixIdentifier(name=node.text.decode())
+        else:
+            raise ValueError(f"Unsupported expression type: {node.type}")
+        return cls(value=value)
+
+    def rebuild(self, indent: int = 0, inline: bool = False) -> str:
+        """Reconstruct expression."""
+        before_str = _format_trivia(self.before, indent=indent)
+        after_str = _format_trivia(self.after, indent=indent)
+
+        indentation = "" if inline else " " * indent
+
+        if isinstance(self.value, str):
+            value_str = f'"{self.value}"'
+        elif isinstance(self.value, bool):
+            value_str = "true" if self.value else "false"
+        elif isinstance(self.value, int):
+            value_str = f"{self.value}"
+        else:
+            raise ValueError(f"Unsupported expression type: {type(self.value)}")
+
+        return f"{before_str}{indentation}{value_str}{after_str}"
+
+    def __repr__(self):
+        return f"NixExpression(\nvalue={self.value} type={type(self.value)}\n)"

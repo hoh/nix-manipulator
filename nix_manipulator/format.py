@@ -1,0 +1,23 @@
+from __future__ import annotations
+
+from typing import List, Any
+
+from nix_manipulator.models.comment import Comment, MultilineComment
+from nix_manipulator.models.layout import empty_line, linebreak, comma
+
+
+def _format_trivia(trivia_list: List[Any], indent: int = 0) -> str:
+    """Convert trivia objects to string representation."""
+    result = ""
+    for item in trivia_list:
+        if item is empty_line:
+            result += "\n"
+        elif item is linebreak:
+            result += ""
+        elif item is comma:
+            result += ","
+        elif isinstance(item, (Comment, MultilineComment)):
+            result += item.rebuild(indent=indent) + "\n"
+        else:
+            raise NotImplementedError(f"Unsupported trivia item: {item}")
+    return result

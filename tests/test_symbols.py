@@ -1,17 +1,14 @@
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-from nix_manipulator.symbols import (
-    Comment,
-    FunctionDefinition,
-    MultilineComment,
-    NixAttributeSet,
-    NixBinding,
-    NixIdentifier,
-    NixList,
-    Primitive,
-    empty_line,
-)
+from nix_manipulator.models.layout import empty_line
+from nix_manipulator.models.list import NixList
+from nix_manipulator.models.primitive import Primitive
+from nix_manipulator.models.set import NixAttributeSet
+from nix_manipulator.models.binding import NixBinding
+from nix_manipulator.models.comment import Comment, MultilineComment
+from nix_manipulator.models.identifier import NixIdentifier
+from nix_manipulator.models.function.definition import FunctionDefinition
 
 from .fixtures import nixpkgs_trl_default
 

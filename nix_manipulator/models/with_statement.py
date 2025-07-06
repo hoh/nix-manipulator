@@ -1,0 +1,42 @@
+from __future__ import annotations
+
+from tree_sitter import Node
+
+from nix_manipulator.format import _format_trivia
+from nix_manipulator.models.expression import NixExpression
+
+
+class NixWith(NixExpression):
+    environment: NixExpression
+    body: NixExpression
+    multiline: bool = True
+
+    @classmethod
+    def from_cst(cls, node: Node):
+        environment_node = node.child_by_field_name("environment")
+        body_node = node.child_by_field_name("body")
+        multiline = b"\n" in node.text
+
+        from nix_manipulator.cst.models import NODE_TYPE_TO_CLASS
+
+        def parse_to_cst_(node: Node) -> NixExpression:
+            assert node.type
+            node_class: type[NixExpression] = NODE_TYPE_TO_CLASS[node.type]
+            return node_class.from_cst(node)
+
+        environment = parse_to_cst_(environment_node)
+        body = parse_to_cst_(body_node)
+        return cls(environment=environment, body=body, multiline=multiline)
+
+    def rebuild(self, indent: int = 0, inline: bool = False) -> str:
+        """Reconstruct with expression."""
+        before_str = _format_trivia(self.before, indent=indent)
+        after_str = _format_trivia(self.after, indent=indent)
+
+        # expr_str = self.expression.rebuild() if self.expression else ""
+        # attrs_str = " ".join(attr.name for attr in self.attributes)
+
+        environment_str = self.environment.rebuild(indent=indent, inline=True)
+        body_str = self.body.rebuild(indent=indent, inline=True)
+
+        return f"{before_str}with {environment_str}; {body_str}{after_str}"
