@@ -30,13 +30,6 @@ EXPRESSION_TYPES: set[type[TypedExpression]] = {
     Primitive,
 }
 
-for expression_type in EXPRESSION_TYPES:
-    try:
-        print(expression_type.tree_sitter_types)
-    except AttributeError as e:
-        print(hasattr(expression_type, "tree_sitter_types"))
-        raise ValueError(f"Missing tree_sitter_types for {expression_type}") from e
-
 TREE_SITTER_TYPE_TO_EXPRESSION: dict[str, type[TypedExpression]] = {
     tree_sitter_type: expression_type
     for expression_type in EXPRESSION_TYPES
