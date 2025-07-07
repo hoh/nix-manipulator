@@ -15,14 +15,14 @@ def test_rebuild_nix_identifier():
     assert Identifier(name="foo-bar").rebuild() == "foo-bar"
     assert Identifier(name="foo.bar").rebuild() == "foo.bar"
     assert (
-            Identifier(
+        Identifier(
             name="accelerate",
             before=[
                 empty_line,
                 Comment(text="dependencies"),
             ],
         ).rebuild()
-            == "\n# dependencies\naccelerate"
+        == "\n# dependencies\naccelerate"
     )
 
 
@@ -67,38 +67,38 @@ def test_rebuild_nix_list_multiline_not_specified():
 
 def test_nix_with():
     assert (
-            WithStatement(
+        WithStatement(
             environment=Identifier(name="lib.maintainers"),
             body=NixList(value=[Identifier(name="hoh")], multiline=False),
         ).rebuild()
-            == "with lib.maintainers; [ hoh ]"
+        == "with lib.maintainers; [ hoh ]"
     )
 
 
 def test_nix_with_multiple_attributes():
     assert (
-            WithStatement(
+        WithStatement(
             environment=Identifier(name="lib.maintainers"),
             body=NixList(
                 value=[Identifier(name="hoh"), Identifier(name="mic92")],
                 multiline=False,
             ),
         ).rebuild()
-            == "with lib.maintainers; [ hoh mic92 ]"
+        == "with lib.maintainers; [ hoh mic92 ]"
     )
 
 
 def test_nix_binding():
     assert (
-            Binding(
+        Binding(
             name="foo",
             value=Identifier(name="bar"),
         ).rebuild()
-            == "foo = bar;"
+        == "foo = bar;"
     )
 
     assert (
-            Binding(
+        Binding(
             name="foo",
             value=NixList(
                 value=[
@@ -108,7 +108,7 @@ def test_nix_binding():
                 multiline=False,
             ),
         ).rebuild()
-            == "foo = [ bar baz ];"
+        == "foo = [ bar baz ];"
     )
 
 
@@ -127,28 +127,28 @@ def test_nix_comment():
     )
 
     assert (
-            Binding(
+        Binding(
             name="alice", value="bob", before=[Comment(text="This is a comment")]
         ).rebuild()
-            == '# This is a comment\nalice = "bob";'
+        == '# This is a comment\nalice = "bob";'
     )
 
 
 def test_nix_comment_after_identifier():
     assert (
-            Identifier(name="alice", after=[Comment(text="This is a comment")]).rebuild()
-            == "alice\n# This is a comment"
+        Identifier(name="alice", after=[Comment(text="This is a comment")]).rebuild()
+        == "alice\n# This is a comment"
     )
 
 
 def test_nix_comment_before_and_after_identifier():
     assert (
-            Identifier(
+        Identifier(
             name="alice",
             before=[Comment(text="A first comment"), empty_line],
             after=[empty_line, Comment(text="This is a comment")],
         ).rebuild()
-            == "# A first comment\n\nalice\n\n# This is a comment"
+        == "# A first comment\n\nalice\n\n# This is a comment"
     )
 
 
@@ -158,7 +158,7 @@ def test_nix_expression():
 
 def test_nix_set():
     assert (
-            AttributeSet.from_dict(
+        AttributeSet.from_dict(
             {
                 "foo": Identifier(name="bar"),
                 "baz": NixList(
@@ -170,7 +170,7 @@ def test_nix_set():
                 ),
             }
         ).rebuild()
-            == "{\n  foo = bar;\n  baz = [ qux quux ];\n}"
+        == "{\n  foo = bar;\n  baz = [ qux quux ];\n}"
     )
 
 
@@ -297,9 +297,7 @@ def test_nix_function_definition_multiple_let_bindings_complex():
                 Binding(name="pkgs-copy", value=Identifier(name="pkgs")),
                 Binding(name="alice", value="bob"),
             ],
-            output=AttributeSet.from_dict(
-                {"pkgs-again": Identifier(name="pkgs-copy")}
-            ),
+            output=AttributeSet.from_dict({"pkgs-again": Identifier(name="pkgs-copy")}),
         ).rebuild()
         == '{\n  pkgs,\n}:\nlet\n  pkgs-copy = pkgs;\n  alice = "bob";\nin\n{\n  pkgs-again = pkgs-copy;\n}'
     )
@@ -398,7 +396,7 @@ build-system = [
 
 def test_binding_list():
     assert (
-            Binding(
+        Binding(
             name="build-system",
             value=NixList(
                 value=[
@@ -407,7 +405,7 @@ def test_binding_list():
                 ],
             ),
         ).rebuild()
-            == expected_binding_list
+        == expected_binding_list
     )
 
 
@@ -516,7 +514,7 @@ expected_from_test_issue = """
 
 def test_issue():
     assert (
-            AttributeSet(
+        AttributeSet(
             values=[
                 Binding(name="pname", value=Primitive(value="trl")),
                 Binding(
@@ -534,7 +532,7 @@ def test_issue():
                 ),
             ],
         ).rebuild()
-            == expected_from_test_issue
+        == expected_from_test_issue
     )
 
 
