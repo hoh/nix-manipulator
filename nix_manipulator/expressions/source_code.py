@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, ClassVar, List
 
+from pydantic import ConfigDict
 from tree_sitter import Node
 
 
@@ -9,6 +10,8 @@ class NixSourceCode:
     tree_sitter_types: ClassVar[set[str]] = {"source_code"}
     node: Node
     value: List[Any]
+
+    model_config = ConfigDict(extra="forbid")
 
     def __init__(self, node: Node, value: List[Any]):
         self.node = node
