@@ -56,7 +56,6 @@ class Binding(NixExpression):
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:  # noqa: C901
         """Reconstruct binding, preserving possible newline after '='."""
         before_str = _format_trivia(self.before, indent=indent)
-        after_str = _format_trivia(self.after, indent=indent)
         indentation = "" if inline else " " * indent
 
         # Decide how the *value* itself has to be rendered
@@ -82,14 +81,13 @@ class Binding(NixExpression):
             raise ValueError(f"Unsupported value type: {type(self.value)}")
 
         # Assemble left-hand side
-        head = f"{indentation}{self.name} ="
         sep = "\n" if self.newline_after_equals else " "
-        core = f"{head}{sep}{value_str};"
+        core = f"{self.name} ={sep}{value_str};"
 
         if self.after and isinstance(self.after[0], Comment):
             inline_comment = self.after[0].rebuild(indent=0)
             trailing = _format_trivia(self.after[1:], indent=indent)
-            return f"{before_str}{core} {inline_comment}{trailing}"
+            return f"{before_str}{indentation}{core} {inline_comment}{trailing}"
 
         if self.after and self.after[0] is linebreak:
             trailing = _format_trivia(self.after[1:], indent=indent)
@@ -97,12 +95,9 @@ class Binding(NixExpression):
                 trailing = "\n" + trailing
             if trailing.endswith("\n"):
                 trailing = trailing[:-1]
-            return f"{before_str}{core}{trailing}"
+            return f"{before_str}{indentation}{core}{trailing}"
 
-        if self.after and self.after[-1] is not linebreak and after_str.endswith("\n"):
-            after_str = after_str[:-1]
-
-        return f"{before_str}{core}" + (f"\n{after_str}" if after_str else "")
+        return self.add_trivia(core, indent=indent, inline=inline)
 
 
 __all__ = ["Binding"]

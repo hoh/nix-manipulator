@@ -27,10 +27,7 @@ class Select(TypedExpression):
 
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         """Reconstruct select expression."""
-        before_str = _format_trivia(self.before, indent=indent)
-        after_str = _format_trivia(self.after, indent=indent)
-        indentation = "" if inline else " " * indent
-        return f"{before_str}{indentation}{self.expression.name}.{self.attribute.name}{after_str}"
+        return self.add_trivia(f"{self.expression.name}.{self.attribute.name}", indent, inline)
 
 
 __all__ = ["Select"]

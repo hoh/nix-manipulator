@@ -36,17 +36,8 @@ class Inherit(TypedExpression):
         inline: bool = False,
     ) -> str:
         """Reconstruct identifier."""
-        before_str = _format_trivia(self.before, indent=indent)
-        after_str = _format_trivia(self.after, indent=indent)
-
-        if self.after and self.after[-1] != linebreak and after_str[-1] == "\n":
-            after_str = after_str[:-1]
-
-        indentation = " " * indent if not inline else ""
         names = " ".join(name.rebuild(inline=True) for name in self.names)
-        return f"{before_str}{indentation}inherit {names};" + (
-            f"\n{after_str}" if after_str else ""
-        )
+        return self.add_trivia(f"inherit {names};", indent, inline)
 
 
 __all__ = ["Inherit"]

@@ -31,9 +31,6 @@ class WithStatement(TypedExpression):
         before_str = _format_trivia(self.before, indent=indent)
         after_str = _format_trivia(self.after, indent=indent)
 
-        # expr_str = self.expression.rebuild() if self.expression else ""
-        # attrs_str = " ".join(attr.name for attr in self.attributes)
-
         environment_str = self.environment.rebuild(indent=indent, inline=True)
         body_str = self.body.rebuild(indent=indent, inline=True)
 

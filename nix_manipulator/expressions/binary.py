@@ -30,14 +30,9 @@ class BinaryExpression(TypedExpression):
 
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         """Reconstruct binary expression."""
-        before_str = _format_trivia(self.before, indent=indent)
-        after_str = _format_trivia(self.after, indent=indent)
-        indentation = "" if inline else " " * indent
-
         left_str = self.left.rebuild(indent=indent, inline=True)
         right_str = self.right.rebuild(indent=indent, inline=True)
 
-        return f"{before_str}{indentation}{left_str} {self.operator} {right_str}{after_str}"
-
+        return self.add_trivia(f"{left_str} {self.operator} {right_str}", indent, inline)
 
 __all__ = ["BinaryExpression"]

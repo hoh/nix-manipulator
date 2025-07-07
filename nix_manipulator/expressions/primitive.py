@@ -40,11 +40,6 @@ class Primitive(TypedExpression):
 
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         """Reconstruct expression."""
-        before_str = _format_trivia(self.before, indent=indent)
-        after_str = _format_trivia(self.after, indent=indent)
-
-        indentation = "" if inline else " " * indent
-
         if isinstance(self.value, str):
             value_str = f'"{self.value}"'
         elif isinstance(self.value, bool):
@@ -54,7 +49,7 @@ class Primitive(TypedExpression):
         else:
             raise ValueError(f"Unsupported expression type: {type(self.value)}")
 
-        return f"{before_str}{indentation}{value_str}{after_str}"
+        return self.add_trivia(value_str, indent, inline)
 
     def __repr__(self):
         return f"NixExpression(\nvalue={self.value} type={type(self.value)}\n)"

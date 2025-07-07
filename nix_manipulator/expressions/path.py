@@ -25,10 +25,7 @@ class NixPath(TypedExpression):
         inline: bool = False,
     ) -> str:
         """Reconstruct identifier."""
-        before_str = _format_trivia(self.before, indent=indent)
-        after_str = _format_trivia(self.after, indent=indent)
-        indentation = " " * indent if not inline else ""
-        return f"{before_str}{indentation}{self.path}{after_str}"
+        return self.add_trivia(self.path, indent, inline)
 
 
 __all__ = ["NixPath"]

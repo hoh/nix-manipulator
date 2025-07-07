@@ -121,13 +121,14 @@ class AttributeSet(TypedExpression):
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         """Reconstruct attribute set."""
         indented = indent + 2
-        before_str = _format_trivia(self.before, indent=indented)
-        after_str = _format_trivia(self.after, indent=indented)
 
         if not self.values:
-            return f"{before_str}{{ }}{after_str}"
+            # return f"{before_str}{{ }}{after_str}"
+            return self.add_trivia("{ }", indent=indent, inline=inline)
 
         if self.multiline:
+            before_str = _format_trivia(self.before, indent=indented)
+            after_str = _format_trivia(self.after, indent=indented)
             bindings_str = "\n".join(
                 [value.rebuild(indent=indented, inline=False) for value in self.values]
             )
@@ -141,7 +142,7 @@ class AttributeSet(TypedExpression):
             bindings_str = " ".join(
                 [value.rebuild(indent=indented, inline=True) for value in self.values]
             )
-            return f"{before_str}{{ {bindings_str} }}{after_str}"
+            return self.add_trivia(f"{{ {bindings_str} }}", indent=indent, inline=inline)
 
     def __getitem__(self, key: str):
         for binding in self.values:
