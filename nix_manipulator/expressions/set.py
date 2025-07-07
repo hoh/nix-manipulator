@@ -5,6 +5,7 @@ from typing import Any, ClassVar, Dict, List, Optional
 
 from tree_sitter import Node
 
+from nix_manipulator.exceptions import NixSyntaxError
 from nix_manipulator.expressions.binding import Binding
 from nix_manipulator.expressions.comment import Comment
 from nix_manipulator.expressions.expression import NixExpression, TypedExpression
@@ -106,6 +107,8 @@ class AttributeSet(TypedExpression):
                     raise ValueError(f"Unsupported child node: {child} {child.type}")
 
                 prev_content = child
+            elif child.type == "ERROR":
+                raise NixSyntaxError(f"Code contains ERROR node: {child}")
             else:
                 raise ValueError(f"Unsupported attrset child: {child.type}")
 
