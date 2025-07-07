@@ -7,17 +7,17 @@ from typing import Union, List, Any
 from tree_sitter import Node
 
 from nix_manipulator.format import _format_trivia
-from nix_manipulator.models.binary import NixBinaryExpression
-from nix_manipulator.models.comment import Comment
-from nix_manipulator.models.expression import NixExpression
-from nix_manipulator.models.function.call import FunctionCall
-from nix_manipulator.models.identifier import NixIdentifier
-from nix_manipulator.models.layout import linebreak
-from nix_manipulator.models.list import NixList
-from nix_manipulator.models.primitive import Primitive
-from nix_manipulator.models.select import NixSelect
-from nix_manipulator.models.set import NixAttributeSet
-from nix_manipulator.models.with_statement import NixWith
+from nix_manipulator.expressions.binary import NixBinaryExpression
+from nix_manipulator.expressions.comment import Comment
+from nix_manipulator.expressions.expression import NixExpression
+from nix_manipulator.expressions.function.call import FunctionCall
+from nix_manipulator.expressions.identifier import NixIdentifier
+from nix_manipulator.expressions.layout import linebreak
+from nix_manipulator.expressions.list import NixList
+from nix_manipulator.expressions.primitive import Primitive
+from nix_manipulator.expressions.select import NixSelect
+from nix_manipulator.expressions.set import NixAttributeSet
+from nix_manipulator.expressions.with_statement import NixWith
 
 
 class NixBinding(NixExpression):

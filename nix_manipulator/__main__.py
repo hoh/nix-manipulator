@@ -8,7 +8,7 @@ from pygments.formatters import TerminalFormatter
 from pygments.lexers import NixLexer, PythonLexer
 
 from nix_manipulator.cst.parser import parse_nix_cst
-from nix_manipulator.models.expression import NixExpression
+from nix_manipulator.expressions.expression import NixExpression
 
 
 def pretty_print_symbols(obj: NixExpression, indent: int = 0) -> str:

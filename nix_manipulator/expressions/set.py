@@ -6,11 +6,11 @@ from typing import List, Dict, Any, Optional
 from tree_sitter import Node
 
 from nix_manipulator.format import _format_trivia
-from nix_manipulator.models.expression import NixExpression
-from nix_manipulator.models.comment import Comment
-from nix_manipulator.models.function.call import FunctionCall
-from nix_manipulator.models.inherit import NixInherit
-from nix_manipulator.models.layout import empty_line, linebreak
+from nix_manipulator.expressions.expression import NixExpression
+from nix_manipulator.expressions.comment import Comment
+from nix_manipulator.expressions.function.call import FunctionCall
+from nix_manipulator.expressions.inherit import NixInherit
+from nix_manipulator.expressions.layout import empty_line, linebreak
 
 
 class NixAttributeSet(NixExpression):
@@ -20,7 +20,7 @@ class NixAttributeSet(NixExpression):
 
     @classmethod
     def from_dict(cls, values: Dict[str, NixExpression]):
-        from nix_manipulator.models.binding import NixBinding
+        from nix_manipulator.expressions.binding import NixBinding
         values_list = []
         for key, value in values.items():
             values_list.append(NixBinding(name=key, value=value))
@@ -34,7 +34,7 @@ class NixAttributeSet(NixExpression):
         Handles both the outer `attrset_expression` and the inner
         `binding_set` wrapper that tree-sitter-nix inserts.
         """
-        from nix_manipulator.models.binding import NixBinding
+        from nix_manipulator.expressions.binding import NixBinding
         multiline = b"\n" in node.text
         values: list[NixBinding | NixInherit] = []
         before: list[Any] = []

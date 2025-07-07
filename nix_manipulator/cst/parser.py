@@ -1,8 +1,8 @@
 import tree_sitter_nix as ts_nix
 from tree_sitter import Language, Node, Parser
 
-from ..models.source_code import NixSourceCode
-from ..models.expression import NixExpression
+from ..expressions.source_code import NixSourceCode
+from ..expressions.expression import NixExpression
 from . import models
 
 # Initialize the tree-sitter parser only once for efficiency.

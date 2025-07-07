@@ -6,13 +6,13 @@ from typing import List, Optional, Union
 from tree_sitter import Node
 
 from nix_manipulator.format import _format_trivia
-from nix_manipulator.models.binding import NixBinding
-from nix_manipulator.models.comment import Comment
-from nix_manipulator.models.expression import NixExpression
-from nix_manipulator.models.function.call import FunctionCall
-from nix_manipulator.models.identifier import NixIdentifier
-from nix_manipulator.models.layout import empty_line
-from nix_manipulator.models.set import NixAttributeSet
+from nix_manipulator.expressions.binding import NixBinding
+from nix_manipulator.expressions.comment import Comment
+from nix_manipulator.expressions.expression import NixExpression
+from nix_manipulator.expressions.function.call import FunctionCall
+from nix_manipulator.expressions.identifier import NixIdentifier
+from nix_manipulator.expressions.layout import empty_line
+from nix_manipulator.expressions.set import NixAttributeSet
 
 
 class FunctionDefinition(NixExpression):

@@ -1,13 +1,13 @@
-from nix_manipulator.models.layout import empty_line
-from nix_manipulator.models.with_statement import NixWith
-from nix_manipulator.models.list import NixList
-from nix_manipulator.models.primitive import Primitive
-from nix_manipulator.models.function.call import FunctionCall
-from nix_manipulator.models.set import NixAttributeSet
-from nix_manipulator.models.binding import NixBinding
-from nix_manipulator.models.comment import Comment, MultilineComment
-from nix_manipulator.models.identifier import NixIdentifier
-from nix_manipulator.models.function.definition import FunctionDefinition
+from nix_manipulator.expressions.layout import empty_line
+from nix_manipulator.expressions.with_statement import NixWith
+from nix_manipulator.expressions.list import NixList
+from nix_manipulator.expressions.primitive import Primitive
+from nix_manipulator.expressions.function.call import FunctionCall
+from nix_manipulator.expressions.set import NixAttributeSet
+from nix_manipulator.expressions.binding import NixBinding
+from nix_manipulator.expressions.comment import Comment, MultilineComment
+from nix_manipulator.expressions.identifier import NixIdentifier
+from nix_manipulator.expressions.function.definition import FunctionDefinition
 
 nixpkgs_trl_default = FunctionDefinition(
     argument_set=[

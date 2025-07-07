@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import List, Any
 
-from nix_manipulator.models.comment import Comment, MultilineComment
-from nix_manipulator.models.layout import empty_line, linebreak, comma
+from nix_manipulator.expressions.comment import Comment, MultilineComment
+from nix_manipulator.expressions.layout import empty_line, linebreak, comma
 
 
 def _format_trivia(trivia_list: List[Any], indent: int = 0) -> str:

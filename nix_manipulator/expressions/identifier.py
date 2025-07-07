@@ -5,8 +5,8 @@ from typing import List, Any
 from tree_sitter import Node
 
 from nix_manipulator.format import _format_trivia
-from nix_manipulator.models.expression import NixExpression
-from nix_manipulator.models.layout import linebreak
+from nix_manipulator.expressions.expression import NixExpression
+from nix_manipulator.expressions.layout import linebreak
 
 
 class NixIdentifier(NixExpression):
