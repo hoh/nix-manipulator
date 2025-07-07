@@ -34,3 +34,31 @@ def test_update_version():
     code.value[0].output.argument["version"] = "2.3.4"
     print(code.rebuild())
     assert code.rebuild() == source_package.replace("1.2.3", "2.3.4")
+
+
+def test_update_version_and_hash():
+    code = parse(source_package)
+    code.value[0].output.argument["version"] = "2.3.4"
+    code.value[0].output.argument["src"].argument["hash"] = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    assert code.rebuild() == """
+{
+  lib,
+  buildPythonPackage,
+}:
+buildPythonPackage rec {
+  pname = "hello-world";
+  version = "2.3.4";
+
+  src = fetchFromGitHub {
+    owner = owner;
+    repo = "trl";
+    tag = "v${version}";
+    hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+  };
+
+  build-system = [
+    setuptools
+    setuptools-scm
+  ];
+}
+""".strip("\n")
