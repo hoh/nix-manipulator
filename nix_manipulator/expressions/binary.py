@@ -1,25 +1,31 @@
 from __future__ import annotations
 
+from typing import ClassVar
+
 from tree_sitter import Node
 
+from nix_manipulator.expressions.expression import NixExpression, TypedExpression
 from nix_manipulator.format import _format_trivia
-from nix_manipulator.expressions.expression import NixExpression
 
 
-class NixBinaryExpression(NixExpression):
+class NixBinaryExpression(TypedExpression):
+    tree_sitter_types: ClassVar[set[str]] = {"binary_expression"}
     operator: str
     left: NixExpression
     right: NixExpression
 
     @classmethod
     def from_cst(cls, node: Node):
-        from nix_manipulator.cst.models import NODE_TYPE_TO_CLASS
+        from nix_manipulator.mapping import tree_sitter_node_to_expression
 
         if node.type == "binary_expression":
             left_node, operator_node, right_node = node.children
             operator = operator_node.text.decode()
-            left = NODE_TYPE_TO_CLASS.get(left_node.type).from_cst(left_node)
-            right = NODE_TYPE_TO_CLASS.get(right_node.type).from_cst(right_node)
+            left = tree_sitter_node_to_expression(left_node)
+            right = tree_sitter_node_to_expression(right_node)
+        else:
+            raise ValueError(f"Unsupported expression type: {node.type}")
+
         return cls(operator=operator, left=left, right=right)
 
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:

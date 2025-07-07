@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+from typing import ClassVar
+
 from tree_sitter import Node
 
-from nix_manipulator.format import _format_trivia
-from nix_manipulator.expressions.expression import NixExpression
+from nix_manipulator.expressions.expression import TypedExpression
 from nix_manipulator.expressions.identifier import NixIdentifier
+from nix_manipulator.format import _format_trivia
 
 
-class NixSelect(NixExpression):
+class NixSelect(TypedExpression):
+    tree_sitter_types: ClassVar[set[str]] = {"select_expression"}
     expression: NixIdentifier
     attribute: NixIdentifier
 

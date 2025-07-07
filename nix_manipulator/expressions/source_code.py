@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from typing import List, Any
+from typing import Any, List, ClassVar
 
 from tree_sitter import Node
 
 
 class NixSourceCode:
+    tree_sitter_types: ClassVar[set[str]] = {"source_code"}
     node: Node
     value: List[Any]
 
@@ -15,7 +16,7 @@ class NixSourceCode:
 
     @classmethod
     def from_cst(cls, node: Node) -> NixSourceCode:
-        from nix_manipulator.cst.parser import parse_to_cst
+        from nix_manipulator.parser import parse_to_cst
 
         value = [parse_to_cst(obj) for obj in node.children]
         return cls(node=node, value=value)

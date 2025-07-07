@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Any
+from typing import Any, ClassVar, List
 
 from pydantic import BaseModel, ConfigDict, Field
 from tree_sitter import Node
@@ -24,3 +24,7 @@ class NixExpression(BaseModel):
         raise NotImplementedError
 
 
+class TypedExpression(NixExpression):
+    """Base class for all Nix objects matching a tree-sitter type."""
+
+    tree_sitter_types: ClassVar[set[str]]

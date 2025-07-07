@@ -1,8 +1,5 @@
-from pygments import highlight
-from pygments.formatters import TerminalFormatter
-
-from nix_manipulator.cst.parser import parse_nix_cst
-from nix_manipulator.cst.utils import pretty_print_cst
+from nix_manipulator.parser import parse_nix_cst
+from nix_manipulator.utils import pretty_print_cst
 
 
 def parse_and_rebuild(source: str):

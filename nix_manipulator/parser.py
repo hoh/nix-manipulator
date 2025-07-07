@@ -1,9 +1,9 @@
 import tree_sitter_nix as ts_nix
 from tree_sitter import Language, Node, Parser
 
-from ..expressions.source_code import NixSourceCode
-from ..expressions.expression import NixExpression
-from . import models
+from nix_manipulator.expressions.expression import NixExpression
+from nix_manipulator.expressions.source_code import NixSourceCode
+from nix_manipulator.mapping import tree_sitter_node_to_expression
 
 # Initialize the tree-sitter parser only once for efficiency.
 NIX_LANGUAGE = Language(ts_nix.language())
@@ -20,7 +20,7 @@ def parse_nix_cst(source_code: bytes | str) -> NixExpression | NixSourceCode:
 
 
 def parse_to_cst(node: Node) -> NixExpression | NixSourceCode:
-    cls: NixExpression | NixSourceCode | None = models.NODE_TYPE_TO_CLASS.get(node.type)
+    cls: NixExpression | NixSourceCode | None = tree_sitter_node_to_expression(node)
     if not cls:
         raise ValueError(f"Unknown node type: {node.type} {node}")
     return cls.from_cst(node=node)

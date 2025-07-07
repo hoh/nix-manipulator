@@ -1,15 +1,13 @@
-from pathlib import Path
 from tempfile import NamedTemporaryFile
 
+from nix_manipulator.expressions.binding import NixBinding
+from nix_manipulator.expressions.comment import Comment, MultilineComment
+from nix_manipulator.expressions.function.definition import FunctionDefinition
+from nix_manipulator.expressions.identifier import NixIdentifier
 from nix_manipulator.expressions.layout import empty_line
 from nix_manipulator.expressions.list import NixList
 from nix_manipulator.expressions.primitive import Primitive
 from nix_manipulator.expressions.set import NixAttributeSet
-from nix_manipulator.expressions.binding import NixBinding
-from nix_manipulator.expressions.comment import Comment, MultilineComment
-from nix_manipulator.expressions.identifier import NixIdentifier
-from nix_manipulator.expressions.function.definition import FunctionDefinition
-
 from .fixtures import nixpkgs_trl_default
 
 expected_function_argument_set = """

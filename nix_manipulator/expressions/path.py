@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from typing import List, Any
+from typing import Any, List, ClassVar
 
 from tree_sitter import Node
 
+from nix_manipulator.expressions.expression import TypedExpression
 from nix_manipulator.format import _format_trivia
-from nix_manipulator.expressions.expression import NixExpression
 
 
-class NixPath(NixExpression):
+class NixPath(TypedExpression):
+    tree_sitter_types: ClassVar[set[str]] = {"path_expression"}
     path: str
 
     @classmethod

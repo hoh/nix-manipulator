@@ -7,8 +7,8 @@ from pygments import highlight
 from pygments.formatters import TerminalFormatter
 from pygments.lexers import NixLexer, PythonLexer
 
-from nix_manipulator.cst.parser import parse_nix_cst
 from nix_manipulator.expressions.expression import NixExpression
+from nix_manipulator.parser import parse_nix_cst
 
 
 def pretty_print_symbols(obj: NixExpression, indent: int = 0) -> str:
@@ -25,7 +25,11 @@ def pretty_print_symbols(obj: NixExpression, indent: int = 0) -> str:
             if isinstance(value, NixExpression):
                 lines.append(f"{indent_str}  {key}=")
                 lines.append(pretty_print_symbols(value, indent + 2))
-            elif isinstance(value, list) and value and isinstance(value[0], NixExpression):
+            elif (
+                isinstance(value, list)
+                and value
+                and isinstance(value[0], NixExpression)
+            ):
                 lines.append(f"{indent_str}  {key}=[")
                 for item in value:
                     lines.append(pretty_print_symbols(item, indent + 2))

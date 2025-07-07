@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from nix_manipulator.cst.parser import parse_nix_cst
+from nix_manipulator.parser import parse_nix_cst
 
 NIX_FILES_PATH = Path(__file__).parent
 

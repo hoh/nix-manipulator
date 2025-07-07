@@ -1,19 +1,21 @@
 from __future__ import annotations
 
 import re
-from typing import List, Dict, Any, Optional
+from typing import Any, ClassVar, Dict, List, Optional
 
 from tree_sitter import Node
 
-from nix_manipulator.format import _format_trivia
-from nix_manipulator.expressions.expression import NixExpression
+from nix_manipulator.expressions.binding import NixBinding
 from nix_manipulator.expressions.comment import Comment
+from nix_manipulator.expressions.expression import NixExpression, TypedExpression
 from nix_manipulator.expressions.function.call import FunctionCall
 from nix_manipulator.expressions.inherit import NixInherit
 from nix_manipulator.expressions.layout import empty_line, linebreak
+from nix_manipulator.format import _format_trivia
 
 
-class NixAttributeSet(NixExpression):
+class NixAttributeSet(TypedExpression):
+    tree_sitter_types: ClassVar[set[str]] = {"attrset_expression"}
     values: List[NixBinding | NixInherit | FunctionCall]
     multiline: bool = True
     recursive: bool = False
@@ -21,6 +23,7 @@ class NixAttributeSet(NixExpression):
     @classmethod
     def from_dict(cls, values: Dict[str, NixExpression]):
         from nix_manipulator.expressions.binding import NixBinding
+
         values_list = []
         for key, value in values.items():
             values_list.append(NixBinding(name=key, value=value))
@@ -35,6 +38,7 @@ class NixAttributeSet(NixExpression):
         `binding_set` wrapper that tree-sitter-nix inserts.
         """
         from nix_manipulator.expressions.binding import NixBinding
+
         multiline = b"\n" in node.text
         values: list[NixBinding | NixInherit] = []
         before: list[Any] = []
@@ -138,6 +142,7 @@ class NixAttributeSet(NixExpression):
 
 
 class RecursiveAttributeSet(NixAttributeSet):
+    tree_sitter_types: ClassVar[set[str]] = {"rec_attrset_expression"}
     values: List[NixBinding | NixInherit | FunctionCall]
     multiline: bool = True
     recursive: bool = True

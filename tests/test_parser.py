@@ -1,4 +1,4 @@
-from nix_manipulator.cst.parser import parse_nix_cst
+from nix_manipulator.parser import parse_nix_cst
 
 
 def parse_and_rebuild(source: str):

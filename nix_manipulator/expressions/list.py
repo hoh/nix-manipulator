@@ -1,22 +1,23 @@
 from __future__ import annotations
 
-from typing import List, Union
+from typing import List, Union, ClassVar
 
 from tree_sitter import Node
 
-from nix_manipulator.format import _format_trivia
-from nix_manipulator.expressions.expression import NixExpression
+from nix_manipulator.expressions.expression import NixExpression, TypedExpression
 from nix_manipulator.expressions.identifier import NixIdentifier
 from nix_manipulator.expressions.primitive import Primitive
+from nix_manipulator.format import _format_trivia
 
 
-class NixList(NixExpression):
+class NixList(TypedExpression):
+    tree_sitter_types: ClassVar[set[str]] = {"list_expression"}
     value: List[Union[NixExpression, str, int, bool]]
     multiline: bool = True
 
     @classmethod
     def from_cst(cls, node: Node):
-        from nix_manipulator.cst.parser import parse_to_cst
+        from nix_manipulator.parser import parse_to_cst
 
         if node.text is None:
             raise ValueError("List has no code")

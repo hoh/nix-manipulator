@@ -1,21 +1,22 @@
 from __future__ import annotations
 
 import re
-from typing import List, Optional, Union
+from typing import List, Optional, Union, ClassVar
 
 from tree_sitter import Node
 
-from nix_manipulator.format import _format_trivia
 from nix_manipulator.expressions.binding import NixBinding
 from nix_manipulator.expressions.comment import Comment
-from nix_manipulator.expressions.expression import NixExpression
+from nix_manipulator.expressions.expression import NixExpression, TypedExpression
 from nix_manipulator.expressions.function.call import FunctionCall
 from nix_manipulator.expressions.identifier import NixIdentifier
 from nix_manipulator.expressions.layout import empty_line
 from nix_manipulator.expressions.set import NixAttributeSet
+from nix_manipulator.format import _format_trivia
 
 
-class FunctionDefinition(NixExpression):
+class FunctionDefinition(TypedExpression):
+    tree_sitter_types: ClassVar[set[str]] = {"function_expression"}
     argument_set: List[NixIdentifier] = []
     argument_set_is_multiline: bool = True
     breaks_after_semicolon: Optional[int] = None

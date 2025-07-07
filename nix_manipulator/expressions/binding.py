@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Union, List, Any
+from typing import Any, List, Union
 
 from tree_sitter import Node
 
-from nix_manipulator.format import _format_trivia
 from nix_manipulator.expressions.binary import NixBinaryExpression
 from nix_manipulator.expressions.comment import Comment
 from nix_manipulator.expressions.expression import NixExpression
@@ -16,8 +15,8 @@ from nix_manipulator.expressions.layout import linebreak
 from nix_manipulator.expressions.list import NixList
 from nix_manipulator.expressions.primitive import Primitive
 from nix_manipulator.expressions.select import NixSelect
-from nix_manipulator.expressions.set import NixAttributeSet
 from nix_manipulator.expressions.with_statement import NixWith
+from nix_manipulator.format import _format_trivia
 
 
 class NixBinding(NixExpression):
@@ -38,6 +37,8 @@ class NixBinding(NixExpression):
 
         name: str | None = None
         value: Any | None = None
+
+        from nix_manipulator.expressions.set import NixAttributeSet
 
         for child in children:
             if child.type in ("=", ";"):
@@ -88,13 +89,21 @@ class NixBinding(NixExpression):
         val_indent = indent + 2 if self.newline_after_equals else indent
 
         if isinstance(self.value, NixExpression):
-            value_str = self.value.rebuild(indent=val_indent, inline=not self.newline_after_equals)
+            value_str = self.value.rebuild(
+                indent=val_indent, inline=not self.newline_after_equals
+            )
         elif isinstance(self.value, str):
-            value_str = (" " * val_indent if self.newline_after_equals else "") + f'"{self.value}"'
+            value_str = (
+                " " * val_indent if self.newline_after_equals else ""
+            ) + f'"{self.value}"'
         elif isinstance(self.value, bool):
-            value_str = (" " * val_indent if self.newline_after_equals else "") + ("true" if self.value else "false")
+            value_str = (" " * val_indent if self.newline_after_equals else "") + (
+                "true" if self.value else "false"
+            )
         elif isinstance(self.value, int):
-            value_str = (" " * val_indent if self.newline_after_equals else "") + str(self.value)
+            value_str = (" " * val_indent if self.newline_after_equals else "") + str(
+                self.value
+            )
         else:
             raise ValueError(f"Unsupported value type: {type(self.value)}")
 

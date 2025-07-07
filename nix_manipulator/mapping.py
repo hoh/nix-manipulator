@@ -1,0 +1,48 @@
+from __future__ import annotations
+
+from nix_manipulator.expressions import NixBinaryExpression, NixExpression
+from nix_manipulator.expressions.comment import Comment
+from nix_manipulator.expressions.expression import TypedExpression
+from nix_manipulator.expressions.function.call import FunctionCall
+from nix_manipulator.expressions.function.definition import FunctionDefinition
+from nix_manipulator.expressions.inherit import NixInherit
+from nix_manipulator.expressions.list import NixList
+from nix_manipulator.expressions.path import NixPath
+from nix_manipulator.expressions.primitive import Primitive
+from nix_manipulator.expressions.select import NixSelect
+from nix_manipulator.expressions.set import NixAttributeSet, RecursiveAttributeSet
+from nix_manipulator.expressions.source_code import NixSourceCode
+from nix_manipulator.expressions.with_statement import NixWith
+
+EXPRESSION_TYPES: set[type[TypedExpression]] = {
+    NixBinaryExpression,
+    NixList,
+    NixAttributeSet,
+    RecursiveAttributeSet,
+    NixSelect,
+    NixWith,
+    NixInherit,
+    NixPath,
+    NixSourceCode,
+    FunctionCall,
+    FunctionDefinition,
+    Comment,
+    Primitive,
+}
+
+for expression_type in EXPRESSION_TYPES:
+    try:
+        print(expression_type.tree_sitter_types)
+    except AttributeError as e:
+        print(hasattr(expression_type, "tree_sitter_types"))
+        raise ValueError(f"Missing tree_sitter_types for {expression_type}") from e
+
+TREE_SITTER_TYPE_TO_EXPRESSION: dict[str, type[TypedExpression]] = {
+    tree_sitter_type: expression_type
+    for expression_type in EXPRESSION_TYPES
+    for tree_sitter_type in expression_type.tree_sitter_types
+}
+
+
+def tree_sitter_node_to_expression(node) -> NixExpression:
+    return TREE_SITTER_TYPE_TO_EXPRESSION[node.type].from_cst(node)

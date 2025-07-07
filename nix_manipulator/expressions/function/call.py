@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from typing import Optional, List, Any
+from typing import Any, List, Optional, ClassVar
 
 from tree_sitter import Node
 
+from nix_manipulator.expressions.expression import NixExpression, TypedExpression
 from nix_manipulator.format import _format_trivia
-from nix_manipulator.expressions.expression import NixExpression
 
 
-class FunctionCall(NixExpression):
+class FunctionCall(TypedExpression):
+    tree_sitter_types: ClassVar[set[str]] = {"apply_expression"}
     name: str
     argument: Optional[NixExpression] = None
     recursive: bool = False
@@ -28,7 +29,7 @@ class FunctionCall(NixExpression):
             node.child_by_field_name("argument").type == "rec_attrset_expression"
         )
 
-        from nix_manipulator.cst.parser import parse_to_cst
+        from nix_manipulator.parser import parse_to_cst
 
         argument = parse_to_cst(node.child_by_field_name("argument"))
 
@@ -51,22 +52,7 @@ class FunctionCall(NixExpression):
         if not self.argument:
             return f"{before_str}{indentation}{self.name}{after_str}"
 
-        if False:
-            args = []
-            for binding in self.argument.values:
-                args.append(binding.rebuild(indent=indented, inline=not self.multiline))
-
-            indented_items = [f"{item}" for item in args]
-
-            if self.multiline:
-                args_str = (
-                    " {\n" + "\n".join(indented_items) + "\n" + " " * indent + "}"
-                )
-            else:
-                items_str = " ".join(indented_items)
-                args_str = f" {{ {items_str} }}"
-        else:
-            args_str = self.argument.rebuild(indent=indent, inline=not self.multiline)
+        args_str = self.argument.rebuild(indent=indent, inline=not self.multiline)
 
         rec_str = " rec" if self.recursive else ""
         return f"{before_str}{indentation}{self.name}{rec_str} {args_str}{after_str}"

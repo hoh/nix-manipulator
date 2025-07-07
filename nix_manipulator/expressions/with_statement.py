@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+from typing import ClassVar
+
 from tree_sitter import Node
 
+from nix_manipulator.expressions.expression import NixExpression, TypedExpression
 from nix_manipulator.format import _format_trivia
-from nix_manipulator.expressions.expression import NixExpression
 
 
-class NixWith(NixExpression):
+class NixWith(TypedExpression):
+    tree_sitter_types: ClassVar[set[str]] = {"with_expression"}
     environment: NixExpression
     body: NixExpression
     multiline: bool = True
@@ -17,12 +20,10 @@ class NixWith(NixExpression):
         body_node = node.child_by_field_name("body")
         multiline = b"\n" in node.text
 
-        from nix_manipulator.cst.models import NODE_TYPE_TO_CLASS
+        from nix_manipulator.mapping import tree_sitter_node_to_expression
 
-        def parse_to_cst_(node: Node) -> NixExpression:
-            assert node.type
-            node_class: type[NixExpression] = NODE_TYPE_TO_CLASS[node.type]
-            return node_class.from_cst(node)
+        def parse_to_cst_(node_: Node) -> NixExpression:
+            return tree_sitter_node_to_expression(node_)
 
         environment = parse_to_cst_(environment_node)
         body = parse_to_cst_(body_node)

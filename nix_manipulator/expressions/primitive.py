@@ -1,16 +1,21 @@
 from __future__ import annotations
 
 import json
-from typing import Union
+from typing import Union, ClassVar
 
 from tree_sitter import Node
 
-from nix_manipulator.format import _format_trivia
-from nix_manipulator.expressions.expression import NixExpression
+from nix_manipulator.expressions.expression import TypedExpression
 from nix_manipulator.expressions.identifier import NixIdentifier
+from nix_manipulator.format import _format_trivia
 
 
-class Primitive(NixExpression):
+class Primitive(TypedExpression):
+    tree_sitter_types: ClassVar[set[str]] = {
+        "integer_expression",
+        "string_expression",
+        "variable_expression",
+    }
     value: Union[str, int, bool]
 
     @classmethod

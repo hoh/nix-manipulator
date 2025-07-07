@@ -1,6 +1,6 @@
-from ..expressions.list import NixList
-from ..expressions.primitive import Primitive
-from ..expressions.source_code import NixSourceCode
+from nix_manipulator.expressions.list import NixList
+from nix_manipulator.expressions.primitive import Primitive
+from nix_manipulator.expressions.source_code import NixSourceCode
 
 
 def pretty_print_cst(node, indent_level=0) -> str:

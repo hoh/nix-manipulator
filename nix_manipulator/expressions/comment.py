@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from typing import ClassVar
+
 from tree_sitter import Node
 
-from nix_manipulator.expressions.expression import NixExpression
+from nix_manipulator.expressions.expression import TypedExpression
 
 
-class Comment(NixExpression):
+class Comment(TypedExpression):
+    tree_sitter_types: ClassVar[set[str]] = {"comment"}
     text: str
 
     def __str__(self):
