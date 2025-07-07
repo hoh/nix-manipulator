@@ -1,10 +1,23 @@
-A python library and tool powerful enough to be used into IPython solely that intent to make the 
-process of writing code that modify Nix source code as easy and as simple as possible. 
+# Nix-Manipulator
 
-That includes writing custom refactoring, generic refactoring, tools, IDE or directly modifying 
-your Nix source code via IPython with a higher and more powerful abstraction than the advanced text modification
-tools that you find in advanced text editors and IDE.
+A Python library and tools for parsing, manipulating, and reconstructing Nix source code.
 
-This project guarantees you that it will only modify your code where you ask him to. 
-To achieve this, it is based on tree-sitter, a multilingual AST.
+## Features and Goals
 
+- Ease of use.
+- High-level abstractions make manipulating expressions easy.
+- Preserving formatting and comments in code that respects RFC-166.
+
+## Non-goals
+
+- Preserving eccentric formatting that does not respect RFC-166 and would add unnecessary complexity. 
+
+## Targeted applications
+
+- Updating values in Nix code by hand, scripts, pipelines, and frameworks.
+- Writing refactoring tools
+- Interactive modifications from a REPL.
+
+## Foundations
+
+Nix-manipulator leverates [tree-sitter], a multilingual AST, and its Nix grammar [tree-sitter-nix].
