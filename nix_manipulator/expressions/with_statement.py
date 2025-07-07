@@ -41,3 +41,6 @@ class NixWith(TypedExpression):
         body_str = self.body.rebuild(indent=indent, inline=True)
 
         return f"{before_str}with {environment_str}; {body_str}{after_str}"
+
+
+__all__ = ["NixWith"]

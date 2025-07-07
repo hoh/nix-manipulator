@@ -146,3 +146,6 @@ class RecursiveAttributeSet(NixAttributeSet):
     values: List[NixBinding | NixInherit | FunctionCall]
     multiline: bool = True
     recursive: bool = True
+
+
+__all__ = ["NixAttributeSet", "RecursiveAttributeSet"]

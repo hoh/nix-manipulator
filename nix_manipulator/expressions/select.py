@@ -31,3 +31,6 @@ class NixSelect(TypedExpression):
         after_str = _format_trivia(self.after, indent=indent)
         indentation = "" if inline else " " * indent
         return f"{before_str}{indentation}{self.expression.name}.{self.attribute.name}{after_str}"
+
+
+__all__ = ["NixSelect"]

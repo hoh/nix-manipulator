@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Union, ClassVar
+from typing import ClassVar, Union
 
 from tree_sitter import Node
 
@@ -58,3 +58,6 @@ class Primitive(TypedExpression):
 
     def __repr__(self):
         return f"NixExpression(\nvalue={self.value} type={type(self.value)}\n)"
+
+
+__all__ = ["Primitive"]

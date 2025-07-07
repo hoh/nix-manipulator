@@ -50,3 +50,6 @@ class MultilineComment(Comment):
         else:
             # Single line
             return f"/* {self.text} */"
+
+
+__all__ = ["Comment", "MultilineComment"]

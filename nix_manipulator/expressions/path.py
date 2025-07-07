@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, ClassVar
+from typing import Any, ClassVar, List
 
 from tree_sitter import Node
 
@@ -29,3 +29,6 @@ class NixPath(TypedExpression):
         after_str = _format_trivia(self.after, indent=indent)
         indentation = " " * indent if not inline else ""
         return f"{before_str}{indentation}{self.path}{after_str}"
+
+
+__all__ = ["NixPath"]

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Union, ClassVar
+from typing import ClassVar, List, Union
 
 from tree_sitter import Node
 
@@ -79,3 +79,6 @@ class NixList(TypedExpression):
 
     def __repr__(self):
         return f"NixList(\nvalue={self.value}\n)"
+
+
+__all__ = ["NixList"]

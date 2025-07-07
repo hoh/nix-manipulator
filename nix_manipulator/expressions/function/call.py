@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, Optional, ClassVar
+from typing import Any, ClassVar, List, Optional
 
 from tree_sitter import Node
 
@@ -56,3 +56,6 @@ class FunctionCall(TypedExpression):
 
         rec_str = " rec" if self.recursive else ""
         return f"{before_str}{indentation}{self.name}{rec_str} {args_str}{after_str}"
+
+
+__all__ = ["FunctionCall"]

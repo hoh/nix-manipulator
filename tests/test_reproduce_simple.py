@@ -18,9 +18,9 @@ def test_rebuild_number():
     assert source == parse_and_rebuild(source)
 
 
-# def test_rebuild_list():
-#     source = "[1 2 3]"
-#     assert source == parse_and_rebuild(source)
+def test_rebuild_list():
+    source = "[ 1 2 3 ]"
+    assert source == parse_and_rebuild(source)
 
 
 def test_rebuild_set():
@@ -239,5 +239,34 @@ callFunction "with a string"
 def test_nix_function_calls_a_number():
     source = """
 callFunction 32
+""".strip("\n")
+    assert source == parse_and_rebuild(source)
+
+
+def test_rebuild_list_multiline():
+    source = "[\n  1\n  2\n  true\n  false\n]"
+    assert source == parse_and_rebuild(source)
+
+
+def test_rebuild_function_call_with_comment():
+    source = """
+builtins.fetchFromGitHub {
+  owner = "foo";
+  # Comment
+  repo = "bar";
+  rev = "123";
+}
+""".strip("\n")
+    assert source == parse_and_rebuild(source)
+
+
+def test_rebuild_list_with_comment():
+    source = """
+[
+  1
+  2
+  # Comment
+  3
+]
 """.strip("\n")
     assert source == parse_and_rebuild(source)

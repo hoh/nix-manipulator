@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, ClassVar
+from typing import Any, ClassVar, List
 
 from tree_sitter import Node
 
@@ -47,3 +47,6 @@ class NixInherit(TypedExpression):
         return f"{before_str}{indentation}inherit {names};" + (
             f"\n{after_str}" if after_str else ""
         )
+
+
+__all__ = ["NixInherit"]

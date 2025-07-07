@@ -129,3 +129,6 @@ class NixBinding(NixExpression):
             after_str = after_str[:-1]
 
         return f"{before_str}{core}" + (f"\n{after_str}" if after_str else "")
+
+
+__all__ = ["NixBinding"]

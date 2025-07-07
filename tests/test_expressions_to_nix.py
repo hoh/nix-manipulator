@@ -1,5 +1,5 @@
 from nix_manipulator.expressions.binding import NixBinding
-from nix_manipulator.expressions.comment import Comment
+from nix_manipulator.expressions.comment import Comment, MultilineComment
 from nix_manipulator.expressions.function.call import FunctionCall
 from nix_manipulator.expressions.function.definition import FunctionDefinition
 from nix_manipulator.expressions.identifier import NixIdentifier
@@ -442,4 +442,125 @@ def test_indented_function_call():
             ],
         ).rebuild()
         == '[\n  fetchFromGitHub {\n    owner = "huggingface";\n    repo = "trl";\n  }\n]'
+    )
+
+
+expected_function_argument_set = """
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+  setuptools-scm,
+
+  # dependencies
+  accelerate,
+  datasets,
+  rich,
+  transformers,
+}:
+{ }
+""".strip("\n")
+
+
+def test_function_argument_set():
+    assert (
+        FunctionDefinition(
+            argument_set=[
+                NixIdentifier(name="lib"),
+                NixIdentifier(name="buildPythonPackage"),
+                NixIdentifier(name="fetchFromGitHub"),
+                NixIdentifier(
+                    name="setuptools",
+                    before=[
+                        empty_line,
+                        Comment(text="build-system"),
+                    ],
+                ),
+                NixIdentifier(name="setuptools-scm"),
+                NixIdentifier(
+                    name="accelerate",
+                    before=[
+                        empty_line,
+                        Comment(text="dependencies"),
+                    ],
+                ),
+                NixIdentifier(name="datasets"),
+                NixIdentifier(name="rich"),
+                NixIdentifier(name="transformers"),
+            ]
+        ).rebuild()
+        == expected_function_argument_set
+    )
+
+
+expected_from_test_issue = """
+
+{
+  pname = "trl";
+
+  /*
+  We love
+  multiline comments
+  here
+  */
+
+  dependencies = [
+    acc
+  ];
+}
+""".strip("\n")
+
+
+def test_issue():
+    assert (
+        NixAttributeSet(
+            values=[
+                NixBinding(name="pname", value=Primitive(value="trl")),
+                NixBinding(
+                    name="dependencies",
+                    value=NixList(
+                        value=[
+                            NixIdentifier(name="acc"),
+                        ],
+                    ),
+                    before=[
+                        empty_line,
+                        MultilineComment(text="\nWe love\nmultiline comments\nhere\n"),
+                        empty_line,
+                    ],
+                ),
+            ],
+        ).rebuild()
+        == expected_from_test_issue
+    )
+
+
+def test_nested_list():
+    assert (
+        (
+            NixList(
+                value=[
+                    NixBinding(name="pname", value="trl"),
+                    NixBinding(
+                        name="dependencies",
+                        value=NixList(
+                            value=[
+                                NixIdentifier(name="acc"),
+                            ]
+                        ),
+                    ),
+                ]
+            )
+        ).rebuild()
+        == """
+[
+  pname = "trl";
+  dependencies = [
+    acc
+  ];
+]
+""".strip("\n")
     )

@@ -28,3 +28,6 @@ class TypedExpression(NixExpression):
     """Base class for all Nix objects matching a tree-sitter type."""
 
     tree_sitter_types: ClassVar[set[str]]
+
+
+__all__ = ["NixExpression", "TypedExpression"]

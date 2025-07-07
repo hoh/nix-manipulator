@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import List, Optional, Union, ClassVar
+from typing import ClassVar, List, Optional, Union
 
 from tree_sitter import Node
 
@@ -179,3 +179,6 @@ class FunctionDefinition(TypedExpression):
         else:
             split = ": " if not line_break else ":" + line_break
             return f"{before_str}{args_str}{split}{let_str}{output_str}{after_str}"
+
+
+__all__ = ["FunctionDefinition"]

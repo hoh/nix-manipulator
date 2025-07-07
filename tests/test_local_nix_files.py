@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from nix_manipulator.parser import parse_nix_cst
+from tests.expressions.trl import nixpkgs_trl_default
 
 NIX_FILES_PATH = Path(__file__).parent
 
@@ -18,3 +19,9 @@ def check_package_can_be_reproduced(path: Path):
 
 def test_nix_pkgs_simplistic():
     check_package_can_be_reproduced(NIX_FILES_PATH / "nix-files/pkgs/simplistic-01.nix")
+
+
+def test_function_definition():
+    function = nixpkgs_trl_default
+    source = Path(NIX_FILES_PATH / "nix-files/pkgs/trl-default.nix").read_text()
+    assert function.rebuild() + "\n" == source

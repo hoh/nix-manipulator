@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, ClassVar
+from typing import Any, ClassVar, List
 
 from tree_sitter import Node
 
@@ -26,3 +26,6 @@ class NixSourceCode:
 
     def __repr__(self) -> str:
         return f"NixSourceCode(\n  node={self.node}, \n  value={self.value}\n)"
+
+
+__all__ = ["NixSourceCode"]

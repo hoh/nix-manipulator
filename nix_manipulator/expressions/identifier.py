@@ -32,3 +32,6 @@ class NixIdentifier(NixExpression):
         return f"{before_str}{indentation}{self.name}{comma}" + (
             f"\n{after_str}" if after_str else ""
         )
+
+
+__all__ = ["NixIdentifier"]

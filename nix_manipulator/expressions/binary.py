@@ -38,3 +38,6 @@ class NixBinaryExpression(TypedExpression):
         right_str = self.right.rebuild(indent=indent, inline=True)
 
         return f"{before_str}{indentation}{left_str} {self.operator} {right_str}{after_str}"
+
+
+__all__ = ["NixBinaryExpression"]
