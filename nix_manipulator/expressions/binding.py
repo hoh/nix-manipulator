@@ -1,21 +1,13 @@
 from __future__ import annotations
 
-import json
 import re
 from typing import Any, List, Union
 
 from tree_sitter import Node
 
-from nix_manipulator.expressions.binary import NixBinaryExpression
 from nix_manipulator.expressions.comment import Comment
 from nix_manipulator.expressions.expression import NixExpression
-from nix_manipulator.expressions.function.call import FunctionCall
-from nix_manipulator.expressions.identifier import NixIdentifier
 from nix_manipulator.expressions.layout import linebreak
-from nix_manipulator.expressions.list import NixList
-from nix_manipulator.expressions.primitive import Primitive
-from nix_manipulator.expressions.select import NixSelect
-from nix_manipulator.expressions.with_statement import NixWith
 from nix_manipulator.format import _format_trivia
 
 
@@ -38,33 +30,15 @@ class NixBinding(NixExpression):
         name: str | None = None
         value: Any | None = None
 
-        from nix_manipulator.expressions.set import NixAttributeSet
+        from nix_manipulator.mapping import tree_sitter_node_to_expression
 
         for child in children:
             if child.type in ("=", ";"):
                 continue
-            elif child.type in "attrpath":
+            elif child.text and child.type in "attrpath":
                 name = child.text.decode()
-            elif child.type == "string_expression":
-                value = Primitive(value=json.loads(child.text.decode()))
-            elif child.type == "integer_expression":
-                value = Primitive(value=int(child.text.decode()))
-            elif child.type == "list_expression":
-                value = NixList.from_cst(child)
-            elif child.type == "binary_expression":
-                value = NixBinaryExpression.from_cst(child)
-            elif child.type == "variable_expression":
-                value = NixIdentifier.from_cst(child)
-            elif child.type == "attrset_expression":
-                value = NixAttributeSet.from_cst(child)
-            elif child.type == "apply_expression":
-                value = FunctionCall.from_cst(child)
-            elif child.type == "select_expression":
-                value = NixSelect.from_cst(child)
-            elif child.type == "with_expression":
-                value = NixWith.from_cst(child)
             else:
-                raise ValueError(f"Unsupported child node: {child} {child.type}")
+                value = tree_sitter_node_to_expression(child)
 
         if name is None or value is None:
             raise ValueError("Could not parse binding")
