@@ -140,6 +140,20 @@ class AttributeSet(TypedExpression):
             )
             return f"{before_str}{{ {bindings_str} }}{after_str}"
 
+    def __getitem__(self, key: str):
+        for binding in self.values:
+            if binding.name == key:
+                return binding.value
+        raise KeyError(key)
+
+
+    def __setitem__(self, key: str, value):
+        for i, binding in enumerate(self.values):
+            if binding.name == key:
+                binding.value = value
+                return
+        self.values.append(Binding(name=key, value=value))
+
 
 class RecursiveAttributeSet(AttributeSet):
     tree_sitter_types: ClassVar[set[str]] = {"rec_attrset_expression"}
