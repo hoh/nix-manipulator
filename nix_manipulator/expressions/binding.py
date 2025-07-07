@@ -11,7 +11,7 @@ from nix_manipulator.expressions.layout import linebreak
 from nix_manipulator.format import _format_trivia
 
 
-class NixBinding(NixExpression):
+class Binding(NixExpression):
     name: str
     value: Union[NixExpression, str, int, bool]
     newline_after_equals: bool = False
@@ -105,4 +105,4 @@ class NixBinding(NixExpression):
         return f"{before_str}{core}" + (f"\n{after_str}" if after_str else "")
 
 
-__all__ = ["NixBinding"]
+__all__ = ["Binding"]

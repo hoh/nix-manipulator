@@ -1,54 +1,54 @@
-from nix_manipulator.expressions.binding import NixBinding
+from nix_manipulator.expressions.binding import Binding
 from nix_manipulator.expressions.comment import Comment, MultilineComment
 from nix_manipulator.expressions.function.call import FunctionCall
 from nix_manipulator.expressions.function.definition import FunctionDefinition
-from nix_manipulator.expressions.identifier import NixIdentifier
+from nix_manipulator.expressions.identifier import Identifier
 from nix_manipulator.expressions.layout import empty_line
 from nix_manipulator.expressions.list import NixList
 from nix_manipulator.expressions.primitive import Primitive
-from nix_manipulator.expressions.set import NixAttributeSet
-from nix_manipulator.expressions.with_statement import NixWith
+from nix_manipulator.expressions.set import AttributeSet
+from nix_manipulator.expressions.with_statement import WithStatement
 
 nixpkgs_trl_default = FunctionDefinition(
     argument_set=[
-        NixIdentifier(name="lib"),
-        NixIdentifier(name="buildPythonPackage"),
-        NixIdentifier(name="fetchFromGitHub"),
-        NixIdentifier(
+        Identifier(name="lib"),
+        Identifier(name="buildPythonPackage"),
+        Identifier(name="fetchFromGitHub"),
+        Identifier(
             name="setuptools",
             before=[
                 empty_line,
                 Comment(text="build-system"),
             ],
         ),
-        NixIdentifier(name="setuptools-scm"),
-        NixIdentifier(
+        Identifier(name="setuptools-scm"),
+        Identifier(
             name="accelerate",
             before=[
                 empty_line,
                 Comment(text="dependencies"),
             ],
         ),
-        NixIdentifier(name="datasets"),
-        NixIdentifier(name="rich"),
-        NixIdentifier(name="transformers"),
+        Identifier(name="datasets"),
+        Identifier(name="rich"),
+        Identifier(name="transformers"),
     ],
     let_statements=[
-        NixBinding(name="owner", value="huggingface"),
-        NixBinding(
+        Binding(name="owner", value="huggingface"),
+        Binding(
             name="acc",
-            value=NixIdentifier(name="accelerate"),
+            value=Identifier(name="accelerate"),
             before=[Comment(text="We love comments here")],
         ),
     ],
     output=FunctionCall(
         name="buildPythonPackage",
         recursive=True,
-        argument=NixAttributeSet(
+        argument=AttributeSet(
             values=[
-                NixBinding(name="pname", value="trl"),
-                NixBinding(name="version", value="0.19.0"),
-                NixBinding(
+                Binding(name="pname", value="trl"),
+                Binding(name="version", value="0.19.0"),
+                Binding(
                     name="pyproject",
                     value=Primitive(
                         value=True,
@@ -57,22 +57,22 @@ nixpkgs_trl_default = FunctionDefinition(
                         Comment(text="This is something else"),
                     ],
                 ),
-                NixBinding(
+                Binding(
                     name="src",
                     value=FunctionCall(
                         name="fetchFromGitHub",
-                        argument=NixAttributeSet(
+                        argument=AttributeSet(
                             values=[
-                                NixBinding(
+                                Binding(
                                     name="owner",
-                                    value=NixIdentifier(name="owner"),
+                                    value=Identifier(name="owner"),
                                     before=[
                                         Comment(text="Something cool"),
                                     ],
                                 ),
-                                NixBinding(name="repo", value="trl"),
-                                NixBinding(name="tag", value="v${version}"),
-                                NixBinding(
+                                Binding(name="repo", value="trl"),
+                                Binding(name="tag", value="v${version}"),
+                                Binding(
                                     name="hash",
                                     value="sha256-TlTq3tIQfNuI+CPvIy/qPFiKPhoSQd7g7FDj4F7C3CQ=",
                                 ),
@@ -81,24 +81,24 @@ nixpkgs_trl_default = FunctionDefinition(
                     ),
                     before=[empty_line],
                 ),
-                NixBinding(
+                Binding(
                     name="build-system",
                     value=NixList(
                         value=[
-                            NixIdentifier(name="setuptools"),
-                            NixIdentifier(name="setuptools-scm"),
+                            Identifier(name="setuptools"),
+                            Identifier(name="setuptools-scm"),
                         ],
                     ),
                     before=[empty_line],
                 ),
-                NixBinding(
+                Binding(
                     name="dependencies",
                     value=NixList(
                         value=[
-                            NixIdentifier(name="acc"),
-                            NixIdentifier(name="datasets"),
-                            NixIdentifier(name="rich"),
-                            NixIdentifier(name="transformers"),
+                            Identifier(name="acc"),
+                            Identifier(name="datasets"),
+                            Identifier(name="rich"),
+                            Identifier(name="transformers"),
                         ],
                     ),
                     before=[
@@ -109,7 +109,7 @@ nixpkgs_trl_default = FunctionDefinition(
                         empty_line,
                     ],
                 ),
-                NixBinding(
+                Binding(
                     name="doCheck",
                     value=Primitive(
                         value=False,
@@ -119,7 +119,7 @@ nixpkgs_trl_default = FunctionDefinition(
                         Comment(text="Many tests require internet access."),
                     ],
                 ),
-                NixBinding(
+                Binding(
                     name="pythonImportsCheck",
                     value=NixList(
                         value=["trl"],
@@ -127,18 +127,18 @@ nixpkgs_trl_default = FunctionDefinition(
                     ),
                     before=[empty_line],
                 ),
-                NixBinding(
+                Binding(
                     name="meta",
-                    value=NixAttributeSet.from_dict(
+                    value=AttributeSet.from_dict(
                         {
                             "description": "Train transformer language models with reinforcement learning",
                             "homepage": "https://github.com/huggingface/trl",
                             "changelog": "https://github.com/huggingface/trl/releases/tag/${src.tag}",
-                            "license": NixIdentifier(name="lib.licenses.asl20"),
-                            "maintainers": NixWith(
-                                environment=NixIdentifier(name="lib.maintainers"),
+                            "license": Identifier(name="lib.licenses.asl20"),
+                            "maintainers": WithStatement(
+                                environment=Identifier(name="lib.maintainers"),
                                 body=NixList(
-                                    value=[NixIdentifier(name="hoh")], multiline=False
+                                    value=[Identifier(name="hoh")], multiline=False
                                 ),
                             ),
                         },

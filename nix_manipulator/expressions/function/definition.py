@@ -5,23 +5,23 @@ from typing import ClassVar, List, Optional, Union
 
 from tree_sitter import Node
 
-from nix_manipulator.expressions.binding import NixBinding
+from nix_manipulator.expressions.binding import Binding
 from nix_manipulator.expressions.comment import Comment
 from nix_manipulator.expressions.expression import NixExpression, TypedExpression
 from nix_manipulator.expressions.function.call import FunctionCall
-from nix_manipulator.expressions.identifier import NixIdentifier
+from nix_manipulator.expressions.identifier import Identifier
 from nix_manipulator.expressions.layout import empty_line
-from nix_manipulator.expressions.set import NixAttributeSet
+from nix_manipulator.expressions.set import AttributeSet
 from nix_manipulator.format import _format_trivia
 
 
 class FunctionDefinition(TypedExpression):
     tree_sitter_types: ClassVar[set[str]] = {"function_expression"}
-    argument_set: List[NixIdentifier] = []
+    argument_set: List[Identifier] = []
     argument_set_is_multiline: bool = True
     breaks_after_semicolon: Optional[int] = None
-    let_statements: List[NixBinding] = []
-    output: Union[NixAttributeSet, NixExpression, None] = None
+    let_statements: List[Binding] = []
+    output: Union[AttributeSet, NixExpression, None] = None
 
     @classmethod
     def from_cst(cls, node: Node):
@@ -62,7 +62,7 @@ class FunctionDefinition(TypedExpression):
                                 is_empty_line = True
 
                         argument_set.append(
-                            NixIdentifier.from_cst(grandchild, before=before)
+                            Identifier.from_cst(grandchild, before=before)
                         )
                         before = []
                     else:
@@ -93,7 +93,7 @@ class FunctionDefinition(TypedExpression):
 
         body: Node = node.child_by_field_name("body")
         if body.type == "attrset_expression":
-            output: NixExpression = NixAttributeSet.from_cst(body)
+            output: NixExpression = AttributeSet.from_cst(body)
         elif body.type == "apply_expression":
             output: NixExpression = FunctionCall.from_cst(body)
         else:

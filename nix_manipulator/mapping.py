@@ -1,27 +1,27 @@
 from __future__ import annotations
 
-from nix_manipulator.expressions import NixBinaryExpression, NixExpression
+from nix_manipulator.expressions import BinaryExpression, NixExpression
 from nix_manipulator.expressions.comment import Comment
 from nix_manipulator.expressions.expression import TypedExpression
 from nix_manipulator.expressions.function.call import FunctionCall
 from nix_manipulator.expressions.function.definition import FunctionDefinition
-from nix_manipulator.expressions.inherit import NixInherit
+from nix_manipulator.expressions.inherit import Inherit
 from nix_manipulator.expressions.list import NixList
 from nix_manipulator.expressions.path import NixPath
 from nix_manipulator.expressions.primitive import Primitive
-from nix_manipulator.expressions.select import NixSelect
-from nix_manipulator.expressions.set import NixAttributeSet, RecursiveAttributeSet
+from nix_manipulator.expressions.select import Select
+from nix_manipulator.expressions.set import AttributeSet, RecursiveAttributeSet
 from nix_manipulator.expressions.source_code import NixSourceCode
-from nix_manipulator.expressions.with_statement import NixWith
+from nix_manipulator.expressions.with_statement import WithStatement
 
 EXPRESSION_TYPES: set[type[TypedExpression]] = {
-    NixBinaryExpression,
+    BinaryExpression,
     NixList,
-    NixAttributeSet,
+    AttributeSet,
     RecursiveAttributeSet,
-    NixSelect,
-    NixWith,
-    NixInherit,
+    Select,
+    WithStatement,
+    Inherit,
     NixPath,
     NixSourceCode,
     FunctionCall,

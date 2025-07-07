@@ -1,39 +1,39 @@
-from .binary import NixBinaryExpression
-from .binding import NixBinding
+from .binary import BinaryExpression
+from .binding import Binding
 from .comment import Comment, MultilineComment
 from .expression import NixExpression, TypedExpression
 from .function.call import FunctionCall
 from .function.definition import FunctionDefinition
-from .identifier import NixIdentifier
-from .inherit import NixInherit
+from .identifier import Identifier
+from .inherit import Inherit
 from .layout import comma, empty_line, linebreak
 from .path import NixPath
 from .primitive import Primitive
-from .select import NixSelect
-from .set import NixAttributeSet, RecursiveAttributeSet
+from .select import Select
+from .set import AttributeSet, RecursiveAttributeSet
 from .source_code import NixSourceCode
-from .with_statement import NixWith
+from .with_statement import WithStatement
 
 __all__ = [
-    "NixBinaryExpression",
+    "BinaryExpression",
     "NixExpression",
     "FunctionDefinition",
     "FunctionCall",
-    "NixBinding",
+    "Binding",
     "Comment",
     "MultilineComment",
     "NixExpression",
     "TypedExpression",
-    "NixIdentifier",
-    "NixInherit",
+    "Identifier",
+    "Inherit",
     "empty_line",
     "linebreak",
     "comma",
     "NixPath",
     "Primitive",
-    "NixSelect",
-    "NixAttributeSet",
+    "Select",
+    "AttributeSet",
     "RecursiveAttributeSet",
     "NixSourceCode",
-    "NixWith",
+    "WithStatement",
 ]

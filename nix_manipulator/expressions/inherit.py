@@ -5,24 +5,24 @@ from typing import Any, ClassVar, List
 from tree_sitter import Node
 
 from nix_manipulator.expressions.expression import TypedExpression
-from nix_manipulator.expressions.identifier import NixIdentifier
+from nix_manipulator.expressions.identifier import Identifier
 from nix_manipulator.expressions.layout import linebreak
 from nix_manipulator.format import _format_trivia
 
 
-class NixInherit(TypedExpression):
+class Inherit(TypedExpression):
     tree_sitter_types: ClassVar[set[str]] = {"inherit"}
-    names: List[NixIdentifier]
+    names: List[Identifier]
 
     @classmethod
     def from_cst(
         cls, node: Node, before: List[Any] | None = None, after: List[Any] | None = None
     ):
-        names: list[NixIdentifier]
+        names: list[Identifier]
         for child in node.children:
             if child.type == "inherited_attrs":
                 names = [
-                    NixIdentifier.from_cst(grandchild) for grandchild in child.children
+                    Identifier.from_cst(grandchild) for grandchild in child.children
                 ]
                 break
         else:
@@ -49,4 +49,4 @@ class NixInherit(TypedExpression):
         )
 
 
-__all__ = ["NixInherit"]
+__all__ = ["Inherit"]

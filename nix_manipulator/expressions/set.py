@@ -5,42 +5,42 @@ from typing import Any, ClassVar, Dict, List, Optional
 
 from tree_sitter import Node
 
-from nix_manipulator.expressions.binding import NixBinding
+from nix_manipulator.expressions.binding import Binding
 from nix_manipulator.expressions.comment import Comment
 from nix_manipulator.expressions.expression import NixExpression, TypedExpression
 from nix_manipulator.expressions.function.call import FunctionCall
-from nix_manipulator.expressions.inherit import NixInherit
+from nix_manipulator.expressions.inherit import Inherit
 from nix_manipulator.expressions.layout import empty_line, linebreak
 from nix_manipulator.format import _format_trivia
 
 
-class NixAttributeSet(TypedExpression):
+class AttributeSet(TypedExpression):
     tree_sitter_types: ClassVar[set[str]] = {"attrset_expression"}
-    values: List[NixBinding | NixInherit | FunctionCall]
+    values: List[Binding | Inherit | FunctionCall]
     multiline: bool = True
     recursive: bool = False
 
     @classmethod
     def from_dict(cls, values: Dict[str, NixExpression]):
-        from nix_manipulator.expressions.binding import NixBinding
+        from nix_manipulator.expressions.binding import Binding
 
         values_list = []
         for key, value in values.items():
-            values_list.append(NixBinding(name=key, value=value))
+            values_list.append(Binding(name=key, value=value))
         return cls(values=values_list)
 
     @classmethod
-    def from_cst(cls, node: Node) -> NixAttributeSet:
+    def from_cst(cls, node: Node) -> AttributeSet:
         """
         Parse an attr-set, preserving comments and blank lines.
 
         Handles both the outer `attrset_expression` and the inner
         `binding_set` wrapper that tree-sitter-nix inserts.
         """
-        from nix_manipulator.expressions.binding import NixBinding
+        from nix_manipulator.expressions.binding import Binding
 
         multiline = b"\n" in node.text
-        values: list[NixBinding | NixInherit] = []
+        values: list[Binding | Inherit] = []
         before: list[Any] = []
 
         def push_gap(prev: Optional[Node], cur: Node) -> None:
@@ -75,7 +75,7 @@ class NixAttributeSet(TypedExpression):
                 push_gap(prev_content, child)
 
                 if child.type == "binding":
-                    values.append(NixBinding.from_cst(child, before=before))
+                    values.append(Binding.from_cst(child, before=before))
                     before = []
                 elif child.type == "comment":
                     comment = Comment.from_cst(child)
@@ -93,7 +93,7 @@ class NixAttributeSet(TypedExpression):
                     else:
                         before.append(comment)
                 elif child.type == "inherit":
-                    values.append(NixInherit.from_cst(child, before=before))
+                    values.append(Inherit.from_cst(child, before=before))
                     before = []
                 elif child.type == "variable_expression":
                     # variable_expression – a function call
@@ -141,11 +141,11 @@ class NixAttributeSet(TypedExpression):
             return f"{before_str}{{ {bindings_str} }}{after_str}"
 
 
-class RecursiveAttributeSet(NixAttributeSet):
+class RecursiveAttributeSet(AttributeSet):
     tree_sitter_types: ClassVar[set[str]] = {"rec_attrset_expression"}
-    values: List[NixBinding | NixInherit | FunctionCall]
+    values: List[Binding | Inherit | FunctionCall]
     multiline: bool = True
     recursive: bool = True
 
 
-__all__ = ["NixAttributeSet", "RecursiveAttributeSet"]
+__all__ = ["AttributeSet", "RecursiveAttributeSet"]

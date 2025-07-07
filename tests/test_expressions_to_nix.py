@@ -1,28 +1,28 @@
-from nix_manipulator.expressions.binding import NixBinding
+from nix_manipulator.expressions.binding import Binding
 from nix_manipulator.expressions.comment import Comment, MultilineComment
 from nix_manipulator.expressions.function.call import FunctionCall
 from nix_manipulator.expressions.function.definition import FunctionDefinition
-from nix_manipulator.expressions.identifier import NixIdentifier
+from nix_manipulator.expressions.identifier import Identifier
 from nix_manipulator.expressions.layout import empty_line
 from nix_manipulator.expressions.list import NixList
 from nix_manipulator.expressions.primitive import Primitive
-from nix_manipulator.expressions.set import NixAttributeSet
-from nix_manipulator.expressions.with_statement import NixWith
+from nix_manipulator.expressions.set import AttributeSet
+from nix_manipulator.expressions.with_statement import WithStatement
 
 
 def test_rebuild_nix_identifier():
-    assert NixIdentifier(name="foo").rebuild() == "foo"
-    assert NixIdentifier(name="foo-bar").rebuild() == "foo-bar"
-    assert NixIdentifier(name="foo.bar").rebuild() == "foo.bar"
+    assert Identifier(name="foo").rebuild() == "foo"
+    assert Identifier(name="foo-bar").rebuild() == "foo-bar"
+    assert Identifier(name="foo.bar").rebuild() == "foo.bar"
     assert (
-        NixIdentifier(
+            Identifier(
             name="accelerate",
             before=[
                 empty_line,
                 Comment(text="dependencies"),
             ],
         ).rebuild()
-        == "\n# dependencies\naccelerate"
+            == "\n# dependencies\naccelerate"
     )
 
 
@@ -30,8 +30,8 @@ def test_rebuild_nix_list_single_line():
     assert (
         NixList(
             value=[
-                NixIdentifier(name="foo"),
-                NixIdentifier(name="bar"),
+                Identifier(name="foo"),
+                Identifier(name="bar"),
             ],
             multiline=False,
         ).rebuild()
@@ -43,8 +43,8 @@ def test_rebuild_nix_list_multiline():
     assert (
         NixList(
             value=[
-                NixIdentifier(name="foo"),
-                NixIdentifier(name="bar"),
+                Identifier(name="foo"),
+                Identifier(name="bar"),
             ],
             multiline=True,
         ).rebuild()
@@ -57,8 +57,8 @@ def test_rebuild_nix_list_multiline_not_specified():
     assert (
         NixList(
             value=[
-                NixIdentifier(name="foo"),
-                NixIdentifier(name="bar"),
+                Identifier(name="foo"),
+                Identifier(name="bar"),
             ]
         ).rebuild()
         == "[\n  foo\n  bar\n]"
@@ -67,48 +67,48 @@ def test_rebuild_nix_list_multiline_not_specified():
 
 def test_nix_with():
     assert (
-        NixWith(
-            environment=NixIdentifier(name="lib.maintainers"),
-            body=NixList(value=[NixIdentifier(name="hoh")], multiline=False),
+            WithStatement(
+            environment=Identifier(name="lib.maintainers"),
+            body=NixList(value=[Identifier(name="hoh")], multiline=False),
         ).rebuild()
-        == "with lib.maintainers; [ hoh ]"
+            == "with lib.maintainers; [ hoh ]"
     )
 
 
 def test_nix_with_multiple_attributes():
     assert (
-        NixWith(
-            environment=NixIdentifier(name="lib.maintainers"),
+            WithStatement(
+            environment=Identifier(name="lib.maintainers"),
             body=NixList(
-                value=[NixIdentifier(name="hoh"), NixIdentifier(name="mic92")],
+                value=[Identifier(name="hoh"), Identifier(name="mic92")],
                 multiline=False,
             ),
         ).rebuild()
-        == "with lib.maintainers; [ hoh mic92 ]"
+            == "with lib.maintainers; [ hoh mic92 ]"
     )
 
 
 def test_nix_binding():
     assert (
-        NixBinding(
+            Binding(
             name="foo",
-            value=NixIdentifier(name="bar"),
+            value=Identifier(name="bar"),
         ).rebuild()
-        == "foo = bar;"
+            == "foo = bar;"
     )
 
     assert (
-        NixBinding(
+            Binding(
             name="foo",
             value=NixList(
                 value=[
-                    NixIdentifier(name="bar"),
-                    NixIdentifier(name="baz"),
+                    Identifier(name="bar"),
+                    Identifier(name="baz"),
                 ],
                 multiline=False,
             ),
         ).rebuild()
-        == "foo = [ bar baz ];"
+            == "foo = [ bar baz ];"
     )
 
 
@@ -127,28 +127,28 @@ def test_nix_comment():
     )
 
     assert (
-        NixBinding(
+            Binding(
             name="alice", value="bob", before=[Comment(text="This is a comment")]
         ).rebuild()
-        == '# This is a comment\nalice = "bob";'
+            == '# This is a comment\nalice = "bob";'
     )
 
 
 def test_nix_comment_after_identifier():
     assert (
-        NixIdentifier(name="alice", after=[Comment(text="This is a comment")]).rebuild()
-        == "alice\n# This is a comment"
+            Identifier(name="alice", after=[Comment(text="This is a comment")]).rebuild()
+            == "alice\n# This is a comment"
     )
 
 
 def test_nix_comment_before_and_after_identifier():
     assert (
-        NixIdentifier(
+            Identifier(
             name="alice",
             before=[Comment(text="A first comment"), empty_line],
             after=[empty_line, Comment(text="This is a comment")],
         ).rebuild()
-        == "# A first comment\n\nalice\n\n# This is a comment"
+            == "# A first comment\n\nalice\n\n# This is a comment"
     )
 
 
@@ -158,19 +158,19 @@ def test_nix_expression():
 
 def test_nix_set():
     assert (
-        NixAttributeSet.from_dict(
+            AttributeSet.from_dict(
             {
-                "foo": NixIdentifier(name="bar"),
+                "foo": Identifier(name="bar"),
                 "baz": NixList(
                     value=[
-                        NixIdentifier(name="qux"),
-                        NixIdentifier(name="quux"),
+                        Identifier(name="qux"),
+                        Identifier(name="quux"),
                     ],
                     multiline=False,
                 ),
             }
         ).rebuild()
-        == "{\n  foo = bar;\n  baz = [ qux quux ];\n}"
+            == "{\n  foo = bar;\n  baz = [ qux quux ];\n}"
     )
 
 
@@ -180,7 +180,7 @@ def test_nix_function_definition_empty_set():
         FunctionDefinition(
             argument_set=[],
             let_statements=[],
-            output=NixAttributeSet(values=[]),
+            output=AttributeSet(values=[]),
         ).rebuild()
         == "{ }: { }"
     )
@@ -189,9 +189,9 @@ def test_nix_function_definition_empty_set():
 def test_nix_function_definition_one_binding():
     assert (
         FunctionDefinition(
-            argument_set=[NixIdentifier(name="pkgs")],
+            argument_set=[Identifier(name="pkgs")],
             let_statements=[],
-            output=NixAttributeSet.from_dict({"pkgs": NixIdentifier(name="pkgs")}),
+            output=AttributeSet.from_dict({"pkgs": Identifier(name="pkgs")}),
         ).rebuild()
         == "{\n  pkgs,\n}:\n{\n  pkgs = pkgs;\n}"
     )
@@ -201,12 +201,12 @@ def test_nix_function_definition_empty_lines_in_argument_set():
     assert (
         FunctionDefinition(
             argument_set=[
-                NixIdentifier(name="pkgs", before=[empty_line]),
-                NixIdentifier(
+                Identifier(name="pkgs", before=[empty_line]),
+                Identifier(
                     name="pkgs-2",
                     before=[Comment(text="This is a comment"), empty_line],
                 ),
-                NixIdentifier(
+                Identifier(
                     name="pkg-3",
                     before=[
                         empty_line,
@@ -216,7 +216,7 @@ def test_nix_function_definition_empty_lines_in_argument_set():
                 ),
             ],
             let_statements=[],
-            output=NixAttributeSet.from_dict({"pkgs": NixIdentifier(name="pkgs")}),
+            output=AttributeSet.from_dict({"pkgs": Identifier(name="pkgs")}),
         ).rebuild()
         == """
 {
@@ -243,10 +243,10 @@ def test_nix_function_definition_let_bindings():
         FunctionDefinition(
             argument_set=[],
             let_statements=[
-                NixBinding(name="foo", value=NixIdentifier(name="bar")),
-                NixBinding(name="alice", value="bob"),
+                Binding(name="foo", value=Identifier(name="bar")),
+                Binding(name="alice", value="bob"),
             ],
-            output=NixAttributeSet(values=[]),
+            output=AttributeSet(values=[]),
         ).rebuild()
         == '{ }:\nlet\n  foo = bar;\n  alice = "bob";\nin\n{ }'
     )
@@ -258,14 +258,14 @@ def test_nix_function_definition_multiple_let_bindings():
         FunctionDefinition(
             argument_set=[],
             let_statements=[
-                NixBinding(name="foo", value=NixIdentifier(name="bar")),
-                NixBinding(
+                Binding(name="foo", value=Identifier(name="bar")),
+                Binding(
                     name="alice",
                     value="bob",
                     before=[Comment(text="This is a comment")],
                 ),
             ],
-            output=NixAttributeSet(values=[]),
+            output=AttributeSet(values=[]),
         ).rebuild()
         == '{ }:\nlet\n  foo = bar;\n  # This is a comment\n  alice = "bob";\nin\n{ }'
     )
@@ -276,14 +276,14 @@ def test_nix_function_definition_let_statements_with_comment():
         FunctionDefinition(
             argument_set=[],
             let_statements=[
-                NixBinding(name="foo", value=NixIdentifier(name="bar")),
-                NixBinding(
+                Binding(name="foo", value=Identifier(name="bar")),
+                Binding(
                     name="alice",
                     value="bob",
                     before=[Comment(text="This is a comment")],
                 ),
             ],
-            output=NixAttributeSet(values=[]),
+            output=AttributeSet(values=[]),
         ).rebuild()
         == '{ }:\nlet\n  foo = bar;\n  # This is a comment\n  alice = "bob";\nin\n{ }'
     )
@@ -292,13 +292,13 @@ def test_nix_function_definition_let_statements_with_comment():
 def test_nix_function_definition_multiple_let_bindings_complex():
     assert (
         FunctionDefinition(
-            argument_set=[NixIdentifier(name="pkgs")],
+            argument_set=[Identifier(name="pkgs")],
             let_statements=[
-                NixBinding(name="pkgs-copy", value=NixIdentifier(name="pkgs")),
-                NixBinding(name="alice", value="bob"),
+                Binding(name="pkgs-copy", value=Identifier(name="pkgs")),
+                Binding(name="alice", value="bob"),
             ],
-            output=NixAttributeSet.from_dict(
-                {"pkgs-again": NixIdentifier(name="pkgs-copy")}
+            output=AttributeSet.from_dict(
+                {"pkgs-again": Identifier(name="pkgs-copy")}
             ),
         ).rebuild()
         == '{\n  pkgs,\n}:\nlet\n  pkgs-copy = pkgs;\n  alice = "bob";\nin\n{\n  pkgs-again = pkgs-copy;\n}'
@@ -309,8 +309,8 @@ def test_function_call():
     assert (
         FunctionCall(
             name="foo",
-            argument=NixAttributeSet.from_dict(
-                {"foo": NixIdentifier(name="bar"), "alice": "bob"}
+            argument=AttributeSet.from_dict(
+                {"foo": Identifier(name="bar"), "alice": "bob"}
             ),
         ).rebuild()
         == 'foo {\n  foo = bar;\n  alice = "bob";\n}'
@@ -321,14 +321,14 @@ def test_function_with_comments():
     assert (
         FunctionCall(
             name="foo",
-            argument=NixAttributeSet(
+            argument=AttributeSet(
                 values=[
-                    NixBinding(
+                    Binding(
                         name="foo",
-                        value=NixIdentifier(name="bar"),
+                        value=Identifier(name="bar"),
                         before=[Comment(text="This is a comment")],
                     ),
-                    NixBinding(name="alice", value="bob"),
+                    Binding(name="alice", value="bob"),
                 ]
             ),
         ).rebuild()
@@ -339,12 +339,12 @@ def test_function_with_comments():
 def test_function_definition_with_function_call():
     assert (
         FunctionDefinition(
-            argument_set=[NixIdentifier(name="pkgs")],
+            argument_set=[Identifier(name="pkgs")],
             output=FunctionCall(
                 name="buildPythonPackage",
                 recursive=True,
-                argument=NixAttributeSet.from_dict(
-                    {"pkgs": NixIdentifier(name="pkgs"), "alice": "bob"}
+                argument=AttributeSet.from_dict(
+                    {"pkgs": Identifier(name="pkgs"), "alice": "bob"}
                 ),
             ),
         ).rebuild()
@@ -357,9 +357,9 @@ def test_function_call_recursive():
         FunctionCall(
             name="foo",
             recursive=True,
-            argument=NixAttributeSet.from_dict(
+            argument=AttributeSet.from_dict(
                 values={
-                    "foo": NixIdentifier(name="bar"),
+                    "foo": Identifier(name="bar"),
                     "alice": "bob",
                 }
             ),
@@ -380,8 +380,8 @@ def test_list():
     assert (
         NixList(
             value=[
-                NixIdentifier(name="setuptools"),
-                NixIdentifier(name="setuptools-scm"),
+                Identifier(name="setuptools"),
+                Identifier(name="setuptools-scm"),
             ],
         ).rebuild()
         == expected_list
@@ -398,16 +398,16 @@ build-system = [
 
 def test_binding_list():
     assert (
-        NixBinding(
+            Binding(
             name="build-system",
             value=NixList(
                 value=[
-                    NixIdentifier(name="setuptools"),
-                    NixIdentifier(name="setuptools-scm"),
+                    Identifier(name="setuptools"),
+                    Identifier(name="setuptools-scm"),
                 ],
             ),
         ).rebuild()
-        == expected_binding_list
+            == expected_binding_list
     )
 
 
@@ -426,13 +426,13 @@ def test_indented_function_call():
             value=[
                 FunctionCall(
                     name="fetchFromGitHub",
-                    argument=NixAttributeSet(
+                    argument=AttributeSet(
                         values=[
-                            NixBinding(
+                            Binding(
                                 name="owner",
                                 value="huggingface",
                             ),
-                            NixBinding(
+                            Binding(
                                 name="repo",
                                 value="trl",
                             ),
@@ -469,27 +469,27 @@ def test_function_argument_set():
     assert (
         FunctionDefinition(
             argument_set=[
-                NixIdentifier(name="lib"),
-                NixIdentifier(name="buildPythonPackage"),
-                NixIdentifier(name="fetchFromGitHub"),
-                NixIdentifier(
+                Identifier(name="lib"),
+                Identifier(name="buildPythonPackage"),
+                Identifier(name="fetchFromGitHub"),
+                Identifier(
                     name="setuptools",
                     before=[
                         empty_line,
                         Comment(text="build-system"),
                     ],
                 ),
-                NixIdentifier(name="setuptools-scm"),
-                NixIdentifier(
+                Identifier(name="setuptools-scm"),
+                Identifier(
                     name="accelerate",
                     before=[
                         empty_line,
                         Comment(text="dependencies"),
                     ],
                 ),
-                NixIdentifier(name="datasets"),
-                NixIdentifier(name="rich"),
-                NixIdentifier(name="transformers"),
+                Identifier(name="datasets"),
+                Identifier(name="rich"),
+                Identifier(name="transformers"),
             ]
         ).rebuild()
         == expected_function_argument_set
@@ -516,14 +516,14 @@ expected_from_test_issue = """
 
 def test_issue():
     assert (
-        NixAttributeSet(
+            AttributeSet(
             values=[
-                NixBinding(name="pname", value=Primitive(value="trl")),
-                NixBinding(
+                Binding(name="pname", value=Primitive(value="trl")),
+                Binding(
                     name="dependencies",
                     value=NixList(
                         value=[
-                            NixIdentifier(name="acc"),
+                            Identifier(name="acc"),
                         ],
                     ),
                     before=[
@@ -534,7 +534,7 @@ def test_issue():
                 ),
             ],
         ).rebuild()
-        == expected_from_test_issue
+            == expected_from_test_issue
     )
 
 
@@ -543,12 +543,12 @@ def test_nested_list():
         (
             NixList(
                 value=[
-                    NixBinding(name="pname", value="trl"),
-                    NixBinding(
+                    Binding(name="pname", value="trl"),
+                    Binding(
                         name="dependencies",
                         value=NixList(
                             value=[
-                                NixIdentifier(name="acc"),
+                                Identifier(name="acc"),
                             ]
                         ),
                     ),

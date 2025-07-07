@@ -8,7 +8,7 @@ from nix_manipulator.expressions.expression import NixExpression, TypedExpressio
 from nix_manipulator.format import _format_trivia
 
 
-class NixWith(TypedExpression):
+class WithStatement(TypedExpression):
     tree_sitter_types: ClassVar[set[str]] = {"with_expression"}
     environment: NixExpression
     body: NixExpression
@@ -43,4 +43,4 @@ class NixWith(TypedExpression):
         return f"{before_str}with {environment_str}; {body_str}{after_str}"
 
 
-__all__ = ["NixWith"]
+__all__ = ["WithStatement"]

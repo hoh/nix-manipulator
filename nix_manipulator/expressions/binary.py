@@ -8,7 +8,7 @@ from nix_manipulator.expressions.expression import NixExpression, TypedExpressio
 from nix_manipulator.format import _format_trivia
 
 
-class NixBinaryExpression(TypedExpression):
+class BinaryExpression(TypedExpression):
     tree_sitter_types: ClassVar[set[str]] = {"binary_expression"}
     operator: str
     left: NixExpression
@@ -40,4 +40,4 @@ class NixBinaryExpression(TypedExpression):
         return f"{before_str}{indentation}{left_str} {self.operator} {right_str}{after_str}"
 
 
-__all__ = ["NixBinaryExpression"]
+__all__ = ["BinaryExpression"]

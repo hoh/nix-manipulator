@@ -5,7 +5,7 @@ from typing import ClassVar, List, Union
 from tree_sitter import Node
 
 from nix_manipulator.expressions.expression import NixExpression, TypedExpression
-from nix_manipulator.expressions.identifier import NixIdentifier
+from nix_manipulator.expressions.identifier import Identifier
 from nix_manipulator.expressions.primitive import Primitive
 from nix_manipulator.format import _format_trivia
 
@@ -45,7 +45,7 @@ class NixList(TypedExpression):
                 items.append(
                     f"{item.rebuild(indent=indented if (inline or self.multiline) else indented, inline=not self.multiline)}"
                 )
-            elif isinstance(item, NixIdentifier):
+            elif isinstance(item, Identifier):
                 items.append(
                     f"{item.rebuild(indent=indented if (inline or self.multiline) else indented, inline=not self.multiline)}"
                 )

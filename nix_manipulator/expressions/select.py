@@ -5,22 +5,22 @@ from typing import ClassVar
 from tree_sitter import Node
 
 from nix_manipulator.expressions.expression import TypedExpression
-from nix_manipulator.expressions.identifier import NixIdentifier
+from nix_manipulator.expressions.identifier import Identifier
 from nix_manipulator.format import _format_trivia
 
 
-class NixSelect(TypedExpression):
+class Select(TypedExpression):
     tree_sitter_types: ClassVar[set[str]] = {"select_expression"}
-    expression: NixIdentifier
-    attribute: NixIdentifier
+    expression: Identifier
+    attribute: Identifier
 
     @classmethod
-    def from_cst(cls, node: Node) -> NixSelect:
+    def from_cst(cls, node: Node) -> Select:
         return cls(
-            expression=NixIdentifier(
+            expression=Identifier(
                 name=node.child_by_field_name("expression").text.decode()
             ),
-            attribute=NixIdentifier(
+            attribute=Identifier(
                 name=node.child_by_field_name("attrpath").text.decode()
             ),
         )
@@ -33,4 +33,4 @@ class NixSelect(TypedExpression):
         return f"{before_str}{indentation}{self.expression.name}.{self.attribute.name}{after_str}"
 
 
-__all__ = ["NixSelect"]
+__all__ = ["Select"]

@@ -6,7 +6,7 @@ from typing import ClassVar, Union
 from tree_sitter import Node
 
 from nix_manipulator.expressions.expression import TypedExpression
-from nix_manipulator.expressions.identifier import NixIdentifier
+from nix_manipulator.expressions.identifier import Identifier
 from nix_manipulator.format import _format_trivia
 
 
@@ -33,7 +33,7 @@ class Primitive(TypedExpression):
             if node.text in (b"true", b"false"):
                 value = node.text == b"true"
             else:
-                return NixIdentifier(name=node.text.decode())
+                return Identifier(name=node.text.decode())
         else:
             raise ValueError(f"Unsupported expression type: {node.type}")
         return cls(value=value)

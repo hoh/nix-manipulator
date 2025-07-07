@@ -9,7 +9,7 @@ from nix_manipulator.expressions.layout import linebreak
 from nix_manipulator.format import _format_trivia
 
 
-class NixIdentifier(NixExpression):
+class Identifier(NixExpression):
     name: str
 
     @classmethod
@@ -34,4 +34,4 @@ class NixIdentifier(NixExpression):
         )
 
 
-__all__ = ["NixIdentifier"]
+__all__ = ["Identifier"]
