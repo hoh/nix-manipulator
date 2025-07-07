@@ -1,8 +1,8 @@
-from nix_manipulator.parser import parse_nix_cst
+from nix_manipulator.parser import parse
 
 
 def parse_and_rebuild(source: str):
-    parsed_cst = parse_nix_cst(source.encode("utf-8"))
+    parsed_cst = parse(source.encode("utf-8"))
     # print(parsed_cst.model_dump())
     rebuilt_code = parsed_cst.rebuild()
     return rebuilt_code

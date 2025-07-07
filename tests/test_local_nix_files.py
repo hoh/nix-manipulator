@@ -1,13 +1,13 @@
 from pathlib import Path
 
-from nix_manipulator.parser import parse_nix_cst
+from nix_manipulator.parser import parse
 from tests.expressions.trl import nixpkgs_trl_default
 
 NIX_FILES_PATH = Path(__file__).parent
 
 
 def parse_and_rebuild(source: str):
-    parsed_cst = parse_nix_cst(source.encode("utf-8"))
+    parsed_cst = parse(source.encode("utf-8"))
     return parsed_cst.rebuild()
 
 

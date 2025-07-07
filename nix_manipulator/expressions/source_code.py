@@ -16,9 +16,9 @@ class NixSourceCode:
 
     @classmethod
     def from_cst(cls, node: Node) -> NixSourceCode:
-        from nix_manipulator.parser import parse_to_cst
+        from nix_manipulator.mapping import tree_sitter_node_to_expression
 
-        value = [parse_to_cst(obj) for obj in node.children]
+        value = [tree_sitter_node_to_expression(obj) for obj in node.children]
         return cls(node=node, value=value)
 
     def rebuild(self) -> str:

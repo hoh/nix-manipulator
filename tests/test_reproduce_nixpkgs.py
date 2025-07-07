@@ -1,13 +1,13 @@
 from pathlib import Path
 
-from nix_manipulator.parser import parse_nix_cst
+from nix_manipulator.parser import parse
 
 NIXPKGS_PATH = Path("/home/sepal/Repos/hoh/nixpkgs")
 
 
 def check_package_can_be_reproduced(path: Path):
     source = path.read_text().strip("\n")
-    parsed_cst = parse_nix_cst(source.encode("utf-8"))
+    parsed_cst = parse(source.encode("utf-8"))
     rebuilt_code = parsed_cst.rebuild()
     try:
         assert source == rebuilt_code

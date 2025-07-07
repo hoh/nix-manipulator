@@ -8,7 +8,7 @@ from pygments.formatters import TerminalFormatter
 from pygments.lexers import NixLexer, PythonLexer
 
 from nix_manipulator.expressions.expression import NixExpression
-from nix_manipulator.parser import parse_nix_cst
+from nix_manipulator.parser import parse
 
 
 def pretty_print_symbols(obj: NixExpression, indent: int = 0) -> str:
@@ -127,7 +127,7 @@ buildPythonPackage rec {
 
     # Parse Nix code to high-level symbols
     print("\n📊 Converting Nix source to high-level symbols...")
-    symbol_tree = parse_nix_cst(nix_code)
+    symbol_tree = parse(nix_code)
 
     if symbol_tree:
         # Pretty print the symbol tree structure

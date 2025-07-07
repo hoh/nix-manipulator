@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import tree_sitter_nix as ts_nix
 from tree_sitter import Language, Node, Parser
 
@@ -10,17 +12,17 @@ NIX_LANGUAGE = Language(ts_nix.language())
 PARSER = Parser(NIX_LANGUAGE)
 
 
-def parse_nix_cst(source_code: bytes | str) -> NixExpression | NixSourceCode:
-    """Parse Nix source code and return the root of its CST."""
+def parse_to_ast(source_code: bytes | str) -> Node:
+    """Parse Nix source code and return the root of its AST."""
     code_bytes = (
         source_code.encode("utf-8") if isinstance(source_code, str) else source_code
     )
     tree = PARSER.parse(code_bytes)
-    return parse_to_cst(tree.root_node)
+    return tree.root_node
 
 
-def parse_to_cst(node: Node) -> NixExpression | NixSourceCode:
-    cls: NixExpression | NixSourceCode | None = tree_sitter_node_to_expression(node)
-    if not cls:
-        raise ValueError(f"Unknown node type: {node.type} {node}")
-    return cls.from_cst(node=node)
+def parse(source_code: bytes | str | Path) -> NixExpression | NixSourceCode:
+    """Parse Nix source code and return the root of its AST."""
+    if isinstance(source_code, Path):
+        source_code = source_code.read_text()
+    return tree_sitter_node_to_expression(parse_to_ast(source_code=source_code))

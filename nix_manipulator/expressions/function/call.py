@@ -29,9 +29,9 @@ class FunctionCall(TypedExpression):
             node.child_by_field_name("argument").type == "rec_attrset_expression"
         )
 
-        from nix_manipulator.parser import parse_to_cst
+        from nix_manipulator.mapping import tree_sitter_node_to_expression
 
-        argument = parse_to_cst(node.child_by_field_name("argument"))
+        argument = tree_sitter_node_to_expression(node.child_by_field_name("argument"))
 
         return cls(
             name=name,

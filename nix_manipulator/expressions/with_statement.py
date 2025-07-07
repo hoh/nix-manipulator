@@ -22,11 +22,8 @@ class WithStatement(TypedExpression):
 
         from nix_manipulator.mapping import tree_sitter_node_to_expression
 
-        def parse_to_cst_(node_: Node) -> NixExpression:
-            return tree_sitter_node_to_expression(node_)
-
-        environment = parse_to_cst_(environment_node)
-        body = parse_to_cst_(body_node)
+        environment = tree_sitter_node_to_expression(environment_node)
+        body = tree_sitter_node_to_expression(body_node)
         return cls(environment=environment, body=body, multiline=multiline)
 
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:

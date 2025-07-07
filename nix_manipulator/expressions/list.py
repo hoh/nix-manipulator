@@ -17,7 +17,7 @@ class NixList(TypedExpression):
 
     @classmethod
     def from_cst(cls, node: Node):
-        from nix_manipulator.parser import parse_to_cst
+        from nix_manipulator.mapping import tree_sitter_node_to_expression
 
         if node.text is None:
             raise ValueError("List has no code")
@@ -25,7 +25,9 @@ class NixList(TypedExpression):
         multiline = b"\n" in node.text
 
         value = [
-            parse_to_cst(obj) for obj in node.children if obj.type not in ("[", "]")
+            tree_sitter_node_to_expression(obj)
+            for obj in node.children
+            if obj.type not in ("[", "]")
         ]
         return cls(value=value, multiline=multiline)
 
