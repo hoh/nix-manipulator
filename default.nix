@@ -5,10 +5,12 @@ pkgs.buildPythonPackage rec {
   version = "0.1.0";
 
   src = pkgs.fetchFromGitHub {
-    owner = "yourusername";
+    owner = "hoh";
     repo = "nix-manipulator";
-    rev = "e15b095"; # Git hash from your commit
+    rev = "cf15618"; # Git hash from your commit
     sha256 = "sha256-TlTq3tIQfNuI+CPvIy/qPFiKPhoSQd7g7FDj4F7C3CQ="; # Replace with actual hash
+    fetchSubmodules = true;
+    inherit git;
   };
 
   propagatedBuildInputs = [
@@ -24,6 +26,6 @@ pkgs.buildPythonPackage rec {
     description = "A Python library for parsing, manipulating, and reconstructing Nix source code";
     homepage = "https://codeberg.org/hoh/nix-manipulator";
     license = licenses.agpl3;
-    maintainers = with maintainers; [ yourusername ];
+    maintainers = with maintainers; [ hoh ];
   };
 }
