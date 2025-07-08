@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "nix-manipulator"
+dynamic = ["version"]
+description = "A Python library for parsing, manipulating, and reconstructing Nix source code with high-level abstractions while preserving formatting and comments in RFC-formatted code."
+authors = [
+    {name = "Your Name", email = "your.email@example.com"},
+]
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "tree-sitter>=0.20.0",
+    "tree-sitter-nix>=0.1.0",
+    "pydantic>=1.8.2",
+    "pygments>=2.10.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/nix-manipulator"
+Source = "https://github.com/yourusername/nix-manipulator"
+Tracker = "https://github.com/yourusername/nix-manipulator/issues"
+
+[tool.hatch.version]
+path = "nix_manipulator/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["nix_manipulator"]
+
+[tool.hatch.metadata]
+allow-conda = false
+
+[tool.hatch.envs.default]
+python = "3.8"
+dependencies = [
+    "pytest",
+    "pytest-cov",
+]
+
+[tool.hatch.envs.default.scripts]
+test = "pytest {args:tests}"
+test-cov = "pytest --cov=nix_manipulator --cov-report=term-missing {args:tests}"
