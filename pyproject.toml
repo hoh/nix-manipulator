@@ -20,7 +20,7 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://codebergr.org.com/hoh/nix-manipulator"
+Homepage = "https://codeberg.org/hoh/nix-manipulator"
 Source = "https://codeberg.org/hoh/nix-manipulator"
 Tracker = "https://codeberg.org/hoh/nix-manipulator/issues"
 
