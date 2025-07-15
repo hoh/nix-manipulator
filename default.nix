@@ -1,31 +1,37 @@
 { pkgs ? import <nixpkgs> {} }:
-
-pkgs.buildPythonPackage rec {
+let
+  python = pkgs.python312Packages;
+in
+python.buildPythonPackage rec {
   pname = "nix-manipulator";
   version = "0.1.0";
 
-  src = pkgs.fetchFromGitHub {
-    owner = "hoh";
-    repo = "nix-manipulator";
-    rev = "cf15618"; # Git hash from your commit
-    sha256 = "sha256-TlTq3tIQfNuI+CPvIy/qPFiKPhoSQd7g7FDj4F7C3CQ="; # Replace with actual hash
-    fetchSubmodules = true;
-    inherit git;
-  };
+  format = "pyproject";
+  nativeBuildInputs = [ python.hatchling ];
 
-  propagatedBuildInputs = [
-    pkgs.python3Packages.tree-sitter
-    pkgs.python3Packages.tree-sitter-nix
-    pkgs.python3Packages.pydantic
-    pkgs.python3Packages.pygments
+#  src = pkgs.fetchFromGitea {
+#    domain = "codeberg.org";
+#    owner  = "hoh";
+#    repo   = "nix-manipulator";
+#    rev    = "dcf9603195c1332c3b8b3bc6afa5c33701f56ae0";
+#    hash   = "";
+#  };
+  src = ./.;
+
+  propagatedBuildInputs = with python; [
+    tree-sitter
+    tree-sitter-grammars.tree-sitter-nix
+    pydantic
+    pygments
   ];
 
-  doCheck = false; # Set to true if you want to run tests
+  doCheck = true;
+  installCheckPhase = ''command -v $out/bin/nima'';
 
   meta = with pkgs.lib; {
-    description = "A Python library for parsing, manipulating, and reconstructing Nix source code";
-    homepage = "https://codeberg.org/hoh/nix-manipulator";
-    license = licenses.agpl3;
-    maintainers = with maintainers; [ hoh ];
+    description  = "A Python library for parsing, manipulating, and reconstructing Nix source code";
+    homepage     = "https://codeberg.org/hoh/nix-manipulator";
+    license      = licenses.agpl3Only;
+    maintainers  = with maintainers; [ hoh ];
   };
 }

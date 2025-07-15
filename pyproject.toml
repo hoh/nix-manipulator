@@ -24,6 +24,9 @@ Homepage = "https://codeberg.org/hoh/nix-manipulator"
 Source = "https://codeberg.org/hoh/nix-manipulator"
 Tracker = "https://codeberg.org/hoh/nix-manipulator/issues"
 
+[project.scripts]
+nima = "nix_manipulator.__main__:main"
+
 [tool.hatch.version]
 path = "nix_manipulator/__init__.py"
 
