@@ -332,3 +332,29 @@ def test_reproduce_function_call_list_indented():
 """.strip("\n")
     print(parse(source))
     assert source == parse_and_rebuild(source)
+
+
+def test_reproduce_let_statement():
+    source = """
+let
+  foo = "bar";
+in
+foo
+""".strip("\n")
+    print(parse(source))
+    print(parse_and_rebuild(source))
+    assert parse_and_rebuild(source) == source
+
+
+def test_reproduce_let_statement_with_comments():
+    source = """
+let
+  foo = "bar";
+  # Foo is important
+  bar = "baz";
+in
+foo
+""".strip("\n")
+    print(parse(source))
+    print(parse_and_rebuild(source))
+    assert parse_and_rebuild(source) == source
