@@ -19,6 +19,14 @@ def test_cli_set_string(capsys):
     assert result == original.replace('version = "0.15.2";', 'version = "1.2.3";')
 
 
+def test_cli_rm(capsys):
+    result = main(["rm", "-f", "tests/nix-files/pkgs/simplistic-01.nix", "doCheck"])
+    original = Path("tests/nix-files/pkgs/simplistic-01.nix").read_text().strip("\n")
+    assert result == original.replace(
+        "# Many tests require internet access.\n  doCheck = false;\n\n  ", ""
+    )
+
+
 def test_cli_test(capsys):
     result = main(["test", "-f", "tests/nix-files/pkgs/simplistic-01.nix"])
     assert result == "OK"
