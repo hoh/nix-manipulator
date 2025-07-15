@@ -358,3 +358,19 @@ foo
     print(parse(source))
     print(parse_and_rebuild(source))
     assert parse_and_rebuild(source) == source
+
+
+def test_reproduce_let_statement_with_comments_and_empty_lines():
+    source = """
+let
+
+  foo = "bar";
+
+  # Foo is important
+  bar = "baz";
+in
+foo
+""".strip("\n")
+    print(parse(source))
+    print(parse_and_rebuild(source))
+    assert source == parse_and_rebuild(source)

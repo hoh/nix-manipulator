@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, ClassVar, List
+import re
+from typing import Any, ClassVar, List, Optional
 
 from tree_sitter import Node
 
-from nix_manipulator.expressions import Comment
 from nix_manipulator.expressions.binding import Binding
 from nix_manipulator.expressions.expression import NixExpression, TypedExpression
 from nix_manipulator.expressions.function.call import FunctionCall
@@ -28,6 +28,21 @@ class LetExpression(TypedExpression):
         """
         from nix_manipulator.expressions.binding import Binding
         from nix_manipulator.mapping import tree_sitter_node_to_expression
+        from nix_manipulator.expressions import Comment, empty_line, linebreak
+
+        before: list[Any] = []
+
+        def push_gap(prev: Optional[Node], cur: Node) -> None:
+            """Detect an empty line between *prev* and *cur*."""
+            if prev is None:
+                return
+            start = prev.end_byte - node.start_byte
+            end = cur.start_byte - node.start_byte
+            gap = node.text[start:end].decode()
+            if re.search(r"\n[ \t]*\n", gap):
+                before.append(empty_line)
+            elif "\n" in gap:  # exactly one line-break — keep it
+                before.append(linebreak)
 
         multiline = b"\n" in node.text
 
@@ -39,17 +54,32 @@ class LetExpression(TypedExpression):
         value: NixExpression = tree_sitter_node_to_expression(node.children[-1])
 
         local_variables: list[Binding | Inherit] = []
-        before: list[Any] = []
+        prev_content: Optional[Node] = None
         for child in binding_set.children:
-            if child.type == "comment":
-                before.append(Comment.from_cst(child))
-                continue
-            assert child.type in ("binding",), f"Unsupported child node: {child} {child.type}"
-            local_variables.append(Binding.from_cst(child, before=before))
-            before = []
+            push_gap(prev_content, child)
+            child_expression: NixExpression = tree_sitter_node_to_expression(child)
+            if isinstance(child_expression, Comment):
+                before.append(child_expression)
+            elif isinstance(child_expression, Binding):
+                child_expression.before = before
+                local_variables.append(child_expression)
+                before = []
+            else:
+                raise ValueError(f"Unsupported child node: {child} {child.type}")
+            prev_content = child
 
         if before:
             local_variables[-1].after.extend(before)
+
+        let_symbol = node.children[0]
+        pregap = node.text[let_symbol.end_byte:binding_set.children[0].start_byte].decode()
+        if re.search(r"\n[ \t]*\n", pregap):
+            local_variables[0].before.insert(0, empty_line)
+
+        in_symbol = node.children[2]
+        postgap = node.text[binding_set.children[-1].end_byte:in_symbol.start_byte].decode()
+        if re.search(r"\n[ \t]*\n", postgap):
+            local_variables[-1].after.append(empty_line)
 
         return cls(local_variables=local_variables, value=value, multiline=multiline)
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from nix_manipulator.expressions import BinaryExpression, NixExpression
+from nix_manipulator.expressions import BinaryExpression, NixExpression, Binding
 from nix_manipulator.expressions.comment import Comment
 from nix_manipulator.expressions.expression import TypedExpression
 from nix_manipulator.expressions.function.call import FunctionCall
@@ -30,6 +30,7 @@ EXPRESSION_TYPES: set[type[TypedExpression]] = {
     Comment,
     Primitive,
     LetExpression,
+    Binding,
 }
 
 TREE_SITTER_TYPE_TO_EXPRESSION: dict[str, type[TypedExpression]] = {
