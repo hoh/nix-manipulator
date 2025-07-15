@@ -1,13 +1,47 @@
 from __future__ import annotations
 
-from typing import ClassVar, List, Union
+import re
+from typing import ClassVar, List, Union, Any, Optional
 
 from tree_sitter import Node
 
+from nix_manipulator.expressions import empty_line, linebreak, Comment
 from nix_manipulator.expressions.expression import NixExpression, TypedExpression
 from nix_manipulator.expressions.identifier import Identifier
 from nix_manipulator.expressions.primitive import Primitive
 from nix_manipulator.format import _format_trivia
+
+
+def process_list(node: Node):
+    from nix_manipulator.mapping import tree_sitter_node_to_expression
+    before: list[Any] = []
+
+    def push_gap(prev: Optional[Node], cur: Node) -> None:
+        """Detect an empty line between *prev* and *cur*."""
+        if prev is None:
+            return
+        start = prev.end_byte - node.start_byte
+        end = cur.start_byte - node.start_byte
+        gap = node.text[start:end].decode()
+        if re.search(r"\n[ \t]*\n", gap):
+            before.append(empty_line)
+        elif "\n" in gap:  # exactly one line-break — keep it
+            before.append(linebreak)
+
+    prev_content: Optional[Node] = None
+    for child in node.children:
+        if child.type in ("[", "]"):
+            continue
+        push_gap(prev_content, child)
+        child_expression: NixExpression = tree_sitter_node_to_expression(child)
+        if isinstance(child_expression, Comment):
+            before.append(child_expression)
+        else:
+            child_expression.before = before
+            yield child_expression
+            before = []
+
+        prev_content = child
 
 
 class NixList(TypedExpression):
@@ -17,18 +51,12 @@ class NixList(TypedExpression):
 
     @classmethod
     def from_cst(cls, node: Node):
-        from nix_manipulator.mapping import tree_sitter_node_to_expression
-
         if node.text is None:
             raise ValueError("List has no code")
 
         multiline = b"\n" in node.text
+        value = list(process_list(node))
 
-        value = [
-            tree_sitter_node_to_expression(obj)
-            for obj in node.children
-            if obj.type not in ("[", "]")
-        ]
         return cls(value=value, multiline=multiline)
 
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:
@@ -39,7 +67,7 @@ class NixList(TypedExpression):
         indentation = "" if inline else " " * indented
 
         if not self.value:
-            return f"{before_str}[]{after_str}"
+            return f"{before_str}[ ]{after_str}"
 
         items = []
         for item in self.value:

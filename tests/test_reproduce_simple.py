@@ -270,3 +270,25 @@ def test_rebuild_list_with_comment():
 ]
 """.strip("\n")
     assert source == parse_and_rebuild(source)
+
+
+def test_rebuild_empty_line_before_path():
+    source = """
+[
+  ./ca-load-regression.patch
+
+  # https://seclists.org/fulldisclosure/2025/Jun/2
+  ./CVE-2024-47081.patch
+]
+""".strip("\n")
+    assert source == parse_and_rebuild(source)
+
+
+def test_rebuild_empty_list_assignation():
+    source = """
+{
+  security = [ ];
+}
+""".strip("\n")
+    print(parse(source))
+    assert source == parse_and_rebuild(source)
