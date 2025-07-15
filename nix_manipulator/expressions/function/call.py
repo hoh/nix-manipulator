@@ -52,7 +52,7 @@ class FunctionCall(TypedExpression):
         if not self.argument:
             return f"{before_str}{indentation}{self.name}{after_str}"
 
-        args_str = self.argument.rebuild(indent=indent, inline=not self.multiline)
+        args_str = self.argument.rebuild(indent=indent, inline=inline or (not self.multiline))
 
         rec_str = " rec" if self.recursive else ""
         return f"{before_str}{indentation}{self.name}{rec_str} {args_str}{after_str}"

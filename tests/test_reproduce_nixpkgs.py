@@ -23,7 +23,8 @@ def test_some_nixpkgs_packages():
         "pkgs/development/python-modules/unsloth-zoo/default.nix",
         "pkgs/development/python-modules/unsloth/default.nix",
         "pkgs/development/python-modules/unsloth/default.nix",
-        # "pkgs/development/python-modules/ptpython/default.nix",
+        "pkgs/development/python-modules/ptpython/default.nix",
+        "pkgs/development/python-modules/requests/default.nix",
     ]
     for package in packages:
         check_package_can_be_reproduced(NIXPKGS_PATH / package)

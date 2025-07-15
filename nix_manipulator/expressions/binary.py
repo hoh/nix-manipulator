@@ -33,9 +33,16 @@ class BinaryExpression(TypedExpression):
         left_str = self.left.rebuild(indent=indent, inline=True)
         right_str = self.right.rebuild(indent=indent, inline=True)
 
-        return self.add_trivia(
-            f"{left_str} {self.operator} {right_str}", indent, inline
-        )
+        indentation = "" if inline else " " * indent
+
+        if self.operator == "++" and not inline:
+            return self.add_trivia(
+                f"{left_str}\n{indentation}{self.operator} {right_str}", indent, inline
+            )
+        else:
+            return self.add_trivia(
+                f"{left_str} {self.operator} {right_str}", indent, inline
+            )
 
 
 __all__ = ["BinaryExpression"]

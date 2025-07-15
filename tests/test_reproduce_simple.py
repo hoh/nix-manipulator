@@ -292,3 +292,43 @@ def test_rebuild_empty_list_assignation():
 """.strip("\n")
     print(parse(source))
     assert source == parse_and_rebuild(source)
+
+
+def test_reproduce_plus_plus_function_multiline():
+    source = """
+[
+  # Disable tests that require network access and use httpbin
+  "requests.api.request"
+]
+++ [
+  "test_text_response"
+]
+""".strip("\n")
+    print(parse(source))
+    assert source == parse_and_rebuild(source)
+
+
+def test_reproduce_plus_plus_function_call():
+    source = """
+[
+  # Disable tests that require network access and use httpbin
+  "requests.api.request"
+]
+++ lib.optionals (stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isAarch64) [
+  "test_text_response"
+]
+""".strip("\n")
+    print(parse(source))
+    assert source == parse_and_rebuild(source)
+
+
+def test_reproduce_function_call_list_indented():
+    source = """
+{
+  foo = lib.optionals (stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isAarch64) [
+    "test_text_response"
+  ];
+}
+""".strip("\n")
+    print(parse(source))
+    assert source == parse_and_rebuild(source)
