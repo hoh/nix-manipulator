@@ -3,169 +3,48 @@
 High-level example usage of the Nix manipulator library.
 """
 
-from pygments import highlight
-from pygments.formatters import TerminalFormatter
+import sys
+
 from pygments.lexers import NixLexer, PythonLexer
 
-from nix_manipulator.expressions.expression import NixExpression
+from nix_manipulator.cli import build_parser
+from nix_manipulator.expressions import NixSourceCode
+from nix_manipulator.manipulations import set_value, remove_value
 from nix_manipulator.parser import parse
 
 
-def pretty_print_symbols(obj: NixExpression, indent: int = 0) -> str:
-    """Pretty print symbol objects in a tree structure."""
-    indent_str = "  " * indent
+def main(args=None):
+    parser = build_parser()
+    args = parser.parse_args(args)
 
-    if hasattr(obj, "__dict__"):
-        lines = [f"{indent_str}{obj.__class__.__name__}("]
+    match args.command:
+        case "shell":
+            print("Launching Nix shell...")
+            # TODO
+        case "set":
+            source: NixSourceCode = parse(args.file.read())
+            return set_value(
+                source=source,
+                npath=args.npath,
+                value=args.value,
+            )
+        case "rm":
+            source: NixSourceCode = parse(args.file.read())
+            return remove_value(
+                source=source,
+                npath=args.npath,
+            )
+        case "test":
+            original = args.file.read().strip("\n")
+            source: NixSourceCode = parse(original)
+            rebuild = source.rebuild().strip("\n")
 
-        for key, value in obj.__dict__.items():
-            if key.startswith("_"):
-                continue
-
-            if isinstance(value, NixExpression):
-                lines.append(f"{indent_str}  {key}=")
-                lines.append(pretty_print_symbols(value, indent + 2))
-            elif (
-                isinstance(value, list)
-                and value
-                and isinstance(value[0], NixExpression)
-            ):
-                lines.append(f"{indent_str}  {key}=[")
-                for item in value:
-                    lines.append(pretty_print_symbols(item, indent + 2))
-                lines.append(f"{indent_str}  ]")
-            elif isinstance(value, dict):
-                lines.append(f"{indent_str}  {key}={{")
-                for k, v in value.items():
-                    if isinstance(v, NixExpression):
-                        lines.append(f"{indent_str}    {k}=")
-                        lines.append(pretty_print_symbols(v, indent + 3))
-                    else:
-                        lines.append(f"{indent_str}    {k}={repr(v)}")
-                lines.append(f"{indent_str}  }}")
+            if original == rebuild:
+                return "OK"
             else:
-                lines.append(f"{indent_str}  {key}={repr(value)}")
-
-        lines.append(f"{indent_str})")
-        return "\n".join(lines)
-    else:
-        return f"{indent_str}{repr(obj)}"
-
-
-def main():
-    """Main example function."""
-    # Example Nix code
-    nix_code = """
-{
-  lib,
-  buildPythonPackage,
-  fetchFromGitHub,
-
-  # build-system
-  setuptools,
-  setuptools-scm,
-
-  # dependencies
-  accelerate,
-  datasets,
-  rich,
-  transformers,
-}:
-let
-  owner = "huggingface";
-  acc = accelerate;
-in
-buildPythonPackage rec {
-  pname = "trl";
-  version = "0.19.0";
-  # This is something else
-  pyproject = true;
-
-  src = fetchFromGitHub {
-    # Something cool
-    owner = owner;
-    repo = "trl";
-    tag = "v${version}";
-    hash = "sha256-TlTq3tIQfNuI+CPvIy/qPFiKPhoSQd7g7FDj4F7C3CQ=";
-  };
-
-  build-system = [
-    setuptools
-    setuptools-scm
-  ];
-
-  /*
-    We love
-    multiline comments
-    here
-  */
-
-  dependencies = [
-    acc
-    datasets
-    rich
-    transformers
-  ];
-
-  # Many tests require internet access.
-  doCheck = false;
-
-  pythonImportsCheck = [ "trl" ];
-
-  meta = {
-    description = "Train transformer language models with reinforcement learning";
-    homepage = "https://github.com/huggingface/trl";
-    changelog = "https://github.com/huggingface/trl/releases/tag/${src.tag}";
-    license = lib.licenses.asl20;
-    maintainers = with lib.maintainers; [ hoh ];
-  };
-}
-"""
-
-    print("🚀 Nix Manipulator Library Example")
-    print("=" * 50)
-
-    # Parse Nix code to high-level symbols
-    print("\n📊 Converting Nix source to high-level symbols...")
-    symbol_tree = parse(nix_code)
-
-    if symbol_tree:
-        # Pretty print the symbol tree structure
-        print("\n🌳 Symbol Tree Structure:")
-        print("-" * 30)
-
-        tree_str = pretty_print_symbols(symbol_tree)
-        # Highlight with Python syntax (since it looks like Python objects)
-        highlighted_tree = highlight(tree_str, PythonLexer(), TerminalFormatter())
-        print(highlighted_tree)
-
-        # Reconstruct and display the Nix source code
-        print("\n🔧 Reconstructed Nix Source Code:")
-        print("-" * 30)
-
-        try:
-            reconstructed = symbol_tree.rebuild()
-            # Highlight with Nix syntax
-            highlighted_nix = highlight(reconstructed, NixLexer(), TerminalFormatter())
-            print(highlighted_nix)
-        except AttributeError:
-            print("❌ Reconstruction not yet fully implemented for this node type")
-            print(f"Symbol type: {type(symbol_tree)}")
-
-        # Show some manipulation examples
-        print("\n🛠️  Manipulation Examples:")
-        print("-" * 30)
-
-        # Example: Modify a value (this is conceptual - actual implementation would depend on the symbol structure)
-        print("✨ You can now easily manipulate the Nix code programmatically!")
-        print("   - Add/remove dependencies")
-        print("   - Modify version numbers")
-        print("   - Update URLs and hashes")
-        print("   - Add/remove build options")
-        print("   - All while preserving comments and formatting!")
-
-    else:
-        print("❌ Failed to parse Nix source code")
+                return "Fail"
+        case _:
+            parser.print_help(sys.stderr)
 
 
 if __name__ == "__main__":

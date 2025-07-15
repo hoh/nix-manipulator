@@ -142,7 +142,9 @@ class AttributeSet(TypedExpression):
             bindings_str = " ".join(
                 [value.rebuild(indent=indented, inline=True) for value in self.values]
             )
-            return self.add_trivia(f"{{ {bindings_str} }}", indent=indent, inline=inline)
+            return self.add_trivia(
+                f"{{ {bindings_str} }}", indent=indent, inline=inline
+            )
 
     def __getitem__(self, key: str):
         for binding in self.values:
@@ -150,13 +152,17 @@ class AttributeSet(TypedExpression):
                 return binding.value
         raise KeyError(key)
 
-
     def __setitem__(self, key: str, value):
         for i, binding in enumerate(self.values):
             if binding.name == key:
                 binding.value = value
                 return
         self.values.append(Binding(name=key, value=value))
+
+    def __delitem__(self, key: str):
+        for i, binding in enumerate(self.values):
+            if binding.name == key:
+                del self.values[i]
 
 
 class RecursiveAttributeSet(AttributeSet):
