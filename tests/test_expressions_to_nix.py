@@ -4,6 +4,7 @@ from nix_manipulator.expressions.function.call import FunctionCall
 from nix_manipulator.expressions.function.definition import FunctionDefinition
 from nix_manipulator.expressions.identifier import Identifier
 from nix_manipulator.expressions.layout import empty_line
+from nix_manipulator.expressions.let import LetExpression
 from nix_manipulator.expressions.list import NixList
 from nix_manipulator.expressions.primitive import Primitive
 from nix_manipulator.expressions.set import AttributeSet
@@ -179,7 +180,6 @@ def test_nix_function_definition_empty_set():
     assert (
         FunctionDefinition(
             argument_set=[],
-            let_statements=[],
             output=AttributeSet(values=[]),
         ).rebuild()
         == "{ }: { }"
@@ -190,7 +190,6 @@ def test_nix_function_definition_one_binding():
     assert (
         FunctionDefinition(
             argument_set=[Identifier(name="pkgs")],
-            let_statements=[],
             output=AttributeSet.from_dict({"pkgs": Identifier(name="pkgs")}),
         ).rebuild()
         == "{\n  pkgs,\n}:\n{\n  pkgs = pkgs;\n}"
@@ -215,7 +214,6 @@ def test_nix_function_definition_empty_lines_in_argument_set():
                     after=[empty_line, Comment(text="A final comment")],
                 ),
             ],
-            let_statements=[],
             output=AttributeSet.from_dict({"pkgs": Identifier(name="pkgs")}),
         ).rebuild()
         == """
@@ -242,11 +240,13 @@ def test_nix_function_definition_let_bindings():
     assert (
         FunctionDefinition(
             argument_set=[],
-            let_statements=[
-                Binding(name="foo", value=Identifier(name="bar")),
-                Binding(name="alice", value="bob"),
-            ],
-            output=AttributeSet(values=[]),
+            output=LetExpression(
+                local_variables=[
+                    Binding(name="foo", value=Identifier(name="bar")),
+                    Binding(name="alice", value="bob"),
+                ],
+                value=AttributeSet(values=[]),
+            )
         ).rebuild()
         == '{ }:\nlet\n  foo = bar;\n  alice = "bob";\nin\n{ }'
     )
@@ -257,15 +257,17 @@ def test_nix_function_definition_multiple_let_bindings():
     assert (
         FunctionDefinition(
             argument_set=[],
-            let_statements=[
-                Binding(name="foo", value=Identifier(name="bar")),
-                Binding(
-                    name="alice",
-                    value="bob",
-                    before=[Comment(text="This is a comment")],
-                ),
-            ],
-            output=AttributeSet(values=[]),
+            output=LetExpression(
+                local_variables=[
+                    Binding(name="foo", value=Identifier(name="bar")),
+                    Binding(
+                        name="alice",
+                        value="bob",
+                        before=[Comment(text="This is a comment")],
+                    ),
+                ],
+                value=AttributeSet(values=[]),
+            ),
         ).rebuild()
         == '{ }:\nlet\n  foo = bar;\n  # This is a comment\n  alice = "bob";\nin\n{ }'
     )
@@ -275,15 +277,17 @@ def test_nix_function_definition_let_statements_with_comment():
     assert (
         FunctionDefinition(
             argument_set=[],
-            let_statements=[
-                Binding(name="foo", value=Identifier(name="bar")),
-                Binding(
-                    name="alice",
-                    value="bob",
-                    before=[Comment(text="This is a comment")],
-                ),
-            ],
-            output=AttributeSet(values=[]),
+            output=LetExpression(
+                local_variables=[
+                    Binding(name="foo", value=Identifier(name="bar")),
+                    Binding(
+                        name="alice",
+                        value="bob",
+                        before=[Comment(text="This is a comment")],
+                    ),
+                ],
+                value=AttributeSet(values=[]),
+            )
         ).rebuild()
         == '{ }:\nlet\n  foo = bar;\n  # This is a comment\n  alice = "bob";\nin\n{ }'
     )
@@ -293,11 +297,13 @@ def test_nix_function_definition_multiple_let_bindings_complex():
     assert (
         FunctionDefinition(
             argument_set=[Identifier(name="pkgs")],
-            let_statements=[
-                Binding(name="pkgs-copy", value=Identifier(name="pkgs")),
-                Binding(name="alice", value="bob"),
-            ],
-            output=AttributeSet.from_dict({"pkgs-again": Identifier(name="pkgs-copy")}),
+            output=LetExpression(
+                local_variables=[
+                    Binding(name="pkgs-copy", value=Identifier(name="pkgs")),
+                    Binding(name="alice", value="bob"),
+                ],
+                value=AttributeSet.from_dict({"pkgs-again": Identifier(name="pkgs-copy")}),
+            ),
         ).rebuild()
         == '{\n  pkgs,\n}:\nlet\n  pkgs-copy = pkgs;\n  alice = "bob";\nin\n{\n  pkgs-again = pkgs-copy;\n}'
     )

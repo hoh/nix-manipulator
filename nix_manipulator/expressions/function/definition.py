@@ -5,12 +5,12 @@ from typing import ClassVar, List, Optional, Union
 
 from tree_sitter import Node
 
-from nix_manipulator.expressions.binding import Binding
 from nix_manipulator.expressions.comment import Comment
 from nix_manipulator.expressions.expression import NixExpression, TypedExpression
 from nix_manipulator.expressions.function.call import FunctionCall
 from nix_manipulator.expressions.identifier import Identifier
 from nix_manipulator.expressions.layout import empty_line
+from nix_manipulator.expressions.let import LetExpression
 from nix_manipulator.expressions.set import AttributeSet
 from nix_manipulator.format import _format_trivia
 
@@ -20,7 +20,6 @@ class FunctionDefinition(TypedExpression):
     argument_set: List[Identifier] = []
     argument_set_is_multiline: bool = True
     breaks_after_semicolon: Optional[int] = None
-    let_statements: List[Binding] = []
     output: Union[AttributeSet, NixExpression, None] = None
 
     @classmethod
@@ -29,6 +28,7 @@ class FunctionDefinition(TypedExpression):
         assert children_types in (
             ["formals", ":", "attrset_expression"],
             ["formals", ":", "apply_expression"],
+            ["formals", ":", "let_expression"],
         ), (
             f"Output other than attrset_expression not supported yet. You used {children_types}"
         )
@@ -89,13 +89,13 @@ class FunctionDefinition(TypedExpression):
             # No binding followed the comment so it could not be attached to it
             argument_set[-1].after += before
 
-        let_statements = []
-
         body: Node = node.child_by_field_name("body")
         if body.type == "attrset_expression":
             output: NixExpression = AttributeSet.from_cst(body)
         elif body.type == "apply_expression":
             output: NixExpression = FunctionCall.from_cst(body)
+        elif body.type == "let_expression":
+            output: NixExpression = LetExpression.from_cst(body).value
         else:
             raise ValueError(f"Unsupported output node: {body} {body.type}")
 
@@ -115,7 +115,6 @@ class FunctionDefinition(TypedExpression):
         return cls(
             breaks_after_semicolon=breaks_after_semicolon,
             argument_set=argument_set,
-            let_statements=let_statements,
             output=output,
             argument_set_is_multiline=argument_set_is_multiline,
         )
@@ -147,38 +146,30 @@ class FunctionDefinition(TypedExpression):
             else:
                 args_str = "{ " + ", ".join(args) + " }"
 
-        # Build let statements
-        let_str = ""
-        if self.let_statements:
-            let_bindings: List[str] = []
-            for binding in self.let_statements:
-                let_bindings.append(binding.rebuild(indent=2))
-            let_str = "let\n" + "\n".join(let_bindings) + "\nin\n"
-
         # Build result)
         output_str = self.output.rebuild() if self.output else "{ }"
 
         breaks_after_semicolon: int
         if self.breaks_after_semicolon is not None:
             breaks_after_semicolon = self.breaks_after_semicolon
-        elif self.let_statements:
+        elif isinstance(self.output, LetExpression):
             breaks_after_semicolon = 1
         else:
             breaks_after_semicolon = (
                 1
-                if self.let_statements
+                if isinstance(self.output, LetExpression)
                 or (self.argument_set_is_multiline and len(self.argument_set) > 0)
                 else 0
             )
         line_break = "\n" * breaks_after_semicolon
 
         # Format the final string - use single line format when no arguments and no let statements
-        if (not self.argument_set) and (not self.let_statements):
+        if (not self.argument_set) and (not isinstance(self.output, LetExpression)):
             split = ": " if not line_break else ":" + line_break
             return f"{before_str}{args_str}{split}{output_str}{after_str}"
         else:
             split = ": " if not line_break else ":" + line_break
-            return f"{before_str}{args_str}{split}{let_str}{output_str}{after_str}"
+            return f"{before_str}{args_str}{split}{output_str}{after_str}"
 
 
 __all__ = ["FunctionDefinition"]
