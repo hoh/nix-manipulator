@@ -29,6 +29,7 @@ def process_list(node: Node):
             before.append(linebreak)
 
     prev_content: Optional[Node] = None
+    values: list = []
     for child in node.children:
         if child.type in ("[", "]"):
             continue
@@ -38,10 +39,14 @@ def process_list(node: Node):
             before.append(child_expression)
         else:
             child_expression.before = before
-            yield child_expression
+            values.append(child_expression)
             before = []
 
         prev_content = child
+
+    if before:
+        values[-1].after.extend(before)
+    return values
 
 
 class NixList(TypedExpression):
