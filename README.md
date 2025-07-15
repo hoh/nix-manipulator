@@ -20,4 +20,4 @@ A Python library and tools for parsing, manipulating, and reconstructing Nix sou
 
 ## Foundations
 
-Nix-manipulator leverates [tree-sitter], a multilingual AST, and its Nix grammar [tree-sitter-nix].
+Nix-manipulator leverages [tree-sitter], a multilingual AST, and its Nix grammar [tree-sitter-nix](https://github.com/nix-community/tree-sitter-nix).
