@@ -39,8 +39,12 @@ def test_update_version():
 def test_update_version_and_hash():
     code = parse(source_package)
     code.value[0].output.argument["version"] = "2.3.4"
-    code.value[0].output.argument["src"].argument["hash"] = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
-    assert code.rebuild() == """
+    code.value[0].output.argument["src"].argument["hash"] = (
+        "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    )
+    assert (
+        code.rebuild()
+        == """
 {
   lib,
   buildPythonPackage,
@@ -62,3 +66,4 @@ buildPythonPackage rec {
   ];
 }
 """.strip("\n")
+    )

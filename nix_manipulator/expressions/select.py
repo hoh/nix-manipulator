@@ -27,7 +27,9 @@ class Select(TypedExpression):
 
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         """Reconstruct select expression."""
-        return self.add_trivia(f"{self.expression.name}.{self.attribute.name}", indent, inline)
+        return self.add_trivia(
+            f"{self.expression.name}.{self.attribute.name}", indent, inline
+        )
 
 
 __all__ = ["Select"]

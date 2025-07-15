@@ -20,7 +20,5 @@ def test_cli_set_string(capsys):
 
 
 def test_cli_test(capsys):
-    result = main(
-        ["test", "-f", "tests/nix-files/pkgs/simplistic-01.nix"]
-    )
+    result = main(["test", "-f", "tests/nix-files/pkgs/simplistic-01.nix"])
     assert result == "OK"

@@ -20,7 +20,7 @@ from tree_sitter import Language, Parser
 
 def extract_text(node, code: bytes) -> str:
     """Extract the exact source substring for a node."""
-    return code[node.start_byte:node.end_byte].decode()
+    return code[node.start_byte : node.end_byte].decode()
 
 
 def normalize_function_name(node, code: bytes) -> str:
@@ -29,12 +29,12 @@ def normalize_function_name(node, code: bytes) -> str:
         # For select expressions like stdenv.mkDerivation, combine them
         base = node.child_by_field_name("expression")
         attrpath = node.child_by_field_name("attrpath")
-        
+
         if base and attrpath:
             base_text = extract_text(base, code)
             attr_text = extract_text(attrpath, code)
             return f"{base_text}.{attr_text}"
-    
+
     return re.sub(r"\s+", "", extract_text(node, code))
 
 
@@ -43,7 +43,11 @@ def parse_nix_value(value_str: str) -> Any:
     value_str = value_str.strip()
 
     # Handle quoted strings
-    if len(value_str) >= 2 and value_str[0] in ('"', "'") and value_str[-1] == value_str[0]:
+    if (
+        len(value_str) >= 2
+        and value_str[0] in ('"', "'")
+        and value_str[-1] == value_str[0]
+    ):
         return value_str[1:-1]
 
     # Handle literals
@@ -53,7 +57,7 @@ def parse_nix_value(value_str: str) -> Any:
 
     # Handle numbers
     try:
-        return int(value_str) if '.' not in value_str else float(value_str)
+        return int(value_str) if "." not in value_str else float(value_str)
     except ValueError:
         pass
 
@@ -63,8 +67,8 @@ def parse_nix_value(value_str: str) -> Any:
         return [simple_list.group(1)]
 
     # Handle multi-line lists
-    if re.match(r'^\[\s*\n(\s+[^\n]+\n)+\s*\]$', value_str):
-        items = re.findall(r'\s+([^\s][^\n]*)', value_str)
+    if re.match(r"^\[\s*\n(\s+[^\n]+\n)+\s*\]$", value_str):
+        items = re.findall(r"\s+([^\s][^\n]*)", value_str)
         cleaned_items = []
         for item in items:
             item = item.strip()
@@ -78,7 +82,9 @@ def parse_nix_value(value_str: str) -> Any:
     return value_str
 
 
-def extract_attributes(node, code: bytes, path_prefix: list[str], results: dict[str, str]):
+def extract_attributes(
+    node, code: bytes, path_prefix: list[str], results: dict[str, str]
+):
     """Recursively extract attributes from Nix AST."""
     node_type = node.type
 
@@ -104,10 +110,12 @@ def extract_attributes(node, code: bytes, path_prefix: list[str], results: dict[
         if function_node and argument_node:
             # Handle select_expression (like stdenv.mkDerivation)
             if function_node.type == "select_expression":
-                function_name = normalize_function_name(function_node, code).replace(".", "")
+                function_name = normalize_function_name(function_node, code).replace(
+                    ".", ""
+                )
             else:
                 function_name = normalize_function_name(function_node, code)
-            
+
             new_path = path_prefix + [function_name]
             extract_attributes(argument_node, code, new_path, results)
 
@@ -119,7 +127,9 @@ def extract_attributes(node, code: bytes, path_prefix: list[str], results: dict[
 
     elif node_type in {"attrset_expression", "rec_attrset_expression"}:
         # Find binding_set child
-        binding_set = next((child for child in node.children if child.type == "binding_set"), None)
+        binding_set = next(
+            (child for child in node.children if child.type == "binding_set"), None
+        )
         if not binding_set:
             return
 
@@ -136,14 +146,16 @@ def extract_attributes(node, code: bytes, path_prefix: list[str], results: dict[
                 for part in attr_path.children:
                     if part.type == "identifier":
                         components.append(extract_text(part, code))
-                
+
                 full_path = path_prefix + components
-                
+
                 # Process based on expression type
                 if expression.type in {
-                    "attrset_expression", "rec_attrset_expression",
-                    "apply_expression", "function_expression", 
-                    "parenthesized_expression"
+                    "attrset_expression",
+                    "rec_attrset_expression",
+                    "apply_expression",
+                    "function_expression",
+                    "parenthesized_expression",
                 }:
                     extract_attributes(expression, code, full_path, results)
                 else:
@@ -151,7 +163,12 @@ def extract_attributes(node, code: bytes, path_prefix: list[str], results: dict[
                     attribute_key = ".".join(full_path)
                     results[attribute_key] = extract_text(expression, code).strip()
 
-    elif node_type in {"list_expression", "string_expression", "variable_expression", "with_expression"}:
+    elif node_type in {
+        "list_expression",
+        "string_expression",
+        "variable_expression",
+        "with_expression",
+    }:
         # Handle these as leaf values if we have a path
         if path_prefix:
             key = ".".join(path_prefix)
@@ -192,13 +209,20 @@ def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(description="Flatten Nix attributes from a file")
     parser.add_argument("file", help="Path to the Nix file to process")
-    parser.add_argument("-o", "--output", choices=["json", "text"], default="text",
-                        help="Output format (default: text)")
+    parser.add_argument(
+        "-o",
+        "--output",
+        choices=["json", "text"],
+        default="text",
+        help="Output format (default: text)",
+    )
     args = parser.parse_args()
 
     # Process file
     raw_attributes = flatten_nix_file(Path(args.file))
-    processed_attributes = {key: parse_nix_value(value) for key, value in raw_attributes.items()}
+    processed_attributes = {
+        key: parse_nix_value(value) for key, value in raw_attributes.items()
+    }
 
     # Output results
     if args.output == "json":
@@ -211,9 +235,9 @@ def main():
 def debug_ast(node, code: bytes, indent=0):
     """Debug helper to print AST structure."""
     prefix = "  " * indent
-    text_preview = extract_text(node, code)[:50].replace('\n', '\\n')
+    text_preview = extract_text(node, code)[:50].replace("\n", "\\n")
     print(f"{prefix}{node.type}: '{text_preview}...'")
-    
+
     for child in node.children:
         debug_ast(child, code, indent + 1)
 

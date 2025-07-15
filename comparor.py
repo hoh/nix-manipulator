@@ -15,8 +15,12 @@ from serializor import flatten_nix_file, parse_nix_value
 def compare_nix_files(file1_path: Path, file2_path: Path) -> Dict[str, Dict[str, Any]]:
     """Compare processed attributes of two Nix files and return differences."""
     # Process both files in one step
-    file1_attrs = {k: parse_nix_value(v) for k, v in flatten_nix_file(file1_path).items()}
-    file2_attrs = {k: parse_nix_value(v) for k, v in flatten_nix_file(file2_path).items()}
+    file1_attrs = {
+        k: parse_nix_value(v) for k, v in flatten_nix_file(file1_path).items()
+    }
+    file2_attrs = {
+        k: parse_nix_value(v) for k, v in flatten_nix_file(file2_path).items()
+    }
 
     # Get key sets
     keys1, keys2 = set(file1_attrs), set(file2_attrs)
@@ -29,7 +33,7 @@ def compare_nix_files(file1_path: Path, file2_path: Path) -> Dict[str, Dict[str,
             k: {"old": file1_attrs[k], "new": file2_attrs[k]}
             for k in keys1 & keys2
             if file1_attrs[k] != file2_attrs[k]
-        }
+        },
     }
 
 
