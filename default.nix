@@ -1,6 +1,7 @@
 { pkgs ? import <nixpkgs> {} }:
 let
   python = pkgs.python312Packages;
+  pytestCheckHook = python.pytestCheckHook;
 in
 python.buildPythonPackage rec {
   pname = "nix-manipulator";
@@ -26,7 +27,17 @@ python.buildPythonPackage rec {
   ];
 
   doCheck = true;
-  installCheckPhase = ''command -v $out/bin/nima'';
+
+  nativeCheckInputs = [
+    pytestCheckHook
+  ];
+
+  disabledTests = [
+    "test_some_nixpkgs_packages"
+  ];
+
+#  installCheckPhase = ''command -v $out/bin/nima'';
+  pythonImportsCheck = [ "nix_manipulator" ];
 
   meta = with pkgs.lib; {
     description  = "A Python library for parsing, manipulating, and reconstructing Nix source code";
