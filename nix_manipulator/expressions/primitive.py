@@ -7,7 +7,6 @@ from tree_sitter import Node
 
 from nix_manipulator.expressions.expression import TypedExpression
 from nix_manipulator.expressions.identifier import Identifier
-from nix_manipulator.format import _format_trivia
 
 
 class Primitive(TypedExpression):
