@@ -476,3 +476,31 @@ pkgs.callPackage (
     print(parse(source))
     print(parse_and_rebuild(source))
     assert parse_and_rebuild(source) == source
+
+
+def test_function_call_outputs_with_expression():
+    source = """
+{
+  lib,
+}:
+mkKdeDerivation {
+  extraNativeBuildInputs = [
+    kpackage
+    pkg-config
+    (python3.withPackages (ps: with ps; [ websockets ]))
+  ];
+}
+""".strip("\n")
+    print(parse(source))
+    print(parse_and_rebuild(source))
+    assert parse_and_rebuild(source) == source
+
+
+def test_function_call_outputs_function_expression():
+    source = """
+{ }:
+{ a }: a
+""".strip("\n")
+    print(parse(source))
+    print(parse_and_rebuild(source))
+    assert parse_and_rebuild(source) == source

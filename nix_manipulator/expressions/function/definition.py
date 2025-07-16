@@ -8,7 +8,6 @@ from tree_sitter import Node
 from nix_manipulator.expressions.comment import Comment
 from nix_manipulator.expressions.ellipses import Ellipses
 from nix_manipulator.expressions.expression import NixExpression, TypedExpression
-from nix_manipulator.expressions.function.call import FunctionCall
 from nix_manipulator.expressions.identifier import Identifier
 from nix_manipulator.expressions.layout import empty_line
 from nix_manipulator.expressions.let import LetExpression
@@ -31,6 +30,9 @@ class FunctionDefinition(TypedExpression):
             ["formals", ":", "apply_expression"],
             ["formals", ":", "let_expression"],
             ["identifier", ":", "attrset_expression"],
+            ["identifier", ":", "with_expression"],
+            ["formals", ":", "function_expression"],
+            ["formals", ":", "variable_expression"],
         ), (
             f"Output other than attrset_expression not supported yet. You used {children_types}"
         )
@@ -110,13 +112,13 @@ class FunctionDefinition(TypedExpression):
             argument_set = Identifier.from_cst(node.children[0])
             argument_set_is_multiline = False
 
+        from nix_manipulator.mapping import tree_sitter_node_to_expression
+
         body: Node = node.child_by_field_name("body")
-        if body.type == "attrset_expression":
-            output: NixExpression = AttributeSet.from_cst(body)
-        elif body.type == "apply_expression":
-            output: NixExpression = FunctionCall.from_cst(body)
-        elif body.type == "let_expression":
-            output: NixExpression = LetExpression.from_cst(body).value
+        if body.type in (
+            "attrset_expression", "apply_expression", "let_expression", "with_expression", "function_expression", "variable_expression"
+        ):
+            output: NixExpression = tree_sitter_node_to_expression(body)
         else:
             raise ValueError(f"Unsupported output node: {body} {body.type}")
 
