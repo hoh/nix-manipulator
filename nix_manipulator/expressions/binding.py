@@ -1,17 +1,18 @@
 from __future__ import annotations
 
 import re
-from typing import Any, List, Union
+from typing import Any, List, Union, ClassVar
 
 from tree_sitter import Node
 
 from nix_manipulator.expressions.comment import Comment
 from nix_manipulator.expressions.expression import NixExpression
-from nix_manipulator.expressions.layout import linebreak
+from nix_manipulator.expressions.layout import linebreak, empty_line
 from nix_manipulator.format import _format_trivia
 
 
 class Binding(NixExpression):
+    tree_sitter_types: ClassVar[set[str]] = {"binding"}
     name: str
     value: Union[NixExpression, str, int, bool]
     newline_after_equals: bool = False
