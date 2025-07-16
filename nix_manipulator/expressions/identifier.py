@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List
+from typing import Any, List, Optional
 
 from tree_sitter import Node
 
@@ -11,6 +11,7 @@ from nix_manipulator.format import _format_trivia
 
 class Identifier(NixExpression):
     name: str
+    default_value: Optional[NixExpression] = None
 
     @classmethod
     def from_cst(cls, node: Node, before: List[Any] | None = None):
@@ -22,7 +23,14 @@ class Identifier(NixExpression):
     ) -> str:
         """Reconstruct identifier."""
         comma = "," if trailing_comma else ""
-        return self.add_trivia(f"{self.name}{comma}", indent, inline)
+        if self.default_value is not None:
+            return self.add_trivia(
+                f"{self.name} ? {self.default_value.rebuild(inline=True)}{comma}",
+                indent,
+                inline,
+            )
+        else:
+            return self.add_trivia(f"{self.name}{comma}", indent, inline)
 
 
 __all__ = ["Identifier"]

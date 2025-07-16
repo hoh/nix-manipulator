@@ -447,3 +447,32 @@ stdenv.mkDerivation (finalAttrs: {
     print(parse(source))
     print(parse_and_rebuild(source))
     assert parse_and_rebuild(source) == source
+
+
+def test_reproduce_optional_arguments():
+    source = """
+{
+  system ? builtins.currentSystem,
+}:
+pkgs.callPackage (
+  {
+    gh,
+    importNpmLock,
+    mkShell,
+    nodejs,
+  }:
+  mkShell {
+    packages = [
+      nodejs
+    ];
+
+    npmDeps = importNpmLock.buildNodeModules {
+      npmRoot = ./.;
+      inherit nodejs;
+    };
+  }
+) { }
+""".strip("\n")
+    print(parse(source))
+    print(parse_and_rebuild(source))
+    assert parse_and_rebuild(source) == source

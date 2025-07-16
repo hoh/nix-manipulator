@@ -49,7 +49,8 @@ class FunctionDefinition(TypedExpression):
                     # Don't continue, we want to have it as previous_child
                     pass
                 elif child.type == "formal":
-                    for grandchild in child.children:
+                    children = iter(child.children)
+                    for grandchild in children:
                         if grandchild.type == "identifier":
                             if grandchild.text == b"":
                                 # Trailing commas add a "MISSING identifier" element with body b""
@@ -68,6 +69,15 @@ class FunctionDefinition(TypedExpression):
                                 Identifier.from_cst(grandchild, before=before)
                             )
                             before = []
+                        elif grandchild.type == "?":
+                            from nix_manipulator.mapping import tree_sitter_node_to_expression
+                            default_value_node = children.__next__()
+                            default_value = tree_sitter_node_to_expression(
+                                default_value_node
+                            )
+                            # Update in place
+                            identifier: Identifier = argument_set[-1]
+                            identifier.default_value = default_value
                         else:
                             raise ValueError(
                                 f"Unsupported child node: {grandchild} {grandchild.type}"
