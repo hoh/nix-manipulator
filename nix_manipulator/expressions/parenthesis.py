@@ -12,7 +12,22 @@ class Parenthesis(NixExpression):
 
     @classmethod
     def from_cst(cls, node: Node) -> Parenthesis:
-        print(node.children)
-        children_types = [child.type for child in node.children]
+        from nix_manipulator.mapping import tree_sitter_node_to_expression
 
-        assert children_types[:3] == ["let", "binding_set", "in"], f"Invalid let expression {children_types}"
+        assert len(node.children) == 3
+        assert node.children[0].type == "("
+        assert node.children[2].type == ")"
+
+        value = tree_sitter_node_to_expression(node.children[1])
+        return cls(value=value)
+
+    def rebuild(self, indent: int = 0, inline: bool = False) -> str:
+        """Reconstruct expression."""
+        value_str = f"({self.value.rebuild(indent=indent, inline=True)})"
+        return self.add_trivia(value_str, indent, inline)
+
+    def __repr__(self):
+        return f"Parenthesis(\nvalue={self.value}\n)"
+
+
+__all__ = ["Parenthesis"]

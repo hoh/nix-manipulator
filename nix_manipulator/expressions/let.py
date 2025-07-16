@@ -46,11 +46,23 @@ class LetExpression(TypedExpression):
 
         multiline = b"\n" in node.text
 
+        let_symbol: Node
+        in_symbol: Node
+        binding_set: Node
+        for child in node.children:
+            if child.type == "let":
+                let_symbol = child
+            elif child.type == "in":
+                in_symbol = child
+            elif child.type == "binding_set":
+                binding_set = child
+            elif child.type == "comment":
+                before.append(child)
+            else:
+                pass
+
         children_types = [child.type for child in node.children]
 
-        assert children_types[:3] == ["let", "binding_set", "in"], f"Invalid let expression {children_types}"
-
-        binding_set = node.children[1]
         value: NixExpression = tree_sitter_node_to_expression(node.children[-1])
 
         local_variables: list[Binding | Inherit] = []
@@ -71,12 +83,10 @@ class LetExpression(TypedExpression):
         if before:
             local_variables[-1].after.extend(before)
 
-        let_symbol = node.children[0]
         pregap = node.text[let_symbol.end_byte:binding_set.children[0].start_byte].decode()
         if re.search(r"\n[ \t]*\n", pregap):
             local_variables[0].before.insert(0, empty_line)
 
-        in_symbol = node.children[2]
         postgap = node.text[binding_set.children[-1].end_byte:in_symbol.start_byte].decode()
         if re.search(r"\n[ \t]*\n", postgap):
             local_variables[-1].after.append(empty_line)

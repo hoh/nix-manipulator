@@ -10,7 +10,7 @@ def check_package_can_be_reproduced(path: Path):
     parsed_cst = parse(source.encode("utf-8"))
     rebuilt_code = parsed_cst.rebuild()
     try:
-        assert source == rebuilt_code
+        assert rebuilt_code == source
     except:
         print(parsed_cst)
         raise
@@ -26,9 +26,9 @@ def test_some_nixpkgs_packages():
         "pkgs/development/python-modules/ptpython/default.nix",
         "pkgs/development/python-modules/requests/default.nix",
         "pkgs/kde/gear/cantor/default.nix",
-        "pkgs/kde/gear/koko/default.nix",  # Requires let..in
+        "pkgs/kde/plasma/plasma-nm/default.nix",
+        # "pkgs/kde/gear/koko/default.nix",
         # "pkgs/development/python-modules/numpy/1.nix",  # Requires assert
-        # "pkgs/kde/plasma/plasma-nm/default.nix",
     ]
     for package in packages:
         check_package_can_be_reproduced(NIXPKGS_PATH / package)

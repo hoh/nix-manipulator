@@ -374,3 +374,47 @@ foo
     print(parse(source))
     print(parse_and_rebuild(source))
     assert source == parse_and_rebuild(source)
+
+
+def test_reproduce_indented_string_expression():
+    source = """
+{
+  foo = ''
+    hello
+    world
+  '';
+}
+""".strip("\n")
+    print(parse(source))
+    print(parse_and_rebuild(source))
+    assert parse_and_rebuild(source) == source
+
+
+def test_reproduce_parenthesized_string_expression():
+    source = """
+{
+  foo = (''
+    hello
+    world
+  '');
+}
+""".strip("\n")
+    print(parse(source))
+    print(parse_and_rebuild(source))
+    assert parse_and_rebuild(source) == source
+
+
+def test_reproduce_parenthesized_function_call():
+    source = """
+{
+  foo = (builtins.fetchFromGitHub {
+    owner = "foo";
+    repo = "bar";
+    rev = "123";
+    sha256 = "abc";
+  });
+}
+""".strip("\n")
+    print(parse(source))
+    print(parse_and_rebuild(source))
+    assert parse_and_rebuild(source) == source
