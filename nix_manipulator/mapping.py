@@ -1,7 +1,10 @@
 from __future__ import annotations
 
-from nix_manipulator.expressions import BinaryExpression, NixExpression, Binding
+from nix_manipulator.expressions.binary import BinaryExpression
+from nix_manipulator.expressions.binding import Binding
 from nix_manipulator.expressions.comment import Comment
+from nix_manipulator.expressions.ellipses import Ellipses
+from nix_manipulator.expressions.expression import NixExpression
 from nix_manipulator.expressions.expression import TypedExpression
 from nix_manipulator.expressions.function.call import FunctionCall
 from nix_manipulator.expressions.function.definition import FunctionDefinition
@@ -35,6 +38,7 @@ EXPRESSION_TYPES: set[type[TypedExpression]] = {
     Binding,
     IndentedString,
     Parenthesis,
+    Ellipses,
 }
 
 TREE_SITTER_TYPE_TO_EXPRESSION: dict[str, type[TypedExpression]] = {

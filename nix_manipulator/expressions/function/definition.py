@@ -6,6 +6,7 @@ from typing import ClassVar, List, Optional, Union
 from tree_sitter import Node
 
 from nix_manipulator.expressions.comment import Comment
+from nix_manipulator.expressions.ellipses import Ellipses
 from nix_manipulator.expressions.expression import NixExpression, TypedExpression
 from nix_manipulator.expressions.function.call import FunctionCall
 from nix_manipulator.expressions.identifier import Identifier
@@ -17,7 +18,7 @@ from nix_manipulator.format import _format_trivia
 
 class FunctionDefinition(TypedExpression):
     tree_sitter_types: ClassVar[set[str]] = {"function_expression"}
-    argument_set: List[Identifier] = []
+    argument_set: List[Identifier | Ellipses] = []
     argument_set_is_multiline: bool = True
     breaks_after_semicolon: Optional[int] = None
     output: Union[AttributeSet, NixExpression, None] = None
@@ -69,6 +70,9 @@ class FunctionDefinition(TypedExpression):
                         raise ValueError(
                             f"Unsupported child node: {grandchild} {grandchild.type}"
                         )
+            elif child.type == "ellipses":
+                # argument_set.append(Primitive.from_cst(child, before=before))
+                argument_set.append(Ellipses.from_cst(child))
             elif child.type == "comment":
                 if previous_child:
                     gap = node.text[previous_child.end_byte : child.start_byte].decode()

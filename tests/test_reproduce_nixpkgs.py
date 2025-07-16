@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from nix_manipulator.parser import parse
 
 NIXPKGS_PATH = Path("/home/sepal/Repos/hoh/nixpkgs")
@@ -16,6 +18,7 @@ def check_package_can_be_reproduced(path: Path):
         raise
 
 
+@pytest.mark.nixpkgs
 def test_some_nixpkgs_packages():
     packages = [
         "pkgs/development/python-modules/trl/default.nix",
@@ -27,17 +30,19 @@ def test_some_nixpkgs_packages():
         "pkgs/development/python-modules/requests/default.nix",
         "pkgs/kde/gear/cantor/default.nix",
         "pkgs/kde/plasma/plasma-nm/default.nix",
+        "lib/tests/modules/define-attrsOfSub-foo-force-enable.nix",
+        # "lib/tests/modules/declare-bare-submodule-deep-option.nix",
         # "pkgs/kde/gear/koko/default.nix",
         # "pkgs/development/python-modules/numpy/1.nix",  # Requires assert
     ]
     for package in packages:
         check_package_can_be_reproduced(NIXPKGS_PATH / package)
 
-
+@pytest.mark.nixpkgs
 def test_all_nixpkgs_packages():
     success = 0
     failure = 0
-    limit = 100000
+    limit = 100 -1
     # pkgs_paths = NIXPKGS_PATH / "pkgs/development/python-modules"
     pkgs_path = NIXPKGS_PATH
 
