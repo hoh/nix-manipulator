@@ -32,6 +32,10 @@ python.buildPythonPackage rec {
     pytestCheckHook
   ];
 
+  checkPhase = ''
+    pytest -v -m "not nixpkgs"
+  '';
+
   disabledTests = [
     "test_some_nixpkgs_packages"
   ];
