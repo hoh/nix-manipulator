@@ -14,6 +14,7 @@ from nix_manipulator.format import _format_trivia
 
 def process_list(node: Node):
     from nix_manipulator.mapping import tree_sitter_node_to_expression
+
     before: list[Any] = []
 
     def push_gap(prev: Optional[Node], cur: Node) -> None:

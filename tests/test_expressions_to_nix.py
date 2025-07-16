@@ -246,7 +246,7 @@ def test_nix_function_definition_let_bindings():
                     Binding(name="alice", value="bob"),
                 ],
                 value=AttributeSet(values=[]),
-            )
+            ),
         ).rebuild()
         == '{ }:\nlet\n  foo = bar;\n  alice = "bob";\nin\n{ }'
     )
@@ -287,7 +287,7 @@ def test_nix_function_definition_let_statements_with_comment():
                     ),
                 ],
                 value=AttributeSet(values=[]),
-            )
+            ),
         ).rebuild()
         == '{ }:\nlet\n  foo = bar;\n  # This is a comment\n  alice = "bob";\nin\n{ }'
     )
@@ -302,7 +302,9 @@ def test_nix_function_definition_multiple_let_bindings_complex():
                     Binding(name="pkgs-copy", value=Identifier(name="pkgs")),
                     Binding(name="alice", value="bob"),
                 ],
-                value=AttributeSet.from_dict({"pkgs-again": Identifier(name="pkgs-copy")}),
+                value=AttributeSet.from_dict(
+                    {"pkgs-again": Identifier(name="pkgs-copy")}
+                ),
             ),
         ).rebuild()
         == '{\n  pkgs,\n}:\nlet\n  pkgs-copy = pkgs;\n  alice = "bob";\nin\n{\n  pkgs-again = pkgs-copy;\n}'

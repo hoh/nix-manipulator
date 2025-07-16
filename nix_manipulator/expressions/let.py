@@ -83,11 +83,15 @@ class LetExpression(TypedExpression):
         if before:
             local_variables[-1].after.extend(before)
 
-        pregap = node.text[let_symbol.end_byte:binding_set.children[0].start_byte].decode()
+        pregap = node.text[
+            let_symbol.end_byte : binding_set.children[0].start_byte
+        ].decode()
         if re.search(r"\n[ \t]*\n", pregap):
             local_variables[0].before.insert(0, empty_line)
 
-        postgap = node.text[binding_set.children[-1].end_byte:in_symbol.start_byte].decode()
+        postgap = node.text[
+            binding_set.children[-1].end_byte : in_symbol.start_byte
+        ].decode()
         if re.search(r"\n[ \t]*\n", postgap):
             local_variables[-1].after.append(empty_line)
 

@@ -39,7 +39,9 @@ class FunctionDefinition(TypedExpression):
 
         argument_set = []
         if node.children[0].type == "formals":
-            argument_set_is_multiline = b"\n" in node.child_by_field_name("formals").text
+            argument_set_is_multiline = (
+                b"\n" in node.child_by_field_name("formals").text
+            )
 
             before = []
             previous_child = node.child_by_field_name("formals").children[0]
@@ -72,7 +74,10 @@ class FunctionDefinition(TypedExpression):
                             )
                             before = []
                         elif grandchild.type == "?":
-                            from nix_manipulator.mapping import tree_sitter_node_to_expression
+                            from nix_manipulator.mapping import (
+                                tree_sitter_node_to_expression,
+                            )
+
                             default_value_node = children.__next__()
                             default_value = tree_sitter_node_to_expression(
                                 default_value_node
@@ -89,7 +94,9 @@ class FunctionDefinition(TypedExpression):
                     argument_set.append(Ellipses.from_cst(child))
                 elif child.type == "comment":
                     if previous_child:
-                        gap = node.text[previous_child.end_byte : child.start_byte].decode()
+                        gap = node.text[
+                            previous_child.end_byte : child.start_byte
+                        ].decode()
                         is_empty_line = False
                         if re.match(r"[ ]*\n[ ]*\n[ ]*", gap):
                             before.append(empty_line)
@@ -116,7 +123,12 @@ class FunctionDefinition(TypedExpression):
 
         body: Node = node.child_by_field_name("body")
         if body.type in (
-            "attrset_expression", "apply_expression", "let_expression", "with_expression", "function_expression", "variable_expression"
+            "attrset_expression",
+            "apply_expression",
+            "let_expression",
+            "with_expression",
+            "function_expression",
+            "variable_expression",
         ):
             output: NixExpression = tree_sitter_node_to_expression(body)
         else:
