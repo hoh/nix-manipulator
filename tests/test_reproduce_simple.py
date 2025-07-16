@@ -433,3 +433,17 @@ def test_reproduce_ellipses():
     print(parse(source))
     print(parse_and_rebuild(source))
     assert parse_and_rebuild(source) == source
+
+
+def test_reproduce_function_takes_identifier():
+    source = """
+{
+  lib,
+}:
+stdenv.mkDerivation (finalAttrs: {
+  pname = "karousel";
+})
+""".strip("\n")
+    print(parse(source))
+    print(parse_and_rebuild(source))
+    assert parse_and_rebuild(source) == source

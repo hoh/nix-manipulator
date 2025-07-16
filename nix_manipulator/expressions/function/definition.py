@@ -18,7 +18,7 @@ from nix_manipulator.format import _format_trivia
 
 class FunctionDefinition(TypedExpression):
     tree_sitter_types: ClassVar[set[str]] = {"function_expression"}
-    argument_set: List[Identifier | Ellipses] = []
+    argument_set: Identifier | List[Identifier | Ellipses] = []
     argument_set_is_multiline: bool = True
     breaks_after_semicolon: Optional[int] = None
     output: Union[AttributeSet, NixExpression, None] = None
@@ -30,68 +30,75 @@ class FunctionDefinition(TypedExpression):
             ["formals", ":", "attrset_expression"],
             ["formals", ":", "apply_expression"],
             ["formals", ":", "let_expression"],
+            ["identifier", ":", "attrset_expression"],
         ), (
             f"Output other than attrset_expression not supported yet. You used {children_types}"
         )
 
         argument_set = []
-        argument_set_is_multiline = b"\n" in node.child_by_field_name("formals").text
+        if node.children[0].type == "formals":
+            argument_set_is_multiline = b"\n" in node.child_by_field_name("formals").text
 
-        before = []
-        previous_child = node.child_by_field_name("formals").children[0]
-        assert previous_child.type == "{"
-        for child in node.child_by_field_name("formals").children:
-            if child.type in ("{", "}"):
-                continue
-            elif child.type == ",":
-                # Don't continue, we want to have it as previous_child
-                pass
-            elif child.type == "formal":
-                for grandchild in child.children:
-                    if grandchild.type == "identifier":
-                        if grandchild.text == b"":
-                            # Trailing commas add a "MISSING identifier" element with body b""
-                            continue
+            before = []
+            previous_child = node.child_by_field_name("formals").children[0]
+            assert previous_child.type == "{"
+            for child in node.child_by_field_name("formals").children:
+                if child.type in ("{", "}"):
+                    continue
+                elif child.type == ",":
+                    # Don't continue, we want to have it as previous_child
+                    pass
+                elif child.type == "formal":
+                    for grandchild in child.children:
+                        if grandchild.type == "identifier":
+                            if grandchild.text == b"":
+                                # Trailing commas add a "MISSING identifier" element with body b""
+                                continue
 
-                        if previous_child:
-                            gap = node.text[
-                                previous_child.end_byte : child.start_byte
-                            ].decode()
-                            is_empty_line = False
-                            if re.match(r"[ ]*\n[ ]*\n[ ]*", gap):
-                                before.append(empty_line)
-                                is_empty_line = True
+                            if previous_child:
+                                gap = node.text[
+                                    previous_child.end_byte : child.start_byte
+                                ].decode()
+                                is_empty_line = False
+                                if re.match(r"[ ]*\n[ ]*\n[ ]*", gap):
+                                    before.append(empty_line)
+                                    is_empty_line = True
 
-                        argument_set.append(
-                            Identifier.from_cst(grandchild, before=before)
-                        )
-                        before = []
-                    else:
-                        raise ValueError(
-                            f"Unsupported child node: {grandchild} {grandchild.type}"
-                        )
-            elif child.type == "ellipses":
-                # argument_set.append(Primitive.from_cst(child, before=before))
-                argument_set.append(Ellipses.from_cst(child))
-            elif child.type == "comment":
-                if previous_child:
-                    gap = node.text[previous_child.end_byte : child.start_byte].decode()
-                    is_empty_line = False
-                    if re.match(r"[ ]*\n[ ]*\n[ ]*", gap):
-                        before.append(empty_line)
-                        is_empty_line = True
+                            argument_set.append(
+                                Identifier.from_cst(grandchild, before=before)
+                            )
+                            before = []
+                        else:
+                            raise ValueError(
+                                f"Unsupported child node: {grandchild} {grandchild.type}"
+                            )
+                elif child.type == "ellipses":
+                    # argument_set.append(Primitive.from_cst(child, before=before))
+                    argument_set.append(Ellipses.from_cst(child))
+                elif child.type == "comment":
+                    if previous_child:
+                        gap = node.text[previous_child.end_byte : child.start_byte].decode()
+                        is_empty_line = False
+                        if re.match(r"[ ]*\n[ ]*\n[ ]*", gap):
+                            before.append(empty_line)
+                            is_empty_line = True
 
-                before.append(Comment.from_cst(child))
-            elif child.type == "ERROR" and child.text == b",":
-                # Trailing commas are RFC compliant but add a 'ERROR' element..."
-                pass
-            else:
-                raise ValueError(f"Unsupported child node: {child} {child.type}")
-            previous_child = child
+                    before.append(Comment.from_cst(child))
+                elif child.type == "ERROR" and child.text == b",":
+                    # Trailing commas are RFC compliant but add a 'ERROR' element..."
+                    pass
+                else:
+                    raise ValueError(f"Unsupported child node: {child} {child.type}")
+                previous_child = child
 
-        if before:
-            # No binding followed the comment so it could not be attached to it
-            argument_set[-1].after += before
+            if before:
+                # No binding followed the comment so it could not be attached to it
+                argument_set[-1].after += before
+
+        else:
+            assert node.children[0].type == "identifier"
+            argument_set = Identifier.from_cst(node.children[0])
+            argument_set_is_multiline = False
 
         body: Node = node.child_by_field_name("body")
         if body.type == "attrset_expression":
@@ -132,6 +139,10 @@ class FunctionDefinition(TypedExpression):
         # Build argument set
         if not self.argument_set:
             args_str = "{ }"
+        elif isinstance(self.argument_set, Identifier):
+            args_str = self.argument_set.rebuild(
+                indent=indent, inline=not self.argument_set_is_multiline
+            )
         else:
             args = []
             indentation = " " * indent if self.argument_set_is_multiline else ""

@@ -32,6 +32,7 @@ def test_some_nixpkgs_packages():
         "pkgs/kde/plasma/plasma-nm/default.nix",
         "lib/tests/modules/define-attrsOfSub-foo-force-enable.nix",
         # "lib/tests/modules/declare-bare-submodule-deep-option.nix",
+        "pkgs/kde/third-party/karousel/default.nix",
         # "pkgs/kde/gear/koko/default.nix",
         # "pkgs/development/python-modules/numpy/1.nix",  # Requires assert
     ]
@@ -42,8 +43,8 @@ def test_some_nixpkgs_packages():
 def test_all_nixpkgs_packages():
     success = 0
     failure = 0
-    limit = 100 -1
-    # pkgs_paths = NIXPKGS_PATH / "pkgs/development/python-modules"
+    limit = 1000000 -1
+    # pkgs_path = NIXPKGS_PATH / "pkgs/development/python-modules"
     pkgs_path = NIXPKGS_PATH
 
     for i, path in enumerate(pkgs_path.rglob("*.nix")):
