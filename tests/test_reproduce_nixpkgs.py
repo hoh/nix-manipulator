@@ -1,3 +1,4 @@
+import concurrent
 from pathlib import Path
 
 import pytest
@@ -13,9 +14,10 @@ def check_package_can_be_reproduced(path: Path):
     rebuilt_code = parsed_cst.rebuild()
     try:
         assert rebuilt_code == source
-    except:
-        print(parsed_cst)
-        raise
+        return True
+    except Exception as e:
+        print(f"Error rebuilding {path}: {e.__class__.__name__}")
+        return False
 
 
 @pytest.mark.nixpkgs
@@ -33,33 +35,49 @@ def test_some_nixpkgs_packages():
         "lib/tests/modules/define-attrsOfSub-foo-force-enable.nix",
         # "lib/tests/modules/declare-bare-submodule-deep-option.nix",
         "pkgs/kde/third-party/karousel/default.nix",
+        "pkgs/kde/third-party/wallpaper-engine-plugin/default.nix",
         # "pkgs/kde/gear/koko/default.nix",
         # "pkgs/development/python-modules/numpy/1.nix",  # Requires assert
     ]
     for package in packages:
         check_package_can_be_reproduced(NIXPKGS_PATH / package)
 
+
+def process_nix_file(path_str):
+    path = Path(path_str)
+    try:
+        check_package_can_be_reproduced(path)
+        return True, None
+    except Exception as e:
+        return False, (str(path), str(e))
+
+
 @pytest.mark.nixpkgs
-def test_all_nixpkgs_packages():
+def test_reproduce_all_nixpkgs_packages():
+    """Parse and rebuild all Nix files in the nixpkgs repository and check if the result is equal to the original."""
     success = 0
     failure = 0
-    limit = 1000000 -1
-    # pkgs_path = NIXPKGS_PATH / "pkgs/development/python-modules"
+    limit = 1_000_000
     pkgs_path = NIXPKGS_PATH
 
-    for i, path in enumerate(pkgs_path.rglob("*.nix")):
-        try:
-            check_package_can_be_reproduced(path)
-            success += 1
-        except Exception as e:
-            print(path)
-            print(e)
-            failure += 1
-        if i >= limit:
-            break
+    paths = [str(p) for p in list(pkgs_path.rglob("*.nix"))[:limit]]
+
+    with concurrent.futures.ProcessPoolExecutor(max_workers=32) as executor:
+        futures = [executor.submit(process_nix_file, path) for path in paths]
+
+        # Process results as they complete
+        for future in concurrent.futures.as_completed(futures):
+            succ, err_info = future.result()
+            if succ:
+                success += 1
+            else:
+                failure += 1
+                path_str, e_str = err_info
+                # print(path_str)
+                # print(e_str)
 
     total = success + failure
     print(
         f"{success}/{total} Nix files from nixpkgs could be reproduced ({success / total:.2%})"
     )
-    assert False
+    assert failure == 0

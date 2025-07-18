@@ -16,6 +16,9 @@ class WithStatement(TypedExpression):
 
     @classmethod
     def from_cst(cls, node: Node):
+        if node.text is None:
+            raise ValueError("Missing text in with statement")
+
         environment_node = node.child_by_field_name("environment")
         body_node = node.child_by_field_name("body")
         multiline = b"\n" in node.text

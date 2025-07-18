@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import re
-from typing import ClassVar, List, Union, Any, Optional
+from typing import Any, ClassVar, List, Optional, Union
 
 from tree_sitter import Node
 
-from nix_manipulator.expressions import empty_line, linebreak, Comment
+from nix_manipulator.expressions import Comment, empty_line, linebreak
 from nix_manipulator.expressions.expression import NixExpression, TypedExpression
 from nix_manipulator.expressions.identifier import Identifier
 from nix_manipulator.expressions.primitive import Primitive

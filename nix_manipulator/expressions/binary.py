@@ -5,7 +5,6 @@ from typing import ClassVar
 from tree_sitter import Node
 
 from nix_manipulator.expressions.expression import NixExpression, TypedExpression
-from nix_manipulator.format import _format_trivia
 
 
 class BinaryExpression(TypedExpression):

@@ -1,12 +1,13 @@
 from __future__ import annotations
+
 from typing import ClassVar
 
 from tree_sitter import Node
 
-from nix_manipulator.expressions import NixExpression
+from nix_manipulator.expressions import NixExpression, TypedExpression
 
 
-class Parenthesis(NixExpression):
+class Parenthesis(TypedExpression):
     tree_sitter_types: ClassVar[set[str]] = {"parenthesized_expression"}
     value: NixExpression
 

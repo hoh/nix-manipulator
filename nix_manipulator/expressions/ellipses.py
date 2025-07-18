@@ -1,7 +1,8 @@
 from typing import ClassVar
 
-from nix_manipulator.expressions import TypedExpression
 from tree_sitter import Node
+
+from nix_manipulator.expressions import TypedExpression
 
 
 class Ellipses(TypedExpression):

@@ -9,7 +9,7 @@ from pygments.lexers import NixLexer, PythonLexer
 
 from nix_manipulator.cli import build_parser
 from nix_manipulator.expressions import NixSourceCode
-from nix_manipulator.manipulations import set_value, remove_value
+from nix_manipulator.manipulations import remove_value, set_value
 from nix_manipulator.parser import parse
 
 
@@ -17,26 +17,27 @@ def main(args=None):
     parser = build_parser()
     args = parser.parse_args(args)
 
+    source: NixSourceCode
     match args.command:
         case "shell":
             print("Launching Nix shell...")
             # TODO
         case "set":
-            source: NixSourceCode = parse(args.file.read())
+            source = parse(args.file.read())
             return set_value(
                 source=source,
                 npath=args.npath,
                 value=args.value,
             )
         case "rm":
-            source: NixSourceCode = parse(args.file.read())
+            source = parse(args.file.read())
             return remove_value(
                 source=source,
                 npath=args.npath,
             )
         case "test":
             original = args.file.read().strip("\n")
-            source: NixSourceCode = parse(original)
+            source = parse(original)
             rebuild = source.rebuild().strip("\n")
 
             if original == rebuild:

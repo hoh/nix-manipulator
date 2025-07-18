@@ -5,8 +5,6 @@ from typing import Any, List, Optional
 from tree_sitter import Node
 
 from nix_manipulator.expressions.expression import NixExpression
-from nix_manipulator.expressions.layout import linebreak
-from nix_manipulator.format import _format_trivia
 
 
 class Identifier(NixExpression):
@@ -15,6 +13,8 @@ class Identifier(NixExpression):
 
     @classmethod
     def from_cst(cls, node: Node, before: List[Any] | None = None):
+        if node.text is None:
+            raise ValueError("Identifier has no name")
         name = node.text.decode()
         return cls(name=name, before=before or [])
 

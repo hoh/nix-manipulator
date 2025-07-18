@@ -4,8 +4,7 @@ from nix_manipulator.expressions.binary import BinaryExpression
 from nix_manipulator.expressions.binding import Binding
 from nix_manipulator.expressions.comment import Comment
 from nix_manipulator.expressions.ellipses import Ellipses
-from nix_manipulator.expressions.expression import NixExpression
-from nix_manipulator.expressions.expression import TypedExpression
+from nix_manipulator.expressions.expression import NixExpression, TypedExpression
 from nix_manipulator.expressions.function.call import FunctionCall
 from nix_manipulator.expressions.function.definition import FunctionDefinition
 from nix_manipulator.expressions.indented_string import IndentedString
@@ -17,7 +16,6 @@ from nix_manipulator.expressions.path import NixPath
 from nix_manipulator.expressions.primitive import Primitive
 from nix_manipulator.expressions.select import Select
 from nix_manipulator.expressions.set import AttributeSet, RecursiveAttributeSet
-from nix_manipulator.expressions.source_code import NixSourceCode
 from nix_manipulator.expressions.with_statement import WithStatement
 
 EXPRESSION_TYPES: set[type[TypedExpression]] = {
@@ -29,7 +27,6 @@ EXPRESSION_TYPES: set[type[TypedExpression]] = {
     WithStatement,
     Inherit,
     NixPath,
-    NixSourceCode,
     FunctionCall,
     FunctionDefinition,
     Comment,

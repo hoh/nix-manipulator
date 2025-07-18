@@ -7,14 +7,13 @@ from tree_sitter import Node
 
 from nix_manipulator.expressions.binding import Binding
 from nix_manipulator.expressions.expression import NixExpression, TypedExpression
-from nix_manipulator.expressions.function.call import FunctionCall
 from nix_manipulator.expressions.inherit import Inherit
 from nix_manipulator.format import _format_trivia
 
 
 class LetExpression(TypedExpression):
     tree_sitter_types: ClassVar[set[str]] = {"let_expression"}
-    local_variables: List[Binding | Inherit | FunctionCall]
+    local_variables: List[Binding | Inherit]
     value: NixExpression
     multiline: bool = True
 
@@ -26,9 +25,12 @@ class LetExpression(TypedExpression):
         Handles both the outer `attrset_expression` and the inner
         `binding_set` wrapper that tree-sitter-nix inserts.
         """
+        if node.text is None:
+            raise ValueError("Attribute set has no code")
+
+        from nix_manipulator.expressions import Comment, empty_line, linebreak
         from nix_manipulator.expressions.binding import Binding
         from nix_manipulator.mapping import tree_sitter_node_to_expression
-        from nix_manipulator.expressions import Comment, empty_line, linebreak
 
         before: list[Any] = []
 
@@ -125,22 +127,24 @@ class LetExpression(TypedExpression):
             raise NotImplementedError
 
     def __getitem__(self, key: str):
-        for binding in self.values:
-            if binding.name == key:
-                return binding.value
+        for variable in self.local_variables:
+            if isinstance(variable, Binding):
+                if variable.name == key:
+                    return variable.value
         raise KeyError(key)
 
     def __setitem__(self, key: str, value):
-        for i, binding in enumerate(self.values):
-            if binding.name == key:
-                binding.value = value
-                return
-        self.values.append(Binding(name=key, value=value))
+        for i, variable in enumerate(self.local_variables):
+            if isinstance(variable, Binding):
+                if variable.name == key:
+                    variable.value = value
+                    return
+        self.local_variables.append(Binding(name=key, value=value))
 
     def __delitem__(self, key: str):
-        for i, binding in enumerate(self.values):
-            if binding.name == key:
-                del self.values[i]
+        for i, variable in enumerate(self.local_variables):
+            if isinstance(variable, Binding) and variable.name == key:
+                del self.local_variables[i]
 
 
 __all__ = ["LetExpression"]

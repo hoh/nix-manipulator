@@ -1,8 +1,8 @@
 from nix_manipulator.expressions import (
-    NixSourceCode,
-    NixExpression,
-    FunctionDefinition,
     AttributeSet,
+    FunctionDefinition,
+    NixExpression,
+    NixSourceCode,
 )
 from nix_manipulator.parser import parse
 
@@ -30,3 +30,5 @@ def remove_value(source: NixSourceCode, npath: str) -> str:
     elif isinstance(target, AttributeSet):
         del target[npath]
         return source.rebuild()
+    else:
+        raise ValueError("Unexpected expression type")

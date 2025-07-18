@@ -6,7 +6,6 @@ from tree_sitter import Node
 
 from nix_manipulator.expressions.expression import TypedExpression
 from nix_manipulator.expressions.identifier import Identifier
-from nix_manipulator.format import _format_trivia
 
 
 class Select(TypedExpression):
@@ -16,6 +15,8 @@ class Select(TypedExpression):
 
     @classmethod
     def from_cst(cls, node: Node) -> Select:
+        if node.text is None:
+            raise ValueError("Select expression is missing")
         return cls(
             expression=Identifier(
                 name=node.child_by_field_name("expression").text.decode()

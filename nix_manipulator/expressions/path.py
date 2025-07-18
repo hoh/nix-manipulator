@@ -5,7 +5,6 @@ from typing import Any, ClassVar, List
 from tree_sitter import Node
 
 from nix_manipulator.expressions.expression import TypedExpression
-from nix_manipulator.format import _format_trivia
 
 
 class NixPath(TypedExpression):
@@ -16,6 +15,8 @@ class NixPath(TypedExpression):
     def from_cst(
         cls, node: Node, before: List[Any] | None = None, after: List[Any] | None = None
     ):
+        if node.text is None:
+            raise ValueError("Path is missing")
         path = node.text.decode()
         return cls(path=path, before=before or [], after=after or [])
 

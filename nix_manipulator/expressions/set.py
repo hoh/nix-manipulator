@@ -17,7 +17,7 @@ from nix_manipulator.format import _format_trivia
 
 class AttributeSet(TypedExpression):
     tree_sitter_types: ClassVar[set[str]] = {"attrset_expression"}
-    values: List[Binding | Inherit | FunctionCall]
+    values: List[Binding | Inherit]
     multiline: bool = True
     recursive: bool = False
 
@@ -25,7 +25,7 @@ class AttributeSet(TypedExpression):
     def from_dict(cls, values: Dict[str, NixExpression]):
         from nix_manipulator.expressions.binding import Binding
 
-        values_list = []
+        values_list: List[Binding | Inherit] = []
         for key, value in values.items():
             values_list.append(Binding(name=key, value=value))
         return cls(values=values_list)
@@ -38,6 +38,9 @@ class AttributeSet(TypedExpression):
         Handles both the outer `attrset_expression` and the inner
         `binding_set` wrapper that tree-sitter-nix inserts.
         """
+        if node.text is None:
+            raise ValueError("Attribute set has no code")
+
         from nix_manipulator.expressions.binding import Binding
 
         multiline = b"\n" in node.text
@@ -167,7 +170,7 @@ class AttributeSet(TypedExpression):
 
 class RecursiveAttributeSet(AttributeSet):
     tree_sitter_types: ClassVar[set[str]] = {"rec_attrset_expression"}
-    values: List[Binding | Inherit | FunctionCall]
+    values: List[Binding | Inherit]
     multiline: bool = True
     recursive: bool = True
 

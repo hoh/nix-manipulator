@@ -1,6 +1,5 @@
 from nix_manipulator.parser import parse
 
-
 source_package = """
 {
   lib,

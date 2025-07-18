@@ -24,6 +24,9 @@ class FunctionDefinition(TypedExpression):
 
     @classmethod
     def from_cst(cls, node: Node):
+        if node.text is None:
+            raise ValueError("Function definition has no code")
+
         children_types = [child.type for child in node.children]
         assert children_types in (
             ["formals", ":", "attrset_expression"],

@@ -1,17 +1,17 @@
 from __future__ import annotations
 
 import re
-from typing import Any, List, Union, ClassVar
+from typing import Any, ClassVar, List, Union
 
 from tree_sitter import Node
 
 from nix_manipulator.expressions.comment import Comment
-from nix_manipulator.expressions.expression import NixExpression
-from nix_manipulator.expressions.layout import linebreak, empty_line
+from nix_manipulator.expressions.expression import NixExpression, TypedExpression
+from nix_manipulator.expressions.layout import linebreak
 from nix_manipulator.format import _format_trivia
 
 
-class Binding(NixExpression):
+class Binding(TypedExpression):
     tree_sitter_types: ClassVar[set[str]] = {"binding"}
     name: str
     value: Union[NixExpression, str, int, bool]
@@ -21,6 +21,9 @@ class Binding(NixExpression):
     def from_cst(
         cls, node: Node, before: List[Any] | None = None, after: List[Any] | None = None
     ):
+        if node.text is None:
+            raise ValueError("Binding has no code")
+
         before = before or []
         after = after or []
 
