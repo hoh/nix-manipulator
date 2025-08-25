@@ -6,7 +6,7 @@ import pytest
 
 from nix_manipulator.parser import parse
 
-NIXPKGS_PATH = os.getenv("NIXPKGS_PATH")
+NIXPKGS_PATH = Path(os.getenv("NIXPKGS_PATH"))
 
 
 def check_package_can_be_reproduced(path: Path):
