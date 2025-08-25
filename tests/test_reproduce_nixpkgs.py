@@ -1,11 +1,12 @@
 import concurrent
+import os
 from pathlib import Path
 
 import pytest
 
 from nix_manipulator.parser import parse
 
-NIXPKGS_PATH = Path("/home/sepal/Repos/hoh/nixpkgs")
+NIXPKGS_PATH = os.getenv("NIXPKGS_PATH")
 
 
 def check_package_can_be_reproduced(path: Path):
