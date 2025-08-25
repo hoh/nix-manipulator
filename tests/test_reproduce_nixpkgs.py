@@ -14,6 +14,22 @@ def get_nixpkgs_path() -> Path | None:
     if nixpkgs_path:
         return Path(nixpkgs_path)
 
+    # Check if nix-instantiate is available, else return None
+    try:
+        # First check if nix-instantiate command exists
+        subprocess.run(
+            ["nix-instantiate", "--version"],
+            capture_output=True,
+            check=True,
+            timeout=10,
+        )
+    except (
+        FileNotFoundError,
+        subprocess.CalledProcessError,
+        subprocess.TimeoutExpired,
+    ):
+        return None
+
     try:
         result = subprocess.run(
             ["nix-instantiate", "--find-file", "nixpkgs"],
@@ -31,9 +47,6 @@ def get_nixpkgs_path() -> Path | None:
         raise RuntimeError(
             "nix-instantiate command not found. Make sure Nix is installed."
         ) from None
-
-
-NIXPKGS_PATH = Path(get_nixpkgs_path())
 
 
 def check_package_can_be_reproduced(path: Path):
@@ -68,7 +81,7 @@ def test_some_nixpkgs_packages():
         # "pkgs/development/python-modules/numpy/1.nix",  # Requires assert
     ]
     for package in packages:
-        check_package_can_be_reproduced(NIXPKGS_PATH / package)
+        check_package_can_be_reproduced(get_nixpkgs_path() / package)
 
 
 def process_nix_file(path_str):
@@ -86,7 +99,7 @@ def test_reproduce_all_nixpkgs_packages():
     success = 0
     failure = 0
     limit = 1_000_000
-    pkgs_path = NIXPKGS_PATH
+    pkgs_path = get_nixpkgs_path()
 
     paths = [str(p) for p in list(pkgs_path.rglob("*.nix"))[:limit]]
 
