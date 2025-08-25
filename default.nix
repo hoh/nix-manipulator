@@ -10,13 +10,6 @@ python.buildPythonPackage rec {
   format = "pyproject";
   nativeBuildInputs = [ python.hatchling ];
 
-#  src = pkgs.fetchFromGitea {
-#    domain = "codeberg.org";
-#    owner  = "hoh";
-#    repo   = "nix-manipulator";
-#    rev    = "dcf9603195c1332c3b8b3bc6afa5c33701f56ae0";
-#    hash   = "";
-#  };
   src = ./.;
 
   propagatedBuildInputs = with python; [
@@ -40,7 +33,6 @@ python.buildPythonPackage rec {
     "test_some_nixpkgs_packages"
   ];
 
-#  installCheckPhase = ''command -v $out/bin/nima'';
   pythonImportsCheck = [ "nix_manipulator" ];
 
   meta = with pkgs.lib; {

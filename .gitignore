@@ -1,7 +1,5 @@
 /.idea
+/result
+/.coverage
 __pycache__
 *.pyc
-/.aider.input.history
-/.aider.chat.history.md
-/.aider.tags.cache.v4
-.aider*

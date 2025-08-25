@@ -44,5 +44,10 @@ dependencies = [
 ]
 
 [tool.hatch.envs.default.scripts]
-test = "pytest {args:tests}"
+test = "pytest --strict-markers {args:tests}"
 test-cov = "pytest --cov=nix_manipulator --cov-report=term-missing {args:tests}"
+
+[tool.pytest.ini_options]
+markers = [
+    "nixpkgs: mark tests that run on the nixos/nixpkgs repository.",
+]
