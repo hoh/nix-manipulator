@@ -1,12 +1,39 @@
 import concurrent
 import os
+import subprocess
 from pathlib import Path
 
 import pytest
 
 from nix_manipulator.parser import parse
 
-NIXPKGS_PATH = Path(os.getenv("NIXPKGS_PATH"))
+
+def get_nixpkgs_path() -> Path | None:
+    """Get the nixpkgs path, with fallback to nix-instantiate command."""
+    nixpkgs_path = os.getenv("NIXPKGS_PATH")
+    if nixpkgs_path:
+        return Path(nixpkgs_path)
+
+    try:
+        result = subprocess.run(
+            ["nix-instantiate", "--find-file", "nixpkgs"],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=30,
+        )
+        return Path(result.stdout.strip())
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"Failed to find nixpkgs path: {e.stderr}") from e
+    except subprocess.TimeoutExpired:
+        raise RuntimeError("Timeout while finding nixpkgs path") from None
+    except FileNotFoundError:
+        raise RuntimeError(
+            "nix-instantiate command not found. Make sure Nix is installed."
+        ) from None
+
+
+NIXPKGS_PATH = Path(get_nixpkgs_path())
 
 
 def check_package_can_be_reproduced(path: Path):
