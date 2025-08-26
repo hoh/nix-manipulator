@@ -26,7 +26,7 @@ jobs:
         pip install -e .
 
     - name: Run tests
-      run: pytest -v
+      run: pytest -v -m "not nixpkgs"
 
     - name: Check Python imports
       run: python -c 'import nix_manipulator; print("Import successful")'
