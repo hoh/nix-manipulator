@@ -1,0 +1,5 @@
+/.idea
+/result
+/.coverage
+__pycache__
+*.pyc

@@ -1,0 +1,29 @@
+
+name: "Test"
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - uses: cachix/install-nix-action@v25
+      with:
+        nix_path: nixpkgs=channel:nixos-unstable
+
+    - name: Build the package
+      run: nix-build
+    
+    - name: Run tests
+      run: nix-shell --run "pytest -v"
+    
+    - name: Check Python imports
+      run: nix-shell --run "python -c 'import nix_manipulator; print(\"Import successful\")'"
+    
+    - name: Run tests with coverage (optional)
+      run: nix-shell --run "pytest --cov=nix_manipulator --cov-report=term-missing tests/"
+      continue-on-error: true

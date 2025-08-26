@@ -1,0 +1,78 @@
+[project]
+name = "nix-manipulator"
+description = "A Python library for parsing, manipulating, and reconstructing Nix source code with high-level abstractions while preserving formatting and comments in RFC-formatted code."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "LGPL-3.0-or-later"
+license-files = ["COPYING", "COPYING.LESSER", "LICENSE"]
+authors = [
+  { name = "Hugo Herter", email = "git@hugoherter.com" },
+]
+keywords = ["ast", "code-manipulation", "nix", "parsing"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+  "pydantic>=2.11.4",
+  "pygments>=2.19.1",
+  "tree-sitter-nix>=0.1.0",
+  "tree-sitter>=0.24.0",
+]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://codeberg.org/hoh/nix-manipulator"
+Source = "https://codeberg.org/hoh/nix-manipulator"
+Tracker = "https://codeberg.org/hoh/nix-manipulator/issues"
+
+[project.scripts]
+nima = "nix_manipulator.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "nix_manipulator/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["nix_manipulator"]
+include = ["LICENSE", "COPYING", "COPYING.LESSER"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "LICENSE",
+  "COPYING",
+  "COPYING.LESSER",
+  "README.md",
+  "pyproject.toml",
+  "nix_manipulator/",
+]
+# ignore
+exclude = ["tests/", ".gitignore"]
+
+[tool.hatch.metadata]
+allow-conda = false
+
+[tool.hatch.envs.default]
+python = "3.12"
+dependencies = [
+  "pytest",
+  "pytest-cov",
+]
+
+[tool.hatch.envs.default.scripts]
+test = "pytest --strict-markers {args:tests}"
+test-cov = "pytest --cov=nix_manipulator --cov-report=term-missing {args:tests}"
+
+[tool.pytest.ini_options]
+markers = [
+  "nixpkgs: mark tests that run on the nixos/nixpkgs repository.",
+]
