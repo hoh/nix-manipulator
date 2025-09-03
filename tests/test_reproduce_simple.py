@@ -424,7 +424,7 @@ def test_reproduce_ellipses():
     source = """
 {
   pkgs,
-  ...,
+  ...
 }:
 {
   pkgs = pkgs;

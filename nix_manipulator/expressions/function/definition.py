@@ -175,11 +175,14 @@ class FunctionDefinition(TypedExpression):
             indentation = " " * indent if self.argument_set_is_multiline else ""
             for i, arg in enumerate(self.argument_set):
                 is_last_argument: bool = i == len(self.argument_set) - 1
+                trailing_comma = self.argument_set_is_multiline and not (
+                    is_last_argument and isinstance(arg, Ellipses)
+                )
                 args.append(
                     arg.rebuild(
                         indent=indent,
                         inline=not self.argument_set_is_multiline,
-                        trailing_comma=self.argument_set_is_multiline,
+                        trailing_comma=trailing_comma,
                     )
                 )
 
