@@ -74,6 +74,7 @@ class AttributeSet(TypedExpression):
                 "comment",
                 "variable_expression",
                 "inherit",
+                "inherit_from",
                 "string_fragment",
             ):
                 push_gap(prev_content, child)
@@ -97,6 +98,9 @@ class AttributeSet(TypedExpression):
                     else:
                         before.append(comment)
                 elif child.type == "inherit":
+                    values.append(Inherit.from_cst(child, before=before))
+                    before = []
+                elif child.type == "inherit_from":
                     values.append(Inherit.from_cst(child, before=before))
                     before = []
                 elif child.type == "variable_expression":

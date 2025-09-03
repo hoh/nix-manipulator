@@ -504,3 +504,21 @@ def test_function_call_outputs_function_expression():
     print(parse(source))
     print(parse_and_rebuild(source))
     assert parse_and_rebuild(source) == source
+
+
+def test_inherit_from():
+    source = """
+{ emulator, rom }:
+
+symlinkJoin {
+  inherit (emulator) version;
+
+  paths = [
+    emulator
+    rom
+    runScript
+  ];
+}
+""".strip("\n")
+    print(parse(source))
+    assert parse_and_rebuild(source) == source
