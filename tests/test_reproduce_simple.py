@@ -506,6 +506,23 @@ def test_function_call_outputs_function_expression():
     assert parse_and_rebuild(source) == source
 
 
+def test_assert_expression():
+    source = """
+{
+  lib,
+  stdenv,
+}:
+
+assert stdenv.buildPlatform.system == "x86_64-linux";
+
+{
+  a = 2;
+}
+""".strip("\n")
+    print(parse(source))
+    assert parse_and_rebuild(source) == source
+
+
 def test_inherit_from():
     source = """
 { emulator, rom }:

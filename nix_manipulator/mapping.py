@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from nix_manipulator.expressions.assertion import Assertion
 from nix_manipulator.expressions.binary import BinaryExpression
 from nix_manipulator.expressions.binding import Binding
 from nix_manipulator.expressions.comment import Comment
@@ -19,6 +20,7 @@ from nix_manipulator.expressions.set import AttributeSet, RecursiveAttributeSet
 from nix_manipulator.expressions.with_statement import WithStatement
 
 EXPRESSION_TYPES: set[type[TypedExpression]] = {
+    Assertion,
     BinaryExpression,
     NixList,
     AttributeSet,
