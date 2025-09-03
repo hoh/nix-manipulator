@@ -36,9 +36,8 @@ class FunctionDefinition(TypedExpression):
             ["identifier", ":", "with_expression"],
             ["formals", ":", "function_expression"],
             ["formals", ":", "variable_expression"],
-        ), (
-            f"Output other than attrset_expression not supported yet. You used {children_types}"
-        )
+            ["formals", ":", "assert_expression"],
+        ), f"Output type not supported yet. You used {children_types}"
 
         argument_set = []
         if node.children[0].type == "formals":
@@ -132,6 +131,7 @@ class FunctionDefinition(TypedExpression):
             "with_expression",
             "function_expression",
             "variable_expression",
+            "assert_expression",
         ):
             output: NixExpression = tree_sitter_node_to_expression(body)
         else:

@@ -1,4 +1,5 @@
 from nix_manipulator.expressions.binary import BinaryExpression
+from nix_manipulator.expressions.assertion import Assertion
 from nix_manipulator.expressions.binding import Binding
 from nix_manipulator.expressions.comment import Comment, MultilineComment
 from nix_manipulator.expressions.function.call import FunctionCall
@@ -591,3 +592,15 @@ def test_binary_expressions():
         ).rebuild()
         == "bar != 4"
     )
+
+
+def test_assertion_from_python():
+    assert (
+        Assertion(
+            expression=BinaryExpression(
+                left=Identifier(name="foo"),
+                right=Identifier(name="bar"),
+                operator="==",
+            ),
+        )
+    ).rebuild() == "assert foo == bar;"

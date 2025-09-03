@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, List
 
+from nix_manipulator.expressions.assertion import Assertion
 from nix_manipulator.expressions.comment import Comment, MultilineComment
 from nix_manipulator.expressions.layout import comma, empty_line, linebreak
 
@@ -16,7 +17,7 @@ def _format_trivia(trivia_list: List[Any], indent: int = 0) -> str:
             result += ""
         elif item is comma:
             result += ","
-        elif isinstance(item, (Comment, MultilineComment)):
+        elif isinstance(item, (Comment, MultilineComment, Assertion)):
             result += item.rebuild(indent=indent) + "\n"
         else:
             raise NotImplementedError(f"Unsupported trivia item: {item}")
