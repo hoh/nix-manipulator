@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from typing import ClassVar
 
+from pydantic import field_validator
 from tree_sitter import Node
 
+from nix_manipulator.expressions.primitive import Primitive
 from nix_manipulator.expressions.expression import NixExpression, TypedExpression
 
 
@@ -12,6 +14,14 @@ class BinaryExpression(TypedExpression):
     operator: str
     left: NixExpression
     right: NixExpression
+
+    @field_validator("left", "right", mode="before")
+    @classmethod
+    def validate_left_right(cls, value) -> NixExpression:
+        if isinstance(value, int):
+            return Primitive(value=value)
+        else:
+            return value
 
     @classmethod
     def from_cst(cls, node: Node):

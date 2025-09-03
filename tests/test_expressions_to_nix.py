@@ -1,3 +1,4 @@
+from nix_manipulator.expressions.binary import BinaryExpression
 from nix_manipulator.expressions.binding import Binding
 from nix_manipulator.expressions.comment import Comment, MultilineComment
 from nix_manipulator.expressions.function.call import FunctionCall
@@ -569,4 +570,24 @@ def test_nested_list():
   ];
 ]
 """.strip("\n")
+    )
+
+
+def test_binary_expressions():
+    assert (
+        BinaryExpression(
+            left=Identifier(name="foo"),
+            right=3,
+            operator="==",
+        ).rebuild()
+        == "foo == 3"
+    )
+
+    assert (
+        BinaryExpression(
+            left=Identifier(name="bar"),
+            right=4,
+            operator="!=",
+        ).rebuild()
+        == "bar != 4"
     )
