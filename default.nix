@@ -8,7 +8,7 @@ python.buildPythonPackage rec {
   version = "0.1.0";
 
   format = "pyproject";
-  nativeBuildInputs = [ python.hatchling ];
+  nativeBuildInputs = [ python.hatchling python.hatch-vcs ];
 
   src = ./.;
 

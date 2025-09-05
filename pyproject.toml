@@ -36,11 +36,11 @@ Tracker = "https://codeberg.org/hoh/nix-manipulator/issues"
 nima = "nix_manipulator.__main__:main"
 
 [build-system]
-requires = ["hatchling"]
 build-backend = "hatchling.build"
+requires = ["hatchling", "hatch-vcs"]
 
 [tool.hatch.version]
-path = "nix_manipulator/__init__.py"
+source = "vcs"
 
 [tool.hatch.build.targets.wheel]
 packages = ["nix_manipulator"]
