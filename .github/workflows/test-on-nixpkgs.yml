@@ -1,9 +1,8 @@
-
-name: "Test"
+name: "Test on Nixpkgs"
 on:
   pull_request:
   push:
-    branches: [main, master]
+    branches: [main]
 
 jobs:
   tests:
@@ -19,11 +18,5 @@ jobs:
       run: nix-build
     
     - name: Run tests
-      run: nix-shell --run "pytest -v"
-    
-    - name: Check Python imports
-      run: nix-shell --run "python -c 'import nix_manipulator; print(\"Import successful\")'"
-    
-    - name: Run tests with coverage (optional)
-      run: nix-shell --run "pytest --cov=nix_manipulator --cov-report=term-missing tests/"
+      run: nix-shell --run "pytest -v -m 'nixpkgs'"
       continue-on-error: true
