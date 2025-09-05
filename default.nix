@@ -5,7 +5,7 @@ let
 in
 python.buildPythonPackage rec {
   pname = "nix-manipulator";
-  version = "0.1.0";
+  version = "0.1.2";
 
   format = "pyproject";
   nativeBuildInputs = [ python.hatchling python.hatch-vcs ];
