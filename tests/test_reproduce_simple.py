@@ -523,6 +523,20 @@ assert stdenv.buildPlatform.system == "x86_64-linux";
     assert parse_and_rebuild(source) == source
 
 
+def test_unary_expression():
+    source = "!foo"
+    print(parse(source))
+    assert parse_and_rebuild(source) == source
+
+
+def test_complex_expression():
+    source = """
+(!blas.isILP64) && (!lapack.isILP64)
+""".strip("\n")
+    print(parse(source))
+    assert [parse_and_rebuild(source)] == [source]
+
+
 def test_inherit_from():
     source = """
 { emulator, rom }:

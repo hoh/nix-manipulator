@@ -17,6 +17,7 @@ from nix_manipulator.expressions.path import NixPath
 from nix_manipulator.expressions.primitive import Primitive
 from nix_manipulator.expressions.select import Select
 from nix_manipulator.expressions.set import AttributeSet, RecursiveAttributeSet
+from nix_manipulator.expressions.unary import UnaryExpression
 from nix_manipulator.expressions.with_statement import WithStatement
 
 EXPRESSION_TYPES: set[type[TypedExpression]] = {
@@ -38,6 +39,7 @@ EXPRESSION_TYPES: set[type[TypedExpression]] = {
     IndentedString,
     Parenthesis,
     Ellipses,
+    UnaryExpression,
 }
 
 TREE_SITTER_TYPE_TO_EXPRESSION: dict[str, type[TypedExpression]] = {
