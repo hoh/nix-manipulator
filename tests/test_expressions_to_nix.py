@@ -8,6 +8,7 @@ from nix_manipulator.expressions.identifier import Identifier
 from nix_manipulator.expressions.layout import empty_line
 from nix_manipulator.expressions.let import LetExpression
 from nix_manipulator.expressions.list import NixList
+from nix_manipulator.expressions.operator import Operator
 from nix_manipulator.expressions.primitive import Primitive
 from nix_manipulator.expressions.set import AttributeSet
 from nix_manipulator.expressions.with_statement import WithStatement
@@ -604,3 +605,43 @@ def test_assertion_from_python():
             ),
         )
     ).rebuild() == "assert foo == bar;"
+
+
+def test_operator():
+    assert (
+        Operator(name="++")
+    ).rebuild() == "++"
+
+
+def test_operator_with_comment():
+    assert (
+        Operator(
+            name="++",
+            before=[
+                Comment(text="This is a comment"),
+            ],
+        )
+    ).rebuild() == "# This is a comment\n++"
+
+    assert (
+        Binding(
+            name="foo",
+            value=BinaryExpression(
+                left=NixList(
+                    value=[
+                        Primitive(value=1),
+                        Primitive(value=2),
+                        Primitive(value=3),
+                    ]
+                ),
+                right=NixList(
+                    value=[
+                        Primitive(value=4),
+                    ],
+                    multiline=False,
+                ),
+                operator=Operator(name="++",
+                                  before=[empty_line, Comment(text="This is a comment")]),
+            ),
+        )
+    ).rebuild() == "foo = [\n  1\n  2\n  3\n]\n# This is a comment\n++ [ 4 ];"
