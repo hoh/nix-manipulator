@@ -565,3 +565,19 @@ symlinkJoin {
 """.strip("\n")
     print(parse(source))
     assert parse_and_rebuild(source) == source
+
+
+def test_rebuild_comment_in_let():
+    source = """
+{
+  lib,
+}:
+
+let
+  # Some comment
+  key = 3;
+in
+{ }
+""".strip("\n")
+    print(parse(source))
+    assert parse_and_rebuild(source) == source

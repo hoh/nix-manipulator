@@ -59,7 +59,7 @@ class LetExpression(TypedExpression):
             elif child.type == "binding_set":
                 binding_set = child
             elif child.type == "comment":
-                before.append(child)
+                before.append(tree_sitter_node_to_expression(child))
             else:
                 pass
 
