@@ -294,6 +294,18 @@ def test_rebuild_empty_list_assignation():
     assert source == parse_and_rebuild(source)
 
 
+def test_reproduce_comment_before_operator():
+    source = """
+{
+  foo = [ 1 ]
+  # Comment
+  ++ bar;
+}
+""".strip("\n")
+    print(parse(source))
+    assert parse_and_rebuild(source) == source
+
+
 def test_reproduce_plus_plus_function_multiline():
     source = """
 [
