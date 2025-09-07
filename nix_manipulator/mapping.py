@@ -8,6 +8,7 @@ from nix_manipulator.expressions.ellipses import Ellipses
 from nix_manipulator.expressions.expression import NixExpression, TypedExpression
 from nix_manipulator.expressions.function.call import FunctionCall
 from nix_manipulator.expressions.function.definition import FunctionDefinition
+from nix_manipulator.expressions.if_expression import IfExpression
 from nix_manipulator.expressions.indented_string import IndentedString
 from nix_manipulator.expressions.inherit import Inherit
 from nix_manipulator.expressions.let import LetExpression
@@ -40,6 +41,7 @@ EXPRESSION_TYPES: set[type[TypedExpression]] = {
     Parenthesis,
     Ellipses,
     UnaryExpression,
+    IfExpression,
 }
 
 TREE_SITTER_TYPE_TO_EXPRESSION: dict[str, type[TypedExpression]] = {
