@@ -9,7 +9,7 @@ from nix_manipulator.expressions.identifier import Identifier
 
 
 class Inherit(TypedExpression):
-    tree_sitter_types: ClassVar[set[str]] = {"inherit"}
+    tree_sitter_types: ClassVar[set[str]] = {"inherit", "inherit_from"}
     names: List[Identifier]
     from_identifier: Optional[Identifier] = None
 
