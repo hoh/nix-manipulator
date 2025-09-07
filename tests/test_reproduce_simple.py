@@ -594,6 +594,19 @@ else
     assert parse_and_rebuild(source) == source
 
 
+def test_rebuild_binding_to_if_statement():
+    source = """
+{
+  a = if true then
+  2
+else
+  3;
+}
+""".strip("\n")
+    print(parse(source))
+    assert parse_and_rebuild(source) == source
+
+
 def test_rebuild_complex_string():
     source = '''
 "--with-pinentry-pgm=${pinentry}/${
