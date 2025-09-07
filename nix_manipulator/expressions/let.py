@@ -74,7 +74,7 @@ class LetExpression(TypedExpression):
             child_expression: NixExpression = tree_sitter_node_to_expression(child)
             if isinstance(child_expression, Comment):
                 before.append(child_expression)
-            elif isinstance(child_expression, Binding):
+            elif isinstance(child_expression, (Binding, Inherit)):
                 child_expression.before = before
                 local_variables.append(child_expression)
                 before = []
