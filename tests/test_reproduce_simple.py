@@ -581,3 +581,13 @@ in
 """.strip("\n")
     print(parse(source))
     assert parse_and_rebuild(source) == source
+
+
+def test_rebuild_complex_string():
+    source = '''
+"--with-pinentry-pgm=${pinentry}/${
+  pinentry.binaryPath or "bin/pinentry"
+}"
+'''.strip("\n")
+    print(parse(source))
+    assert parse_and_rebuild(source) == source

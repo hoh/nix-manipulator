@@ -23,7 +23,10 @@ class Primitive(TypedExpression):
             raise ValueError("Missing expression")
 
         if node.type == "string_expression":
-            value = json.loads(node.text)
+            bytes_ = node.text
+            if bytes_.startswith(b'"') and bytes_.endswith(b'"'):
+                bytes_ = bytes_[1:-1]
+            value = bytes_.decode()
         elif node.type == "string_fragment":
             value = node.text.decode()
         elif node.type == "integer_expression":
