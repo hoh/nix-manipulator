@@ -124,18 +124,7 @@ class FunctionDefinition(TypedExpression):
         from nix_manipulator.mapping import tree_sitter_node_to_expression
 
         body: Node = node.child_by_field_name("body")
-        if body.type in (
-            "attrset_expression",
-            "apply_expression",
-            "let_expression",
-            "with_expression",
-            "function_expression",
-            "variable_expression",
-            "assert_expression",
-        ):
-            output: NixExpression = tree_sitter_node_to_expression(body)
-        else:
-            raise ValueError(f"Unsupported output node: {body} {body.type}")
+        output: NixExpression = tree_sitter_node_to_expression(body)
 
         def get_semicolon_index(text) -> int:
             for child in node.children:
