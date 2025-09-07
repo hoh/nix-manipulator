@@ -199,6 +199,32 @@ def test_nix_function_definition_one_binding():
     )
 
 
+def test_nix_function_with_named_attribute_set():
+    assert (
+        FunctionDefinition(
+            argument_set=[Identifier(name="pkgs")],
+            named_attribute_set=Identifier(name="args"),
+            named_attribute_set_before_formals=True,
+            output=AttributeSet.from_dict(
+                {"pkgs-copy": Identifier(name="pkgs")}
+            ),
+        )
+    ).rebuild() == "args@{\n  pkgs,\n}:\n{\n  pkgs-copy = pkgs;\n}"
+
+
+def test_nix_function_with_named_attribute_set_after():
+    assert (
+               FunctionDefinition(
+                   argument_set=[Identifier(name="pkgs")],
+                   named_attribute_set=Identifier(name="args"),
+                   named_attribute_set_before_formals=False,
+                   output=AttributeSet.from_dict(
+                       {"pkgs-copy": Identifier(name="pkgs")}
+                   ),
+               )
+           ).rebuild() == "{\n  pkgs,\n}@args:\n{\n  pkgs-copy = pkgs;\n}"
+
+
 def test_nix_function_definition_empty_lines_in_argument_set():
     assert (
         FunctionDefinition(

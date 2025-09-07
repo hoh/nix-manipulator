@@ -19,6 +19,8 @@ class FunctionDefinition(TypedExpression):
     tree_sitter_types: ClassVar[set[str]] = {"function_expression"}
     argument_set: Identifier | List[Identifier | Ellipses] = []
     argument_set_is_multiline: bool = True
+    named_attribute_set: Optional[Identifier] = None
+    named_attribute_set_before_formals: bool = False
     breaks_after_semicolon: Optional[int] = None
     output: Union[AttributeSet, NixExpression, None] = None
 
@@ -28,16 +30,28 @@ class FunctionDefinition(TypedExpression):
             raise ValueError("Function definition has no code")
 
         children_types = [child.type for child in node.children]
-        assert children_types in (
-            ["formals", ":", "attrset_expression"],
-            ["formals", ":", "apply_expression"],
-            ["formals", ":", "let_expression"],
-            ["identifier", ":", "attrset_expression"],
-            ["identifier", ":", "with_expression"],
-            ["formals", ":", "function_expression"],
-            ["formals", ":", "variable_expression"],
-            ["formals", ":", "assert_expression"],
-        ), f"Output type not supported yet. You used {children_types}"
+
+        assert children_types[:2] in [
+            ["formals", ":"],
+            ["identifier", ":"],
+        ] or children_types[1] == "@", f"Output type not supported yet. You used {children_types}"
+
+        # Named attribute set argument
+        named_attribute_set: Identifier | None
+        named_attribute_set_before_formals: bool
+        if children_types[1] == "@":
+            if children_types[0] == "identifier":
+                assert children_types[2] == "formals"
+                named_attribute_set = Identifier.from_cst(node.children[0])
+                named_attribute_set_before_formals = True
+            else:
+                assert children_types[0] == "formals", children_types
+                assert children_types[2] == "identifier"
+                named_attribute_set = Identifier.from_cst(node.children[2])
+                named_attribute_set_before_formals = False
+        else:
+            named_attribute_set = None
+            named_attribute_set_before_formals = False
 
         argument_set = []
         if node.children[0].type == "formals":
@@ -142,6 +156,8 @@ class FunctionDefinition(TypedExpression):
         return cls(
             breaks_after_semicolon=breaks_after_semicolon,
             argument_set=argument_set,
+            named_attribute_set=named_attribute_set,
+            named_attribute_set_before_formals=named_attribute_set_before_formals,
             output=output,
             argument_set_is_multiline=argument_set_is_multiline,
         )
@@ -179,6 +195,12 @@ class FunctionDefinition(TypedExpression):
                 args_str = "{\n" + "\n".join(args) + "\n}"
             else:
                 args_str = "{ " + ", ".join(args) + " }"
+
+            if self.named_attribute_set:
+                if self.named_attribute_set_before_formals:
+                    args_str = f"{self.named_attribute_set.rebuild()}@{args_str}"
+                else:
+                    args_str = f"{args_str}@{self.named_attribute_set.rebuild()}"
 
         # Build result)
         output_str = self.output.rebuild() if self.output else "{ }"

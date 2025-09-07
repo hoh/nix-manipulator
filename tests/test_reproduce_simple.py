@@ -602,3 +602,23 @@ def test_rebuild_complex_string():
 '''.strip("\n")
     print(parse(source))
     assert parse_and_rebuild(source) == source
+
+
+def test_rebuild_function_arguments_at():
+    source = """
+{ callPackage, python3, ... }@args:
+
+{ }
+""".strip("\n")
+    print(parse(source))
+    assert parse_and_rebuild(source) == source
+
+
+def test_rebuild_function_arguments_at_reversed():
+    source = """
+args@{ callPackage, python3, ... }:
+
+{ }
+""".strip("\n")
+    print(parse(source))
+    assert parse_and_rebuild(source) == source
