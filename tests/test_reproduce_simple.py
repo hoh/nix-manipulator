@@ -607,6 +607,23 @@ else
     assert parse_and_rebuild(source) == source
 
 
+def test_rebuild_binding_to_list():
+    source = "{ a = [ 1 2 3 ]; }".strip("\n")
+    print(parse(source))
+    assert parse_and_rebuild(source) == source
+
+
+def test_rebuild_function_arg_list():
+    source = """
+{
+  extensions ? exts: [ ],
+}:
+{ }
+""".strip("\n")
+    print(parse(source))
+    assert parse_and_rebuild(source) == source
+
+
 def test_rebuild_complex_string():
     source = '''
 "--with-pinentry-pgm=${pinentry}/${
