@@ -54,15 +54,14 @@ class FunctionDefinition(TypedExpression):
             named_attribute_set_before_formals = False
 
         argument_set = []
-        if node.children[0].type == "formals":
-            argument_set_is_multiline = (
-                b"\n" in node.child_by_field_name("formals").text
-            )
+        formals_node = node.child_by_field_name("formals")
+        if formals_node is not None:
+            argument_set_is_multiline = b"\n" in formals_node.text
 
             before = []
-            previous_child = node.child_by_field_name("formals").children[0]
+            previous_child = formals_node.children[0]
             assert previous_child.type == "{"
-            for child in node.child_by_field_name("formals").children:
+            for child in formals_node.children:
                 if child.type in ("{", "}"):
                     continue
                 elif child.type == ",":
