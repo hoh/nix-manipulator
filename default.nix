@@ -19,6 +19,10 @@ python.buildPythonPackage rec {
     pygments
   ];
 
+  postPatch = ''
+    rm -rf dist
+  '';
+
   doCheck = true;
 
   nativeCheckInputs = [
