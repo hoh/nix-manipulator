@@ -1,6 +1,6 @@
 { pkgs ? import <nixpkgs> {} }:
 let
-  python = pkgs.python312Packages;
+  python = pkgs.python313Packages;
   pytestCheckHook = python.pytestCheckHook;
 in
 python.buildPythonPackage rec {

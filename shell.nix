@@ -3,7 +3,7 @@
 pkgs.mkShell {
   buildInputs = [
     (pkgs.callPackage ./default.nix { })
-    pkgs.python312Packages.pytest
-    pkgs.python312Packages.pytest-cov
+    pkgs.python313Packages.pytest
+    pkgs.python313Packages.pytest-cov
   ];
 }
