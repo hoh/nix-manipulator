@@ -23,7 +23,7 @@ dependencies = [
   "pydantic>=2.11.4",
   "pygments>=2.19.1",
   "tree-sitter-nix>=0.1.0",
-  "tree-sitter>=0.24.0",
+  "tree-sitter>=0.25.2",
 ]
 dynamic = ["version"]
 
