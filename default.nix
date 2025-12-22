@@ -1,4 +1,6 @@
-{ pkgs ? import <nixpkgs> {} }:
+{ pkgs ? import (builtins.fetchTarball {
+  url = "https://github.com/NixOS/nixpkgs/archive/refs/heads/nixos-25.11.tar.gz";
+}) {} }:
 let
   python = pkgs.python313Packages;
   pytestCheckHook = python.pytestCheckHook;
