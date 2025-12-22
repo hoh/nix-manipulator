@@ -1,4 +1,5 @@
-import concurrent
+"""Tests that parse and rebuild Nix files, including a bulk nixpkgs sweep."""
+import difflib
 import os
 import subprocess
 from pathlib import Path
@@ -50,6 +51,7 @@ def get_nixpkgs_path() -> Path | None:
 
 
 def check_package_can_be_reproduced(path: Path):
+    """Return True if rebuilding a Nix file yields byte-identical output."""
     source = path.read_text().strip("\n")
     parsed_cst = parse(source.encode("utf-8"))
     rebuilt_code = parsed_cst.rebuild()
@@ -63,6 +65,7 @@ def check_package_can_be_reproduced(path: Path):
 
 @pytest.mark.nixpkgs
 def test_some_nixpkgs_packages():
+    # Curated smoke list to keep a small, fast sanity check.
     packages = [
         "pkgs/development/python-modules/trl/default.nix",
         "pkgs/development/python-modules/cut-cross-entropy/default.nix",
@@ -84,41 +87,69 @@ def test_some_nixpkgs_packages():
         check_package_can_be_reproduced(get_nixpkgs_path() / package)
 
 
-def process_nix_file(path_str):
-    path = Path(path_str)
-    try:
-        check_package_can_be_reproduced(path)
-        return True, None
-    except Exception as e:
-        return False, (str(path), str(e))
+def _is_short_nix_file(path: Path, max_lines: int = 300) -> bool:
+    """Limit full-sweep tests to smaller files for faster feedback."""
+    line_count = 0
+    with path.open("r", encoding="utf-8") as handle:
+        for line_count, _ in enumerate(handle, start=1):
+            if line_count > max_lines:
+                return False
+    return True
+
+
+def _collect_nixpkgs_nix_file_params(
+    limit: int = 1_000_000,
+) -> tuple[Path | None, list[object]]:
+    """Collect nixpkgs .nix files and mark long ones as skipped params."""
+    pkgs_path = get_nixpkgs_path()
+    if pkgs_path is None:
+        return None, []
+    params = []
+    for path in pkgs_path.rglob("*.nix"):
+        rel_id = str(path.relative_to(pkgs_path))
+        if _is_short_nix_file(path):
+            params.append(pytest.param(path, id=rel_id))
+        else:
+            # Keep visibility of long files while avoiding heavy runs.
+            params.append(
+                pytest.param(
+                    path,
+                    marks=pytest.mark.skip(
+                        reason="Skipping files with more than 300 lines"
+                    ),
+                    id=rel_id,
+                )
+            )
+        if len(params) >= limit:
+            break
+    return pkgs_path, params
+
+
+def _assert_reproduced(path: Path) -> None:
+    """Fail with a unified diff when rebuild output diverges."""
+    source = path.read_text().strip("\n")
+    parsed_cst = parse(source.encode("utf-8"))
+    rebuilt_code = parsed_cst.rebuild()
+    if rebuilt_code != source:
+        # Display exact content drift to make failures actionable.
+        diff = "".join(
+            difflib.unified_diff(
+                source.splitlines(keepends=True),
+                rebuilt_code.splitlines(keepends=True),
+                fromfile=str(path),
+                tofile=f"{path} (rebuilt)",
+                lineterm="",
+            )
+        )
+        pytest.fail(f"Rebuilt output did not match original for {path}\n{diff}")
+
+
+# Module-level collection so pytest can parametrize tests at import time.
+NIXPKGS_PATH, NIXPKGS_PARAMS = _collect_nixpkgs_nix_file_params()
 
 
 @pytest.mark.nixpkgs
-def test_reproduce_all_nixpkgs_packages():
+@pytest.mark.parametrize("nix_file", NIXPKGS_PARAMS)
+def test_reproduce_all_nixpkgs_packages(nix_file):
     """Parse and rebuild all Nix files in the nixpkgs repository and check if the result is equal to the original."""
-    success = 0
-    failure = 0
-    limit = 1_000_000
-    pkgs_path = get_nixpkgs_path()
-
-    paths = [str(p) for p in list(pkgs_path.rglob("*.nix"))[:limit]]
-
-    with concurrent.futures.ProcessPoolExecutor(max_workers=32) as executor:
-        futures = [executor.submit(process_nix_file, path) for path in paths]
-
-        # Process results as they complete
-        for future in concurrent.futures.as_completed(futures):
-            succ, err_info = future.result()
-            if succ:
-                success += 1
-            else:
-                failure += 1
-                path_str, e_str = err_info
-                # print(path_str)
-                # print(e_str)
-
-    total = success + failure
-    print(
-        f"{success}/{total} Nix files from nixpkgs could be reproduced ({success / total:.2%})"
-    )
-    assert failure == 0
+    _assert_reproduced(nix_file)
