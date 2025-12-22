@@ -1,4 +1,5 @@
 """Tests that parse and rebuild Nix files, including a bulk nixpkgs sweep."""
+
 import difflib
 import os
 import subprocess
@@ -50,41 +51,28 @@ def get_nixpkgs_path() -> Path | None:
         ) from None
 
 
-def check_package_can_be_reproduced(path: Path):
-    """Return True if rebuilding a Nix file yields byte-identical output."""
-    source = path.read_text().strip("\n")
-    parsed_cst = parse(source.encode("utf-8"))
-    rebuilt_code = parsed_cst.rebuild()
-    try:
-        assert rebuilt_code == source
-        return True
-    except Exception as e:
-        print(f"Error rebuilding {path}: {e.__class__.__name__}")
-        return False
+def _load_curated_nixpkgs_packages():
+    """Yield curated entries, skipping blank and commented lines."""
+    curated_list_path = Path(__file__).parent / "nixpkgs-curated-packages.txt"
+    for line in curated_list_path.read_text().splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        yield stripped
+
+
+CURATED_NIXPKGS_PACKAGES = list(_load_curated_nixpkgs_packages())
 
 
 @pytest.mark.nixpkgs
-def test_some_nixpkgs_packages():
-    # Curated smoke list to keep a small, fast sanity check.
-    packages = [
-        "pkgs/development/python-modules/trl/default.nix",
-        "pkgs/development/python-modules/cut-cross-entropy/default.nix",
-        "pkgs/development/python-modules/unsloth-zoo/default.nix",
-        "pkgs/development/python-modules/unsloth/default.nix",
-        "pkgs/development/python-modules/unsloth/default.nix",
-        "pkgs/development/python-modules/ptpython/default.nix",
-        "pkgs/development/python-modules/requests/default.nix",
-        "pkgs/kde/gear/cantor/default.nix",
-        "pkgs/kde/plasma/plasma-nm/default.nix",
-        "lib/tests/modules/define-attrsOfSub-foo-force-enable.nix",
-        # "lib/tests/modules/declare-bare-submodule-deep-option.nix",
-        "pkgs/kde/third-party/karousel/default.nix",
-        "pkgs/kde/third-party/wallpaper-engine-plugin/default.nix",
-        # "pkgs/kde/gear/koko/default.nix",
-        # "pkgs/development/python-modules/numpy/1.nix",  # Requires assert
-    ]
-    for package in packages:
-        check_package_can_be_reproduced(get_nixpkgs_path() / package)
+@pytest.mark.parametrize(
+    "package",
+    CURATED_NIXPKGS_PACKAGES,
+    ids=[f"{index}:{path}" for index, path in enumerate(CURATED_NIXPKGS_PACKAGES)],
+)
+def test_some_nixpkgs_packages(package):
+    # Curated list to keep a small, fast sanity check.
+    _assert_reproduced(get_nixpkgs_path() / package)
 
 
 def _is_short_nix_file(path: Path, max_lines: int = 300) -> bool:

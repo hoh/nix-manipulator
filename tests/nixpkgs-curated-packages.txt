@@ -1,0 +1,15 @@
+pkgs/development/python-modules/trl/default.nix
+pkgs/development/python-modules/cut-cross-entropy/default.nix
+pkgs/development/python-modules/unsloth-zoo/default.nix
+pkgs/development/python-modules/unsloth/default.nix
+pkgs/development/python-modules/unsloth/default.nix
+pkgs/development/python-modules/ptpython/default.nix
+pkgs/development/python-modules/requests/default.nix
+pkgs/kde/gear/cantor/default.nix
+pkgs/kde/plasma/plasma-nm/default.nix
+lib/tests/modules/define-attrsOfSub-foo-force-enable.nix
+# lib/tests/modules/declare-bare-submodule-deep-option.nix
+pkgs/kde/third-party/karousel/default.nix
+pkgs/kde/third-party/wallpaper-engine-plugin/default.nix
+# pkgs/kde/gear/koko/default.nix
+# pkgs/development/python-modules/numpy/1.nix
