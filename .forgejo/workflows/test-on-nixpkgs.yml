@@ -1,0 +1,17 @@
+name: "Test on Nixpkgs"
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  tests:
+    runs-on: native
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Build the package
+      run: nix-build
+    
+    - name: Run tests
+      run: nix-shell --run "pytest -v -m 'nixpkgs'"

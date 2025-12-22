@@ -2,8 +2,8 @@
 name = "nix-manipulator"
 description = "A Python library for parsing, manipulating, and reconstructing Nix source code with high-level abstractions while preserving formatting and comments in RFC-formatted code."
 readme = "README.md"
-requires-python = ">=3.11"
-license = "LGPL-3.0-or-later"
+requires-python = ">=3.13"
+license = "LGPL-3.0-only"
 license-files = ["COPYING", "COPYING.LESSER", "LICENSE"]
 authors = [
   { name = "Hugo Herter", email = "git@hugoherter.com" },
@@ -12,15 +12,12 @@ keywords = ["ast", "code-manipulation", "nix", "parsing"]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
-  "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
+  "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-  "pydantic>=2.11.4",
   "pygments>=2.19.1",
   "tree-sitter-nix>=0.1.0",
   "tree-sitter>=0.25.2",
@@ -31,13 +28,15 @@ dynamic = ["version"]
 Homepage = "https://codeberg.org/hoh/nix-manipulator"
 Source = "https://codeberg.org/hoh/nix-manipulator"
 Tracker = "https://codeberg.org/hoh/nix-manipulator/issues"
+Changelog = "https://codeberg.org/hoh/nix-manipulator/src/branch/main/CHANGELOG.md"
+Mirror = "https://github.com/hoh/nix-manipulator"
 
 [project.scripts]
 nima = "nix_manipulator.__main__:main"
 
 [build-system]
 build-backend = "hatchling.build"
-requires = ["hatchling", "hatch-vcs"]
+requires = ["hatchling>=1.28.0", "hatch-vcs>=0.5.0"]
 
 [tool.hatch.version]
 source = "vcs"
@@ -48,10 +47,14 @@ include = ["LICENSE", "COPYING", "COPYING.LESSER"]
 
 [tool.hatch.build.targets.sdist]
 include = [
+  "CHANGELOG.md",
+  "CODE_OF_CONDUCT.md",
+  "CONTRIBUTING.md",
   "LICENSE",
   "COPYING",
   "COPYING.LESSER",
   "README.md",
+  "SECURITY.md",
   "pyproject.toml",
   "nix_manipulator/",
 ]
@@ -62,7 +65,7 @@ exclude = ["tests/", ".gitignore"]
 allow-conda = false
 
 [tool.hatch.envs.default]
-python = "3.12"
+python = "3.13"
 dependencies = [
   "pytest",
   "pytest-cov",
@@ -70,9 +73,18 @@ dependencies = [
 
 [tool.hatch.envs.default.scripts]
 test = "pytest --strict-markers {args:tests}"
-test-cov = "pytest --cov=nix_manipulator --cov-report=term-missing {args:tests}"
+test-cov = "pytest --cov=nix_manipulator --cov-report=term-missing --cov-fail-under=98 {args:tests}"
 
 [tool.pytest.ini_options]
 markers = [
   "nixpkgs: mark tests that run on the nixos/nixpkgs repository.",
 ]
+
+[tool.coverage.run]
+source = ["nix_manipulator"]
+
+[tool.coverage.report]
+fail_under = 98
+show_missing = true
+skip_covered = false
+precision = 2

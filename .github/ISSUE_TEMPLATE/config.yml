@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Codeberg issues (canonical)
+    url: https://codeberg.org/hoh/nix-manipulator/issues
+    about: The canonical issue tracker for Nix-manipulator.
+  - name: Security policy
+    url: https://codeberg.org/hoh/nix-manipulator/src/branch/main/SECURITY.md
+    about: Please report security issues following this policy.

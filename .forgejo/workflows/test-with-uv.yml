@@ -1,0 +1,35 @@
+name: "Test with UV"
+on: [push, pull_request]
+
+jobs:
+  tests:
+    runs-on: native
+    env:
+      NIX_PATH: nixpkgs=channel:nixos-unstable
+    strategy:
+      matrix:
+        include:
+          - python-version: '3.13'
+            nix-python: 'python313'
+            nix-python-packages: 'python313Packages'
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Create virtualenv (uv)
+      run: nix-shell -p uv ${{ matrix.nix-python }} --run 'uv venv --python "$(command -v python${{ matrix.python-version }})" .venv'
+
+    - name: Install test dependencies (uv pip)
+      run: nix-shell -p uv --run 'uv pip install --python .venv/bin/python pytest pytest-cov'
+
+    - name: Install project (uv pip, no deps)
+      run: nix-shell -p uv --run 'uv pip install --python .venv/bin/python -e . --no-deps'
+
+    - name: Run tests
+      run: nix-shell -p nixfmt ${{ matrix.nix-python-packages }}.tree-sitter-grammars.tree-sitter-nix ${{ matrix.nix-python-packages }}.tree-sitter ${{ matrix.nix-python-packages }}.pygments --run '.venv/bin/python -m pytest -v -m "not nixpkgs"'
+
+    - name: Check Python imports
+      run: nix-shell -p nixfmt ${{ matrix.nix-python-packages }}.tree-sitter-grammars.tree-sitter-nix ${{ matrix.nix-python-packages }}.tree-sitter ${{ matrix.nix-python-packages }}.pygments --run '.venv/bin/python -c "import nix_manipulator; print(\"Import successful\")"'
+
+    - name: Run tests with coverage (optional)
+      run: nix-shell -p nixfmt ${{ matrix.nix-python-packages }}.tree-sitter-grammars.tree-sitter-nix ${{ matrix.nix-python-packages }}.tree-sitter ${{ matrix.nix-python-packages }}.pygments --run '.venv/bin/python -m pytest -m "not nixpkgs" --cov=nix_manipulator --cov-report=term-missing tests/'
+      continue-on-error: true

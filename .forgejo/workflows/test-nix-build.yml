@@ -1,0 +1,11 @@
+name: "Test Nix Build"
+on: [push, pull_request]
+
+jobs:
+  nix-build:
+    runs-on: native
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build the package
+      run: nix-build

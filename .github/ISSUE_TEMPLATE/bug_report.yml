@@ -1,0 +1,69 @@
+name: Bug report
+description: Report a bug in nima
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug.
+        The canonical issue tracker is on Codeberg (see CONTRIBUTING.md). If you prefer GitHub, this is still okay.
+        For security issues, please follow SECURITY.md.
+  - type: checkboxes
+    attributes:
+      label: Pre-flight
+      options:
+        - label: I searched existing issues.
+          required: true
+        - label: I read CONTRIBUTING.md and SECURITY.md.
+          required: true
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: A clear and concise description of the bug.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Expected behavior
+      description: What you expected to happen instead.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Steps to reproduce
+      description: Include exact commands or code when possible.
+      placeholder: |
+        1. Run ...
+        2. See error ...
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Minimal Nix input (if relevant)
+      description: Provide the smallest Nix snippet or file that reproduces the issue.
+      render: nix
+  - type: textarea
+    attributes:
+      label: Output / error
+      description: Paste full error output, including stack traces.
+      render: shell
+  - type: textarea
+    attributes:
+      label: Environment
+      description: Provide versions and platform details.
+      placeholder: |
+        nima version:
+        install method (pip/nix/other):
+        python --version:
+        nix --version:
+        OS:
+        NIX_PATH / NIXPKGS_PATH:
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: Anything else that might help.

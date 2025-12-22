@@ -3,10 +3,11 @@ import sys
 
 
 def with_file_argument(p: argparse.ArgumentParser) -> None:
+    """Centralize file-input wiring so CLI commands behave consistently."""
     p.add_argument(
         "-f",
         "--file",
-        type=argparse.FileType("r"),
+        type=argparse.FileType("r", encoding="utf-8"),
         metavar="FILE",
         default=sys.stdin,
         help="Read the Nix input from FILE instead of stdin",
@@ -14,10 +15,11 @@ def with_file_argument(p: argparse.ArgumentParser) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Define CLI surface area once to keep behavior stable across commands."""
     parser = argparse.ArgumentParser(
         prog="nima",
         description="Nix Manipulator – A tool for manipulating Nix expressions",
-        epilog="For more information, visit https://github.com/hoh/nima",
+        epilog="For more information, visit https://codeberg.org/hoh/nix-manipulator",
     )
 
     # Each sub‑command lives in its own sub‑parser.

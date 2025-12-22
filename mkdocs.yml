@@ -1,0 +1,19 @@
+site_name: Nix-manipulator (Nima)
+site_description: Parse, manipulate, and rebuild Nix code while preserving RFC-166 formatting.
+repo_url: https://codeberg.org/hoh/nix-manipulator
+theme:
+  name: material
+  language: en
+nav:
+  - Home: index.md
+  - CLI: cli.md
+  - Python API: api.md
+  - Generating Nix: generation.md
+  - Formatting Rules: formatting-rules.md
+  - Changelog: changelog.md
+markdown_extensions:
+  - admonition
+  - codehilite
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - tables

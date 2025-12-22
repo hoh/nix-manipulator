@@ -1,119 +1,210 @@
+"""List expression parsing and formatting with whitespace preservation."""
+
 from __future__ import annotations
 
-import re
-from typing import Any, ClassVar, List, Optional, Union
+from dataclasses import dataclass, field
+from typing import Any, ClassVar
 
 from tree_sitter import Node
 
-from nix_manipulator.expressions import Comment, empty_line, linebreak
-from nix_manipulator.expressions.expression import NixExpression, TypedExpression
-from nix_manipulator.expressions.identifier import Identifier
-from nix_manipulator.expressions.primitive import Primitive
-from nix_manipulator.format import _format_trivia
+from nix_manipulator.expressions.comment import Comment
+from nix_manipulator.expressions.expression import (NixExpression,
+                                                    TypedExpression,
+                                                    coerce_expression)
+from nix_manipulator.expressions.layout import empty_line
+from nix_manipulator.expressions.trivia import (
+    apply_trailing_trivia, format_trivia, gap_has_empty_line_from_offsets,
+    parse_delimited_sequence)
+
+MAX_INLINE_LIST_WIDTH = 100
 
 
 def process_list(node: Node):
+    """Parse a list node into values and inner trivia."""
     from nix_manipulator.mapping import tree_sitter_node_to_expression
 
-    before: list[Any] = []
+    content_nodes = [child for child in node.children if child.type not in ("[", "]")]
 
-    def push_gap(prev: Optional[Node], cur: Node) -> None:
-        """Detect an empty line between *prev* and *cur*."""
-        if prev is None:
-            return
-        start = prev.end_byte - node.start_byte
-        end = cur.start_byte - node.start_byte
-        gap = node.text[start:end].decode()
-        if re.search(r"\n[ \t]*\n", gap):
-            before.append(empty_line)
-        elif "\n" in gap:  # exactly one line-break — keep it
-            before.append(linebreak)
-
-    prev_content: Optional[Node] = None
-    values: list = []
-    for child in node.children:
-        if child.type in ("[", "]"):
-            continue
-        push_gap(prev_content, child)
+    def parse_item(child: Node, before_trivia: list[Any]) -> NixExpression:
+        """Attach leading trivia so list items retain spacing."""
         child_expression: NixExpression = tree_sitter_node_to_expression(child)
-        if isinstance(child_expression, Comment):
-            before.append(child_expression)
-        else:
-            child_expression.before = before
-            values.append(child_expression)
-            before = []
+        child_expression.before = before_trivia
+        return child_expression
 
-        prev_content = child
+    def can_inline_comment(
+        prev: Node | None, comment_node: Node, items: list
+    ) -> bool:
+        """Allow inline comments only when they remain on the same line."""
+        return (
+            prev is not None
+            and comment_node.start_point.row == prev.end_point.row
+            and bool(items)
+        )
 
-    if before:
-        values[-1].after.extend(before)
-    return values
+    def attach_inline_comment(item: NixExpression, comment: Comment) -> None:
+        """Attach inline comments to the preceding list element."""
+        item.after.append(comment)
+
+    values, inner_trivia = parse_delimited_sequence(
+        node,
+        content_nodes,
+        open_token="[",
+        close_token="]",
+        parse_item=parse_item,
+        can_inline_comment=can_inline_comment,
+        attach_inline_comment=attach_inline_comment,
+    )
+
+    return values, inner_trivia
 
 
+@dataclass(slots=True)
 class NixList(TypedExpression):
+    """Nix list expression that preserves original multiline structure."""
     tree_sitter_types: ClassVar[set[str]] = {"list_expression"}
-    value: List[Union[NixExpression, str, int, bool]]
-    multiline: bool = True
+    value: list[NixExpression | str | int | bool | float | None] = field(
+        default_factory=list
+    )
+    multiline: bool | None = None
+    inner_trivia: list[Any] = field(default_factory=list)
 
     @classmethod
     def from_cst(cls, node: Node):
-        if node.text is None:
+        """Parse list content while retaining whitespace and comment trivia."""
+        node_text = node.text
+        if node_text is None:
             raise ValueError("List has no code")
 
-        multiline = b"\n" in node.text
-        value = list(process_list(node))
+        multiline = b"\n" in node_text
+        value, inner_trivia = process_list(node)
+        if not value and not inner_trivia:
+            opening_bracket = next(
+                (child for child in node.children if child.type == "["), None
+            )
+            closing_bracket = next(
+                (child for child in node.children if child.type == "]"), None
+            )
+            if opening_bracket is not None and closing_bracket is not None:
+                if gap_has_empty_line_from_offsets(
+                    node, opening_bracket.end_byte, closing_bracket.start_byte
+                ):
+                    inner_trivia = [empty_line]
 
-        return cls(value=value, multiline=multiline)
+        return cls(
+            value=value,
+            multiline=multiline,
+            inner_trivia=inner_trivia,
+        )
+
+    def _item_requires_multiline(self, expr: NixExpression) -> bool:
+        """Detect items that force multiline output to preserve readability."""
+        if expr.before or expr.after:
+            return True
+        inline_render = expr.rebuild(indent=0, inline=True)
+        return "\n" in inline_render
+
+    def _auto_multiline(
+        self, *, indent: int, inline: bool, respect_existing: bool = True
+    ) -> bool:
+        """Infer multiline layout to avoid collapsing meaningful spacing."""
+        if respect_existing and self.multiline is not None:
+            return self.multiline
+
+        if not self.value:
+            return bool(self.inner_trivia)
+        if self.inner_trivia:
+            return True
+
+        for item in self.value:
+            expr = coerce_expression(item)
+            if self._item_requires_multiline(expr):
+                return True
+
+        count = len(self.value)
+        if inline and indent == 0:
+            return count > 2
+        return count > 1
+
+    def _inline_preview(self, *, indent: int) -> str:
+        """Generate a compact inline version for list call formatting."""
+        if not self.value:
+            return "[ ]"
+        items = [
+            coerce_expression(item).rebuild(indent=indent, inline=True)
+            for item in self.value
+        ]
+        return f"[ {' '.join(items)} ]"
+
+    def simple_inline_preview(
+        self, *, indent: int, max_width: int = MAX_INLINE_LIST_WIDTH
+    ) -> str | None:
+        """Offer a safe inline preview for callers that need compact output."""
+        if self.multiline:
+            return None
+        if self.before or self.after or self.inner_trivia:
+            return None
+        if len(self.value) > 1:
+            return None
+        preview = self._inline_preview(indent=indent)
+        if "\n" in preview or len(preview) > max_width:
+            return None
+        return preview
 
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         """Reconstruct list."""
-        before_str = _format_trivia(self.before, indent=indent)
-        after_str = _format_trivia(self.after, indent=indent)
-        indented = indent + 2 if self.multiline else indent
+        if self.has_scope():
+            return self.rebuild_scoped(indent=indent, inline=inline)
+
+        before_str = format_trivia(self.before, indent=indent)
+        multiline = self._auto_multiline(indent=indent, inline=inline)
+        indented = indent + 2 if multiline else indent
         indentation = "" if inline else " " * indented
 
         if not self.value:
-            return f"{before_str}[ ]{after_str}"
+            if self.inner_trivia:
+                inner_str = format_trivia(self.inner_trivia, indent=indent + 2)
+                closing_sep = ""
+                if inner_str:
+                    closing_sep = "" if inner_str.endswith("\n") else "\n"
+                indentation = "" if inline else " " * indent
+                list_str = (
+                    f"{before_str}{indentation}[\n{inner_str}{closing_sep}"
+                    + " " * indent
+                    + "]"
+                )
+                return apply_trailing_trivia(list_str, self.after, indent=indent)
+            indentor = "" if inline else " " * indent
+            list_str = f"{indentor}[ ]"
+            return apply_trailing_trivia(
+                f"{before_str}{list_str}", self.after, indent=indent
+            )
 
-        items = []
-        for item in self.value:
-            if isinstance(item, Primitive):
-                items.append(
-                    f"{item.rebuild(indent=indented if (inline or self.multiline) else indented, inline=not self.multiline)}"
-                )
-            elif isinstance(item, Identifier):
-                items.append(
-                    f"{item.rebuild(indent=indented if (inline or self.multiline) else indented, inline=not self.multiline)}"
-                )
-            elif isinstance(item, NixExpression):
-                items.append(
-                    f"{item.rebuild(indent=indented if (inline or self.multiline) else indented, inline=not self.multiline)}"
-                )
-            elif isinstance(item, str):
-                items.append(f'{indentation}"{item}"')
-            elif isinstance(item, bool):
-                items.append(f"{indentation}{'true' if item else 'false'}")
-            elif isinstance(item, int):
-                items.append(f"{indentation}{item}")
-            else:
-                raise ValueError(f"Unsupported list item type: {type(item)}")
+        def render_item(item: NixExpression | str | int | bool | float | None) -> str:
+            """Render list items consistently based on multiline decision."""
+            expr = coerce_expression(item)
+            return expr.rebuild(indent=indented, inline=not multiline)
 
-        if self.multiline:
+        items = [render_item(item) for item in self.value]
+
+        if multiline:
             # Add proper indentation for multiline lists
             items_str = "\n".join(items)
             indentor = "" if inline else (" " * indent)
-            return (
-                f"{before_str}"
-                + indentor
-                + f"[\n{items_str}\n"
-                + " " * indent
-                + f"]{after_str}"
+            closing_sep = "" if items_str.endswith("\n") else "\n"
+            list_str = (
+                indentor + f"[\n{items_str}{closing_sep}" + " " * indent + "]"
             )
         else:
             items_str = " ".join(items)
-            return f"{before_str}[ {items_str} ]{after_str}"
+            indentor = "" if inline else " " * indent
+            list_str = f"{indentor}[ {items_str} ]"
+
+        return apply_trailing_trivia(
+            f"{before_str}{list_str}", self.after, indent=indent
+        )
 
     def __repr__(self):
+        """Expose list contents for debug visibility."""
         return f"NixList(\nvalue={self.value}\n)"
 
 

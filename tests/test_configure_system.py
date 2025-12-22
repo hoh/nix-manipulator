@@ -4,7 +4,8 @@ from nix_manipulator.expressions import Identifier
 from nix_manipulator.parser import parse
 
 nixos_configuration = """
-{ pkgs, ... }: {
+{ pkgs, ... }:
+{
   imports = [
     ./hardware-configuration.nix
   ];
@@ -42,14 +43,13 @@ nixos_configuration = """
 
   system.stateVersion = "25.05";
 }
-
 """.strip("\n")
 
 
 def test_add_system_packages():
     """This test demonstrates how to add system packages to a nixos configuration."""
     code = parse(nixos_configuration)
-    system_packages = code.value[0].output["environment.systemPackages"]
+    system_packages = code.expr.output["environment.systemPackages"]
     assert system_packages.body.value == [Identifier(name="vim")]
 
     system_packages.body.value.append(Identifier(name="helix"))
@@ -61,7 +61,7 @@ def test_add_system_packages():
 def test_add_user_packages():
     """This test demonstrates how to add packages for a specific user."""
     code = parse(nixos_configuration)
-    alice_packages = code.value[0].output["users.users.allice"]["packages"]
+    alice_packages = code.expr.output["users.users.allice"]["packages"]
 
     alice_packages.body.value.append(Identifier(name="emacs"))
 

@@ -1,6 +1,17 @@
 /.idea
+/agent-notes
 /result
 /dist
+/site
+/nixfmt
 /.coverage
+/.mypy_cache
+/.pytest_cache
+/.ruff_cache
+/htmlcov
+/perf-corpus
+/perf-results
 __pycache__
 *.pyc
+PERFORMANCE-ANALYSIS.md
+/top-20-largest-list-files.txt

@@ -25,20 +25,23 @@ buildPythonPackage rec {
 
 
 def test_get_version():
-    assert parse(source_package).value[0].output.argument["version"].value == "1.2.3"
+    """Verify version extraction to support update tooling accuracy."""
+    assert parse(source_package).expr.output.argument["version"].value == "1.2.3"
 
 
 def test_update_version():
+    """Ensure version edits round-trip so updates are deterministic."""
     code = parse(source_package)
-    code.value[0].output.argument["version"] = "2.3.4"
+    code.expr.output.argument["version"] = "2.3.4"
     print(code.rebuild())
     assert code.rebuild() == source_package.replace("1.2.3", "2.3.4")
 
 
 def test_update_version_and_hash():
+    """Ensure multi-field updates keep formatting and ordering intact."""
     code = parse(source_package)
-    code.value[0].output.argument["version"] = "2.3.4"
-    code.value[0].output.argument["src"].argument["hash"] = (
+    code.expr.output.argument["version"] = "2.3.4"
+    code.expr.output.argument["src"].argument["hash"] = (
         "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
     )
     assert (
