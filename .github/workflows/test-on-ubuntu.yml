@@ -29,11 +29,11 @@ jobs:
         pip install -e .
 
     - name: Run tests
-      run: pytest -v -m "not nixpkgs"
+      run: nix-shell -p nixfmt --run 'pytest -v -m "not nixpkgs"'
 
     - name: Check Python imports
       run: python -c 'import nix_manipulator; print("Import successful")'
 
     - name: Run tests with coverage (optional)
-      run: pytest -m "not nixpkgs" --cov=nix_manipulator --cov-report=term-missing tests/
+      run: nix-shell -p nixfmt --run 'pytest -m "not nixpkgs" --cov=nix_manipulator --cov-report=term-missing tests/'
       continue-on-error: true
