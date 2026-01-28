@@ -106,10 +106,12 @@ nima test -f package.nix
 
 ## Installation
 
-Install from PyPI:
+Install using Nix:
 ```shell
-pip install nix-manipulator
+nix develop git+https://codeberg.org/hoh/nix-manipulator.git
 ```
+
+> ℹ️Recent versions are not available on PyPI due to `tree-sitter-nix` not being maintained there.
 
 ## Development and Testing
 
