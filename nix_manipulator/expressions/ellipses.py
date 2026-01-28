@@ -6,7 +6,7 @@ from tree_sitter import Node
 from nix_manipulator.expressions.expression import TypedExpression
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, repr=False)
 class Ellipses(TypedExpression):
     tree_sitter_types: ClassVar[set[str]] = {"ellipses"}
 
@@ -26,5 +26,5 @@ class Ellipses(TypedExpression):
         return self.add_trivia(f"...{comma}", indent, inline)
 
     def __repr__(self):
-        """Keep debug output compact for ellipsis-only nodes."""
-        return "Ellipses"
+        """Render rebuilt Nix code for REPL/debug output."""
+        return self.rebuild()

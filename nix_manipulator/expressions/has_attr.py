@@ -16,7 +16,7 @@ from nix_manipulator.expressions.trivia import (
     format_interstitial_trivia_with_separator, layout_from_gap)
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, repr=False)
 class HasAttrExpression(TypedExpression):
     tree_sitter_types: ClassVar[set[str]] = {"has_attr_expression"}
     expression: NixExpression

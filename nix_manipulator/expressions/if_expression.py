@@ -16,7 +16,7 @@ from nix_manipulator.expressions.trivia import (
     split_inline_comments)
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, repr=False)
 class IfExpression(TypedExpression):
     tree_sitter_types: ClassVar[set[str]] = {"if_expression",}
     condition: NixExpression
@@ -276,8 +276,8 @@ class IfExpression(TypedExpression):
         return self.add_trivia(rebuild_string, indent, inline)
 
     def __repr__(self):
-        """Expose condition for debugging complex formatting paths."""
-        return f"IfExpression(\nif={self.condition}\n)"
+        """Render rebuilt Nix code for REPL/debug output."""
+        return self.rebuild()
 
 
 __all__ = ["IfExpression"]

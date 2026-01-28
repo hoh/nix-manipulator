@@ -8,7 +8,7 @@ from tree_sitter import Node
 from nix_manipulator.expressions.expression import TypedExpression
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, repr=False)
 class FloatExpression(TypedExpression):
     tree_sitter_types: ClassVar[set[str]] = {"float_expression"}
     value: str
@@ -28,8 +28,8 @@ class FloatExpression(TypedExpression):
         return self.add_trivia(self.value, indent, inline)
 
     def __repr__(self):
-        """Expose float payloads for debugging parsing output."""
-        return f"FloatExpression(\nvalue={self.value}\n)"
+        """Render rebuilt Nix code for REPL/debug output."""
+        return self.rebuild()
 
 
 __all__ = ["FloatExpression"]

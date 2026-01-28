@@ -7,7 +7,7 @@ from tree_sitter import Node
 from nix_manipulator.expressions.expression import NixExpression
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, repr=False)
 class Operator(NixExpression):
     # name: Literal["++", "+", "-", "*", "/"]
     name: str
@@ -28,8 +28,8 @@ class Operator(NixExpression):
         return self.add_trivia(value_str, indent, inline)
 
     def __repr__(self):
-        """Provide a concise operator view for debugging output."""
-        return f"NixExpression(\nname={self.name}\n)"
+        """Render rebuilt Nix code for REPL/debug output."""
+        return self.rebuild()
 
 
 __all__ = ["Operator"]

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from nix_manipulator.expressions.expression import NixExpression
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, repr=False)
 class RawExpression(NixExpression):
     """Fallback expression that preserves raw source text."""
 

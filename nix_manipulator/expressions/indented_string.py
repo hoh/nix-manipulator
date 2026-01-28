@@ -16,7 +16,7 @@ def _escape_indented_string(value: str) -> str:
     return escaped
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, repr=False)
 class IndentedString(TypedExpression):
     tree_sitter_types: ClassVar[set[str]] = {
         "indented_string_expression",
@@ -47,8 +47,8 @@ class IndentedString(TypedExpression):
         return self.add_trivia(value_str, indent, inline)
 
     def __repr__(self):
-        """Expose string payloads for debug visibility."""
-        return f"IndentedString(\nvalue={self.value}\n)"
+        """Render rebuilt Nix code for REPL/debug output."""
+        return self.rebuild()
 
 
 __all__ = ["IndentedString"]

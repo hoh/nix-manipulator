@@ -8,7 +8,7 @@ from tree_sitter import Node
 from nix_manipulator.expressions.expression import TypedExpression
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, repr=False)
 class NixPath(TypedExpression):
     tree_sitter_types: ClassVar[set[str]] = {
         "path_expression",

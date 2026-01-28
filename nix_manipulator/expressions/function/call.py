@@ -17,7 +17,7 @@ from nix_manipulator.expressions.trivia import (
     trim_leading_layout_trivia)
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, repr=False)
 class FunctionCall(TypedExpression):
     tree_sitter_types: ClassVar[set[str]] = {"apply_expression"}
     name: NixExpression | str

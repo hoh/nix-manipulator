@@ -50,6 +50,13 @@ class NixExpression:
         """Reconstruct the Nix source code for this object."""
         raise NotImplementedError
 
+    def __repr__(self) -> str:
+        """Render rebuilt Nix code for REPL/debug output."""
+        try:
+            return self.rebuild()
+        except Exception as exc:  # pragma: no cover - repr fallback path
+            return f"<{self.__class__.__name__} unprintable: {exc!r}>"
+
     def model_copy(self, update: dict[str, Any] | None = None) -> Self:
         """Copy nodes to enable immutable-style edits during transforms."""
         if not update:

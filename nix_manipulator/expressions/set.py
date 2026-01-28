@@ -206,7 +206,7 @@ def _render_bindings(
     return rendered
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, repr=False)
 class AttributeSet(TypedExpression):
     """Nix attribute set with trivia-aware formatting."""
     tree_sitter_types: ClassVar[set[str]] = {

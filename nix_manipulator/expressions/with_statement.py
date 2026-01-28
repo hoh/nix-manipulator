@@ -21,7 +21,7 @@ from nix_manipulator.expressions.trivia import (
     layout_from_gap, split_inline_comments, trim_leading_layout_trivia)
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, repr=False)
 class WithStatement(TypedExpression):
     tree_sitter_types: ClassVar[set[str]] = {"with_expression"}
     environment: NixExpression

@@ -15,7 +15,7 @@ from nix_manipulator.expressions.trivia import (
     gap_between, layout_from_gap)
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, repr=False)
 class UnaryExpression(TypedExpression):
     tree_sitter_types: ClassVar[set[str]] = {"unary_expression"}
     operator: str

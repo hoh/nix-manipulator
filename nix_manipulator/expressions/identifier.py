@@ -16,7 +16,7 @@ from nix_manipulator.resolution import (get_resolution_context,
                                         set_resolution_context)
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, repr=False)
 class Identifier(NixExpression):
     name: str
     default_value: NixExpression | None = None

@@ -17,7 +17,7 @@ from nix_manipulator.expressions.trivia import (
     split_inline_comments, trim_leading_layout_trivia)
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, repr=False)
 class Assertion(TypedExpression):
     tree_sitter_types: ClassVar[set[str]] = {
         "assert_expression",

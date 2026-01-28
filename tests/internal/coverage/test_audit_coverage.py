@@ -246,7 +246,7 @@ def test_primitive_operator_helpers_and_dispatch():
 
     identifier = Identifier(name="foo")
     assert int_primitive != identifier
-    assert "NixExpression" in repr(int_primitive)
+    assert repr(int_primitive) == "2"
 
     str_primitive = Primitive(value="foo")
     assert isinstance(str_primitive, StringPrimitive)
@@ -287,7 +287,7 @@ def test_float_expression_parsing_and_rebuild():
     node = DummyNode(type="float_expression", text=b"1.25")
     parsed = FloatExpression.from_cst(node)
     assert parsed.rebuild() == "1.25"
-    assert "FloatExpression" in repr(parsed)
+    assert repr(parsed) == "1.25"
 
     scoped = FloatExpression(
         value="1.25", scope=[Binding(name="scoped", value=Primitive(value=0))]

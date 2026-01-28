@@ -438,7 +438,7 @@ def _collect_colon_trivia(
     )
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, repr=False)
 class FunctionDefinition(TypedExpression):
     tree_sitter_types: ClassVar[set[str]] = {"function_expression"}
     argument_set: Identifier | list[Identifier | Ellipses] = field(default_factory=list)

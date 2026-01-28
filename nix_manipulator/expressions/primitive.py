@@ -128,8 +128,8 @@ class Primitive(TypedExpression):
         return self.add_trivia(value_str, indent, inline)
 
     def __repr__(self):
-        """Expose primitive payloads to simplify debugging transformations."""
-        return f"NixExpression(\nvalue={self.value} type={type(self.value)}\n)"
+        """Render rebuilt Nix code for REPL/debug output."""
+        return self.rebuild()
 
 
 @dataclass(slots=True, eq=False, repr=False)

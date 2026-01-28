@@ -104,7 +104,7 @@ def _split_attrpath(text: str) -> list[str]:
     return segments
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, repr=False)
 class Binding(TypedExpression):
     """Single `name = value;` binding with preserved trivia."""
     tree_sitter_types: ClassVar[set[str]] = {"binding"}

@@ -277,13 +277,11 @@ class NixSourceCode:
         return False
 
     def __repr__(self) -> str:
-        """Provide a readable source snapshot for debugging output."""
-        return (
-            "NixSourceCode(\n"
-            f"  node={self.node}, \n"
-            f"  expressions={self.expressions}\n"
-            ")"
-        )
+        """Render rebuilt Nix code for REPL/debug output."""
+        try:
+            return self.rebuild()
+        except Exception as exc:  # pragma: no cover - repr fallback path
+            return f"<NixSourceCode unprintable: {exc!r}>"
 
     @property
     def expr(self) -> Any:

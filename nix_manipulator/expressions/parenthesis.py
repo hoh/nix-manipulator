@@ -15,7 +15,7 @@ from nix_manipulator.expressions.trivia import (
     parse_delimited_sequence)
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, repr=False)
 class Parenthesis(TypedExpression):
     tree_sitter_types: ClassVar[set[str]] = {"parenthesized_expression"}
     value: NixExpression
@@ -137,8 +137,8 @@ class Parenthesis(TypedExpression):
         return self.add_trivia(value_str, indent, inline)
 
     def __repr__(self):
-        """Expose nested value for debugging formatting decisions."""
-        return f"Parenthesis(\nvalue={self.value}\n)"
+        """Render rebuilt Nix code for REPL/debug output."""
+        return self.rebuild()
 
 
 __all__ = ["Parenthesis"]

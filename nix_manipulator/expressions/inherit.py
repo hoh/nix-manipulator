@@ -20,7 +20,7 @@ from nix_manipulator.expressions.trivia import (append_comment_between,
                                                 trim_leading_layout_trivia)
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, repr=False)
 class Inherit(TypedExpression):
     """Represent `inherit` statements, keeping their original spacing."""
     tree_sitter_types: ClassVar[set[str]] = {"inherit", "inherit_from"}

@@ -8,7 +8,7 @@ from tree_sitter import Node
 from nix_manipulator.expressions.expression import TypedExpression
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, repr=False)
 class Comment(TypedExpression):
     tree_sitter_types: ClassVar[set[str]] = {"comment"}
     text: str
@@ -89,7 +89,7 @@ class Comment(TypedExpression):
         return " " * indent + str(self)
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, repr=False)
 class MultilineComment(Comment):
     doc: bool = False
     inner_indent: int | None = None

@@ -22,7 +22,7 @@ from nix_manipulator.expressions.trivia import (
     gap_has_empty_line_from_offsets, gap_has_newline_from_offsets)
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, repr=False)
 class LetExpression(TypedExpression):
     tree_sitter_types: ClassVar[set[str]] = {"let_expression"}
     local_variables: list[Binding | Inherit]

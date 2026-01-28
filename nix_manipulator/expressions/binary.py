@@ -287,7 +287,7 @@ def _resolve_right_operand(
     return right_str, right_indent
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, repr=False)
 class BinaryExpression(TypedExpression):
     tree_sitter_types: ClassVar[set[str]] = {"binary_expression"}
     operator: Operator

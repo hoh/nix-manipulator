@@ -58,7 +58,7 @@ def process_list(node: Node):
     return values, inner_trivia
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, repr=False)
 class NixList(TypedExpression):
     """Nix list expression that preserves original multiline structure."""
     tree_sitter_types: ClassVar[set[str]] = {"list_expression"}
@@ -204,8 +204,8 @@ class NixList(TypedExpression):
         )
 
     def __repr__(self):
-        """Expose list contents for debug visibility."""
-        return f"NixList(\nvalue={self.value}\n)"
+        """Render rebuilt Nix code for REPL/debug output."""
+        return self.rebuild()
 
 
 __all__ = ["NixList"]
