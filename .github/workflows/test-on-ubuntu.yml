@@ -14,9 +14,6 @@ jobs:
       with:
         nix_path: nixpkgs=channel:nixos-unstable
 
-    - name: Set NIXPKGS_PATH
-      run: echo "NIXPKGS_PATH=$(nix-instantiate --find-file nixpkgs)" >> "$GITHUB_ENV"
-
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
