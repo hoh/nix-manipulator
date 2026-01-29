@@ -14,6 +14,7 @@ from nix_manipulator.expressions.expression import (
 )
 from nix_manipulator.expressions.function.call import FunctionCall
 from nix_manipulator.expressions.identifier import Identifier
+from nix_manipulator.expressions.path import NixPath
 
 
 @dataclass(slots=True, repr=False)
@@ -79,6 +80,31 @@ class Import(TypedExpression):
             after=self.after,
         )
         return call.rebuild(indent=indent, inline=inline)
+
+    def _resolve_argument(self) -> NixExpression:
+        """Return the import argument after removing parentheses."""
+        from nix_manipulator.expressions.parenthesis import Parenthesis
+
+        if self.argument is None:
+            raise TypeError("Import expressions require an argument")
+        argument = self.argument
+        while isinstance(argument, Parenthesis):
+            argument = argument.value
+        return argument
+
+    def _follow_import(self):
+        """Parse a NixPath import target for attribute access."""
+        argument = self._resolve_argument()
+        if not isinstance(argument, NixPath):
+            raise TypeError("Import following requires a NixPath argument")
+        from nix_manipulator.parser import parse_file
+
+        return parse_file(argument.resolved_path())
+
+    def __getitem__(self, key: str):
+        """Delegate lookups to the imported file when available."""
+        imported = self._follow_import()
+        return imported[key]
 
 
 __all__ = ["Import"]

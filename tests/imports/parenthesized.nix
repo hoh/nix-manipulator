@@ -1,0 +1,3 @@
+{
+  b = import (./set.nix);
+}
