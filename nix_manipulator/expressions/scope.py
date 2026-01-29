@@ -46,6 +46,19 @@ class Scope(list[Any]):
                 return index
         return None
 
+    def _attrpath_order(self) -> list[Any] | None:
+        """Return the owner's attrpath order list if present."""
+        owner = self.owner
+        if owner is None:
+            return None
+        state = owner.scope_state
+        if state is None:
+            return None
+        if isinstance(state, dict):
+            state = ScopeState(**state)
+            owner.scope_state = state
+        return state.attrpath_order or None
+
     def __getitem__(self, key: SupportsIndex | slice | str) -> Any:
         if isinstance(key, str):
             binding = self.get_binding(key)
@@ -86,7 +99,11 @@ class Scope(list[Any]):
             if index is None:
                 from nix_manipulator.expressions.binding import Binding
 
-                self.append(Binding(name=key, value=value))
+                binding = Binding(name=key, value=value)
+                self.append(binding)
+                attrpath_order = self._attrpath_order()
+                if attrpath_order:
+                    attrpath_order.append(binding)
             else:
                 super().__getitem__(index).value = value
             return
@@ -97,7 +114,14 @@ class Scope(list[Any]):
             index = self._find_binding_index(key)
             if index is None:
                 raise KeyError(key)
+            binding = super().__getitem__(index)
             super().__delitem__(index)
+            attrpath_order = self._attrpath_order()
+            if attrpath_order:
+                for order_index, item in enumerate(attrpath_order):
+                    if item is binding or getattr(item, "binding", None) is binding:
+                        del attrpath_order[order_index]
+                        break
             return
         super().__delitem__(key)
 

@@ -107,6 +107,25 @@ def test_scope_update_dict_coerces_attrset():
     assert source.rebuild() == "let\n  bar = { baz = 4; };\nin\n{ foo = 1; }"
 
 
+def test_scope_update_on_parsed_let_scope():
+    """Ensure scope updates on parsed let expressions update rebuild order."""
+    source = parse("""
+let
+  b = 34;
+in
+{ a = 32; foobar = 23434; }
+""")
+    expr = source.expr
+    expr.scope["c"] = 300
+    assert expr.rebuild() == (
+        "let\n"
+        "  b = 34;\n"
+        "  c = 300;\n"
+        "in\n"
+        "{ a = 32; foobar = 23434; }"
+    )
+
+
 def test_with_scope():
     """Ensure the API allows getting values and comparing them easily"""
     source = parse("""

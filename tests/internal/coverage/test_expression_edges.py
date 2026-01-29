@@ -522,12 +522,24 @@ def test_scope_access_and_mutations():
     with pytest.raises(KeyError):
         del owner.scope["missing"]
     del owner.scope["bar"]
+
+    owner.scope_state = None
+    owner.scope["bar"] = 2
+    del owner.scope["bar"]
+
+    owner.scope_state = {"attrpath_order": [owner.scope.get_binding("foo")]}
+    owner.scope["baz"] = 5
+    assert owner.scope_state.attrpath_order[-1].name == "baz"
+    del owner.scope["baz"]
+    assert owner.scope_state.attrpath_order[0].name == "foo"
+
     owner.scope[0] = Binding(name="foo", value=4)
     del owner.scope[0]
 
     orphan_scope = Scope()
     orphan_scope["alpha"] = 1
     assert orphan_scope[0].name == "alpha"
+    del orphan_scope["alpha"]
     assert coerce_expression(True).rebuild() == "true"
 
 
