@@ -1,7 +1,5 @@
 """Test operator overloading."""
 
-from textwrap import dedent
-
 import pytest
 
 from nix_manipulator.expressions import AttributeSet, Binding, Identifier
@@ -97,14 +95,28 @@ def test_scope_update():
     source = AttributeSet({"foo": 1}, scope=[Binding(name="bar", value=2)])
     assert source["foo"] == 1
     source.scope["bar"] = 3
-    assert source.rebuild() == "let\n  bar = 3;\nin\n{ foo = 1; }"
+    assert (
+        source.rebuild()
+        == """
+let
+  bar = 3;
+in
+{ foo = 1; }""".strip("\n")
+    )
 
 
 def test_scope_update_dict_coerces_attrset():
     """Ensure scope updates coerce dict payloads."""
     source = AttributeSet({"foo": 1}, scope=[Binding(name="bar", value=2)])
     source.scope["bar"] = {"baz": 4}
-    assert source.rebuild() == "let\n  bar = { baz = 4; };\nin\n{ foo = 1; }"
+    assert (
+        source.rebuild()
+        == """
+let
+  bar = { baz = 4; };
+in
+{ foo = 1; }""".strip("\n")
+    )
 
 
 def test_scope_update_on_parsed_let_scope():
@@ -117,12 +129,14 @@ in
 """)
     expr = source.expr
     expr.scope["c"] = 300
-    assert expr.rebuild() == (
-        "let\n"
-        "  b = 34;\n"
-        "  c = 300;\n"
-        "in\n"
-        "{ a = 32; foobar = 23434; }"
+    assert (
+        expr.rebuild()
+        == """
+let
+  b = 34;
+  c = 300;
+in
+{ a = 32; foobar = 23434; }""".strip("\n")
     )
 
 
@@ -155,22 +169,31 @@ with { a = 1; };
 """)
     assert source["foo"] == Identifier("a")
     source["foo"] = 2
-    assert source.rebuild() == "with { a = 1; };\n{\n  foo = 2;\n}"
+    assert (
+        source.rebuild()
+        == """
+with { a = 1; };
+{
+  foo = 2;
+}""".strip("\n")
+    )
 
 
 def test_top_level_with_identifier_operator_access():
     """Operator access should resolve through with-body identifiers."""
-    source = parse(
-        dedent(
-            """\
-            with { body = { foo = 1; }; };
-            body
-            """
-        )
-    )
+    source = parse("""
+with { body = { foo = 1; }; };
+body
+""")
     assert source["foo"] == 1
     source["foo"] = 3
-    assert source.rebuild() == "with { body = { foo = 3; }; };\nbody\n"
+    assert (
+        source.rebuild()
+        == """
+with { body = { foo = 3; }; };
+body
+""".strip("\n")
+    )
 
 
 def test_operator_identifier_requires_value_resolution():
