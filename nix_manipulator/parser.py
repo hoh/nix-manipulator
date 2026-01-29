@@ -5,6 +5,7 @@ from threading import local
 import tree_sitter_nix as ts_nix
 from tree_sitter import Language, Node, Parser
 
+from nix_manipulator.expressions.path import source_path_context
 from nix_manipulator.expressions.source_code import NixSourceCode
 
 
@@ -60,4 +61,5 @@ def parse_file(path: Path | str) -> NixSourceCode:
     """Parse a Nix file from disk with UTF-8 decoding."""
     path = Path(path)
     source_code = path.read_text(encoding="utf-8")
-    return parse(source_code)
+    with source_path_context(path):
+        return parse(source_code)

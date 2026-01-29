@@ -8,6 +8,7 @@ from .function.definition import FunctionDefinition
 from .has_attr import HasAttrExpression
 from .identifier import Identifier
 from .inherit import Inherit
+from .import_expression import Import
 from .layout import comma, empty_line, linebreak
 from .path import NixPath
 from .primitive import (
@@ -39,6 +40,7 @@ __all__ = [
     "TypedExpression",
     "Identifier",
     "Inherit",
+    "Import",
     "empty_line",
     "linebreak",
     "comma",

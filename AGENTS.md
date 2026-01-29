@@ -18,7 +18,7 @@ Nix-manipulator (nima) is a Python library and CLI for parsing, manipulating, an
 
 ## Commands
 - `nix-build`: run the small suite via the default Nix check phase (ruff/isort/mypy + pytest -m "not nixpkgs").
-- `nix-shell --run "pytest -v -m nixpkgs"`: run the nixpkgs-marked tests for full validation. Add "-x" when it is relevant to stop on first failure.
+- `nix-shell --run "pytest -v -m nixpkgs"`: run the nixpkgs-marked tests for full validation. Use 300 seconds timeout. Add "-x" when it is relevant to stop on first failure.
 
 ## Tooling
 You can use anything from `nixpkgs` using `nix-shell` or by modifying `shell.nix`.

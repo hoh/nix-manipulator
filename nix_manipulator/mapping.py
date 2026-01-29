@@ -11,6 +11,7 @@ from nix_manipulator.expressions.function.call import FunctionCall
 from nix_manipulator.expressions.function.definition import FunctionDefinition
 from nix_manipulator.expressions.has_attr import HasAttrExpression
 from nix_manipulator.expressions.if_expression import IfExpression
+from nix_manipulator.expressions.import_expression import Import
 from nix_manipulator.expressions.indented_string import IndentedString
 from nix_manipulator.expressions.inherit import Inherit
 from nix_manipulator.expressions.let import LetExpression, parse_let_expression
@@ -66,6 +67,11 @@ def tree_sitter_node_to_expression(node) -> NixExpression:
     """Centralize CST-to-expression mapping to keep parsing rules consistent."""
     if node.type == "let_expression":
         return parse_let_expression(node)
+    if node.type == "apply_expression":
+        # `import` is modeled as its own expression for clear semantics.
+        if Import.is_import_node(node):
+            return Import.from_cst(node)
+        return FunctionCall.from_cst(node)
     expression_type = TREE_SITTER_TYPE_TO_EXPRESSION.get(node.type)
     if expression_type is None:
         raise ValueError(f"Unsupported node type: {node.type}")
