@@ -8,12 +8,13 @@ from typing import Any, ClassVar
 from tree_sitter import Node
 
 from nix_manipulator.expressions.comment import Comment
-from nix_manipulator.expressions.expression import (NixExpression,
-                                                    TypedExpression)
+from nix_manipulator.expressions.expression import NixExpression, TypedExpression
 from nix_manipulator.expressions.layout import empty_line, linebreak
 from nix_manipulator.expressions.trivia import (
     collect_comments_between_with_gap,
-    format_interstitial_trivia_with_separator, layout_from_gap)
+    format_interstitial_trivia_with_separator,
+    layout_from_gap,
+)
 
 
 @dataclass(slots=True, repr=False)
@@ -106,8 +107,7 @@ class HasAttrExpression(TypedExpression):
                 update={
                     "on_newline": True,
                     "blank_line": any(
-                        item is empty_line
-                        for item in self.before_question_comments
+                        item is empty_line for item in self.before_question_comments
                     ),
                 }
             )
@@ -121,27 +121,22 @@ class HasAttrExpression(TypedExpression):
                 update={
                     "on_newline": True,
                     "blank_line": any(
-                        item is empty_line
-                        for item in self.after_question_comments
+                        item is empty_line for item in self.after_question_comments
                     ),
                 }
             )
 
-        before_question_str, left_sep = (
-            format_interstitial_trivia_with_separator(
-                self.before_question_comments,
-                left_layout,
-                indent=indent,
-                drop_blank_line_if_items=False,
-            )
+        before_question_str, left_sep = format_interstitial_trivia_with_separator(
+            self.before_question_comments,
+            left_layout,
+            indent=indent,
+            drop_blank_line_if_items=False,
         )
-        after_question_str, right_sep = (
-            format_interstitial_trivia_with_separator(
-                self.after_question_comments,
-                right_layout,
-                indent=indent,
-                drop_blank_line_if_items=False,
-            )
+        after_question_str, right_sep = format_interstitial_trivia_with_separator(
+            self.after_question_comments,
+            right_layout,
+            indent=indent,
+            drop_blank_line_if_items=False,
         )
 
         rebuild_string = (

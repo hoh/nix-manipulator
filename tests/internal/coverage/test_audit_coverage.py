@@ -17,8 +17,7 @@ from nix_manipulator.expressions import NixSourceCode
 from nix_manipulator.expressions.binding import Binding
 from nix_manipulator.expressions.comment import Comment, MultilineComment
 from nix_manipulator.expressions.ellipses import Ellipses
-from nix_manipulator.expressions.expression import (NixExpression,
-                                                    coerce_expression)
+from nix_manipulator.expressions.expression import NixExpression, coerce_expression
 from nix_manipulator.expressions.float import FloatExpression
 from nix_manipulator.expressions.identifier import Identifier
 from nix_manipulator.expressions.indented_string import IndentedString
@@ -26,14 +25,19 @@ from nix_manipulator.expressions.layout import comma, empty_line, linebreak
 from nix_manipulator.expressions.list import NixList
 from nix_manipulator.expressions.operator import Operator
 from nix_manipulator.expressions.path import NixPath
-from nix_manipulator.expressions.primitive import (IntegerPrimitive,
-                                                   NullPrimitive, Primitive,
-                                                   StringPrimitive)
+from nix_manipulator.expressions.primitive import (
+    IntegerPrimitive,
+    NullPrimitive,
+    Primitive,
+    StringPrimitive,
+)
 from nix_manipulator.expressions.raw import RawExpression
-from nix_manipulator.mapping import (EXPRESSION_TYPES,
-                                     TREE_SITTER_TYPE_TO_EXPRESSION,
-                                     register_expression,
-                                     tree_sitter_node_to_expression)
+from nix_manipulator.mapping import (
+    EXPRESSION_TYPES,
+    TREE_SITTER_TYPE_TO_EXPRESSION,
+    register_expression,
+    tree_sitter_node_to_expression,
+)
 from nix_manipulator.utils import pretty_print_cst
 
 
@@ -152,6 +156,7 @@ def test_parse_file_accepts_path(tmp_path):
 
 def test_mapping_register_expression_and_unknown_node():
     """Exercise expression registration and unknown node failures."""
+
     class DummyExpression(NixExpression):
         tree_sitter_types = {"dummy_expression"}
 
@@ -182,6 +187,7 @@ def test_layout_repr_sentinels():
 
 def test_expression_base_helpers_and_coercion():
     """Exercise base expression helpers and coercion errors."""
+
     class DummyExpr(NixExpression):
         def rebuild(self, indent: int = 0, inline: bool = False) -> str:
             return "dummy"
@@ -368,10 +374,21 @@ def test_identifier_defaults_and_trivia():
 
 def test_primitive_from_cst_and_rebuild_branches():
     """Cover primitive parsing branches and rebuild error handling."""
-    assert Primitive.from_cst(DummyNode(type="string_expression", text=b'"x"')).value == "x"
-    assert Primitive.from_cst(DummyNode(type="string_fragment", text=b"frag")).value == "frag"
-    assert Primitive.from_cst(DummyNode(type="integer_expression", text=b"42")).value == 42
-    assert Primitive.from_cst(DummyNode(type="variable_expression", text=b"true")).value is True
+    assert (
+        Primitive.from_cst(DummyNode(type="string_expression", text=b'"x"')).value
+        == "x"
+    )
+    assert (
+        Primitive.from_cst(DummyNode(type="string_fragment", text=b"frag")).value
+        == "frag"
+    )
+    assert (
+        Primitive.from_cst(DummyNode(type="integer_expression", text=b"42")).value == 42
+    )
+    assert (
+        Primitive.from_cst(DummyNode(type="variable_expression", text=b"true")).value
+        is True
+    )
 
     identifier = Primitive.from_cst(DummyNode(type="variable_expression", text=b"foo"))
     assert isinstance(identifier, Identifier)
@@ -381,8 +398,8 @@ def test_primitive_from_cst_and_rebuild_branches():
     with pytest.raises(ValueError, match="Unsupported expression type"):
         Primitive.from_cst(DummyNode(type="weird", text=b"nope"))
 
-    escaped = Primitive(value="a\"b\\c\n")
-    assert "\\\"" in escaped.rebuild()
+    escaped = Primitive(value='a"b\\c\n')
+    assert '\\"' in escaped.rebuild()
 
     escaped_controls = Primitive(value="a\r\t")
     assert "\\r" in escaped_controls.rebuild()

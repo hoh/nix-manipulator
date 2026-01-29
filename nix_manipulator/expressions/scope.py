@@ -3,8 +3,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import (TYPE_CHECKING, Any, Iterable, SupportsIndex, TypeAlias,
-                    TypedDict, cast)
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Iterable,
+    SupportsIndex,
+    TypeAlias,
+    TypedDict,
+    cast,
+)
 
 if TYPE_CHECKING:
     from nix_manipulator.expressions.binding import Binding
@@ -22,6 +29,7 @@ else:
 
 class Scope(list[Any]):
     """List-like scope bindings with dict-style access by name."""
+
     owner: "NixExpression | None"
 
     def __init__(
@@ -45,8 +53,7 @@ class Scope(list[Any]):
             from nix_manipulator.expressions.expression import NixExpression
 
             if isinstance(value, NixExpression):
-                from nix_manipulator.resolution import \
-                    attach_resolution_context
+                from nix_manipulator.resolution import attach_resolution_context
 
                 if self.owner is not None:
                     attach_resolution_context(value, owner=self.owner)
@@ -70,6 +77,7 @@ class Scope(list[Any]):
 
                 value = AttributeSet.from_dict(value)
             from nix_manipulator.expressions.expression import NixExpression
+
             if isinstance(value, NixExpression):
                 from nix_manipulator.resolution import clear_resolution_context
 
@@ -101,6 +109,7 @@ class ScopeLayer(TypedDict):
     compliant scopes without losing comments or attrpath order, which keeps
     large Nix estates safely auto-updatable.
     """
+
     scope: Scope | list[ScopeItem]
     body_before: list[Any]
     body_after: list[Any]
@@ -116,6 +125,7 @@ class ScopeState:
     expression API lets tools stage complex rewrites while keeping signatures
     simple, reducing risk of format drift in production Nix configs.
     """
+
     body_before: list[Any] = field(default_factory=list)
     body_after: list[Any] = field(default_factory=list)
     attrpath_order: list[AttrpathOrderItem] = field(default_factory=list)

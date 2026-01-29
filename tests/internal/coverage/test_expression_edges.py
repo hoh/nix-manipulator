@@ -316,7 +316,9 @@ def test_select_errors_and_rebuild_branches():
         Select.from_cst(FieldNode(type="select_expression", text=None))
 
     expr_node = FieldNode(type="variable_expression", text=b"x")
-    with pytest.raises(ValueError, match="Select expression is missing required fields"):
+    with pytest.raises(
+        ValueError, match="Select expression is missing required fields"
+    ):
         Select.from_cst(FieldNode(type="select_expression", text=b"x", field_map={}))
 
     attr_node = FieldNode(type="attrpath", text=None)
@@ -403,9 +405,7 @@ def test_source_code_error_paths_and_eq():
     )
     assert trailing.rebuild().endswith("# c")
 
-    plain = NixSourceCode(
-        node=SimpleNamespace(), expressions=[Primitive(value=1)]
-    )
+    plain = NixSourceCode(node=SimpleNamespace(), expressions=[Primitive(value=1)])
     assert plain == plain
     assert plain == Primitive(value=1)
     assert plain == plain.rebuild()
@@ -438,12 +438,18 @@ def test_source_resolve_target_set_wrappers_and_errors():
     with pytest.raises(ValueError, match="Source contains no expressions"):
         NixSourceCode(node=SimpleNamespace(), expressions=[])._resolve_target_set()
 
-    with pytest.raises(ValueError, match="Top-level expression must be an attribute set"):
-        NixSourceCode(node=SimpleNamespace(), expressions=[Primitive(value=1)])._resolve_target_set()
+    with pytest.raises(
+        ValueError, match="Top-level expression must be an attribute set"
+    ):
+        NixSourceCode(
+            node=SimpleNamespace(), expressions=[Primitive(value=1)]
+        )._resolve_target_set()
 
     bad_assertion = Assertion(expression=Primitive(value=True), body=None)
     with pytest.raises(ValueError, match="Unexpected assertion without body"):
-        NixSourceCode(node=SimpleNamespace(), expressions=[bad_assertion])._resolve_target_set()
+        NixSourceCode(
+            node=SimpleNamespace(), expressions=[bad_assertion]
+        )._resolve_target_set()
 
     let_source = parser.parse("let pkg = { value = 1; }; in pkg")
     assert isinstance(let_source._resolve_target_set(), AttributeSet)

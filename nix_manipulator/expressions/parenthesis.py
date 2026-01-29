@@ -8,11 +8,13 @@ from typing import Any, ClassVar
 from tree_sitter import Node
 
 from nix_manipulator.expressions.comment import Comment
-from nix_manipulator.expressions.expression import (NixExpression,
-                                                    TypedExpression)
+from nix_manipulator.expressions.expression import NixExpression, TypedExpression
 from nix_manipulator.expressions.trivia import (
-    gap_between, gap_has_empty_line_from_offsets, layout_from_gap,
-    parse_delimited_sequence)
+    gap_between,
+    gap_has_empty_line_from_offsets,
+    layout_from_gap,
+    parse_delimited_sequence,
+)
 
 
 @dataclass(slots=True, repr=False)
@@ -33,14 +35,18 @@ class Parenthesis(TypedExpression):
             raise ValueError("Parenthesis has no code")
 
         open_paren = next((child for child in node.children if child.type == "("), None)
-        close_paren = next((child for child in reversed(node.children) if child.type == ")"), None)
+        close_paren = next(
+            (child for child in reversed(node.children) if child.type == ")"), None
+        )
         if open_paren is None or close_paren is None:
             raise ValueError("Parenthesis is missing delimiters")
 
         value: NixExpression | None = None
         value_node: Node | None = None
 
-        content_nodes = [child for child in node.children if child.type not in ("(", ")")]
+        content_nodes = [
+            child for child in node.children if child.type not in ("(", ")")
+        ]
         first_content = content_nodes[0] if content_nodes else None
         last_content = content_nodes[-1] if content_nodes else None
 

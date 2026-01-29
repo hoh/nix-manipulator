@@ -3,10 +3,18 @@ from dataclasses import dataclass
 from typing import Sequence, cast
 
 from nix_manipulator.exceptions import ResolutionError
-from nix_manipulator.expressions import (AttributeSet, Binding, FunctionCall,
-                                         FunctionDefinition, Identifier,
-                                         Inherit, NixExpression, NixSourceCode,
-                                         Scope, WithStatement)
+from nix_manipulator.expressions import (
+    AttributeSet,
+    Binding,
+    FunctionCall,
+    FunctionDefinition,
+    Identifier,
+    Inherit,
+    NixExpression,
+    NixSourceCode,
+    Scope,
+    WithStatement,
+)
 from nix_manipulator.expressions.assertion import Assertion
 from nix_manipulator.expressions.layout import empty_line, linebreak
 from nix_manipulator.expressions.let import LetExpression
@@ -16,9 +24,11 @@ from nix_manipulator.expressions.raw import RawExpression
 from nix_manipulator.expressions.scope import ScopeLayer, ScopeState
 from nix_manipulator.expressions.set import _AttrpathEntry
 from nix_manipulator.parser import parse
-from nix_manipulator.resolution import (attach_resolution_context,
-                                        scopes_for_owner,
-                                        set_resolution_context)
+from nix_manipulator.resolution import (
+    attach_resolution_context,
+    scopes_for_owner,
+    set_resolution_context,
+)
 
 
 def _resolve_target_set_from_expr(
@@ -33,10 +43,10 @@ def _resolve_target_set_from_expr(
         raise ValueError("Unexpected expression type")
     visited.add(id(target))
 
-    def _resolve_nested(expr: NixExpression, *, scopes: tuple[Scope, ...] | None = scope_chain) -> AttributeSet:
-        return _resolve_target_set_from_expr(
-            expr, scope_chain=scopes, _visited=visited
-        )
+    def _resolve_nested(
+        expr: NixExpression, *, scopes: tuple[Scope, ...] | None = scope_chain
+    ) -> AttributeSet:
+        return _resolve_target_set_from_expr(expr, scope_chain=scopes, _visited=visited)
 
     if scope_chain is None:
         scope_chain = scopes_for_owner(target)
@@ -50,7 +60,9 @@ def _resolve_target_set_from_expr(
             return _resolve_nested(target.value)
         case FunctionDefinition():
             output = target.output
-            if isinstance(output, FunctionCall) and isinstance(output.argument, AttributeSet):
+            if isinstance(output, FunctionCall) and isinstance(
+                output.argument, AttributeSet
+            ):
                 return output.argument
             if isinstance(output, AttributeSet):
                 return output
@@ -98,7 +110,19 @@ def _resolve_target_set(source: NixSourceCode) -> AttributeSet:
     if len(source.expressions) != 1:
         raise ValueError("Source must contain exactly one top-level expression")
     top_level = source.expressions[0]
-    if not isinstance(top_level, (Assertion, FunctionDefinition, AttributeSet, WithStatement, Identifier, Parenthesis, LetExpression, FunctionCall)):
+    if not isinstance(
+        top_level,
+        (
+            Assertion,
+            FunctionDefinition,
+            AttributeSet,
+            WithStatement,
+            Identifier,
+            Parenthesis,
+            LetExpression,
+            FunctionCall,
+        ),
+    ):
         raise ValueError(
             "Top-level expression must be an attribute set or function definition"
         )
@@ -263,11 +287,7 @@ def _find_attrpath_leaf(
 def _find_attrpath_root(target_set: AttributeSet, root: str) -> Binding | None:
     """Locate the root binding for attrpath-derived entries."""
     for item in target_set.values:
-        if (
-            isinstance(item, Binding)
-            and item.nested
-            and item.name == root
-        ):
+        if isinstance(item, Binding) and item.nested and item.name == root:
             return item
     return None
 
@@ -350,20 +370,14 @@ def _set_attrpath_value(
         binding = _find_named_binding(current.values, seg, nested=True)
         if binding is None:
             if _find_named_binding(current.values, seg, nested=False) is not None:
-                raise ValueError(
-                    f"Mixed explicit binding inside attrpath: {seg}"
-                )
+                raise ValueError(f"Mixed explicit binding inside attrpath: {seg}")
             nested_set = AttributeSet(values=[], multiline=current.multiline)
             binding = Binding(name=seg, value=nested_set, nested=True)
             current.values.append(binding)
         if not binding.nested:
-            raise ValueError(
-                f"Mixed explicit binding inside attrpath: {seg}"
-            )
+            raise ValueError(f"Mixed explicit binding inside attrpath: {seg}")
         if not isinstance(binding.value, AttributeSet):
-            raise ValueError(
-                f"NPath segment does not point to an attribute set: {seg}"
-            )
+            raise ValueError(f"NPath segment does not point to an attribute set: {seg}")
         current = binding.value
 
     final_key = segments[-1]
@@ -676,8 +690,12 @@ def _write_scope_layers(
                 item for item in preserved_after if item not in restored_after
             ]
         else:
-            expr.before = preserved_before  # pragma: no cover - defensive preservation path
-            expr.after = preserved_after  # pragma: no cover - defensive preservation path
+            expr.before = (
+                preserved_before  # pragma: no cover - defensive preservation path
+            )
+            expr.after = (
+                preserved_after  # pragma: no cover - defensive preservation path
+            )
         return
 
     outer = layers[0]
@@ -716,7 +734,9 @@ def set_value(source: NixSourceCode, npath: str, value: str) -> str:
     if not source.expressions:
         raise ValueError("Source contains no expressions")
     if len(source.expressions) != 1:
-        raise ValueError("Top-level expression must be an attribute set or function definition")
+        raise ValueError(
+            "Top-level expression must be an attribute set or function definition"
+        )
 
     scope_path = _split_scope_npath(npath)
     let_bindings: list[Binding] = []
@@ -768,15 +788,15 @@ def set_value(source: NixSourceCode, npath: str, value: str) -> str:
                 target_layer["attrpath_order"],
             ),
         )
-        _set_value_in_attrset(attrset, scope_npath, value_expr, let_bindings=let_bindings)
+        _set_value_in_attrset(
+            attrset, scope_npath, value_expr, let_bindings=let_bindings
+        )
         _write_scope_layers(target_expr, layers)
         return source.rebuild()
 
     resolution = _resolve_npath(source, npath)
     target_set = resolution.target_set
-    _set_value_in_attrset(
-        target_set, npath, value_expr, let_bindings=let_bindings
-    )
+    _set_value_in_attrset(target_set, npath, value_expr, let_bindings=let_bindings)
     return source.rebuild()
 
 
@@ -785,7 +805,9 @@ def remove_value(source: NixSourceCode, npath: str) -> str:
     if not source.expressions:
         raise ValueError("Source contains no expressions")
     if len(source.expressions) != 1:
-        raise ValueError("Top-level expression must be an attribute set or function definition")
+        raise ValueError(
+            "Top-level expression must be an attribute set or function definition"
+        )
 
     scope_path = _split_scope_npath(npath)
     if scope_path is not None:
@@ -818,16 +840,22 @@ def remove_value(source: NixSourceCode, npath: str) -> str:
             # with prior formatting (e.g., trailing comments without an extra EOL).
             while source.trailing and source.trailing[-1] in (linebreak, empty_line):
                 source.trailing.pop()
-        if removed_layer and removed_layer.get("body_after"):  # pragma: no cover - defensive restoration
+        if removed_layer and removed_layer.get(
+            "body_after"
+        ):  # pragma: no cover - defensive restoration
             # Restore trailing trivia that was stashed on the scope layer.
             if not source.trailing:
                 source.trailing = list(removed_layer["body_after"])
             else:
                 existing_ids = {id(item) for item in source.trailing}
                 source.trailing.extend(
-                    item for item in removed_layer["body_after"] if id(item) not in existing_ids
+                    item
+                    for item in removed_layer["body_after"]
+                    if id(item) not in existing_ids
                 )
-        if not source.trailing and original_trailing:  # pragma: no cover - defensive restoration
+        if (
+            not source.trailing and original_trailing
+        ):  # pragma: no cover - defensive restoration
             source.trailing = original_trailing
         rebuilt = source.rebuild()
         if removed_layer and not layers and removed_layer.get("body_before"):
@@ -851,7 +879,9 @@ def remove_value(source: NixSourceCode, npath: str) -> str:
         return source.rebuild()
     if resolution.attrpath_root is not None:
         _remove_attrpath_value(target_set, segments)
-        return source.rebuild()  # pragma: no cover - attrpath branch covered in other tests
+        return (
+            source.rebuild()
+        )  # pragma: no cover - attrpath branch covered in other tests
     parent_set, final_key = _resolve_npath_parent(
         target_set, npath, create_missing=False
     )

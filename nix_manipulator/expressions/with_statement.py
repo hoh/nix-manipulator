@@ -8,17 +8,21 @@ from typing import Any, ClassVar
 from tree_sitter import Node
 
 from nix_manipulator.expressions.comment import Comment
-from nix_manipulator.expressions.expression import (NixExpression,
-                                                    TypedExpression)
+from nix_manipulator.expressions.expression import NixExpression, TypedExpression
 from nix_manipulator.expressions.indented_string import IndentedString
 from nix_manipulator.expressions.layout import empty_line, linebreak
 from nix_manipulator.expressions.list import NixList
 from nix_manipulator.expressions.parenthesis import Parenthesis
 from nix_manipulator.expressions.set import AttributeSet
 from nix_manipulator.expressions.trivia import (
-    append_gap_trivia, collect_comments_between_with_gap,
-    format_inline_comment_suffix, format_interstitial_trivia_with_separator,
-    layout_from_gap, split_inline_comments, trim_leading_layout_trivia)
+    append_gap_trivia,
+    collect_comments_between_with_gap,
+    format_inline_comment_suffix,
+    format_interstitial_trivia_with_separator,
+    layout_from_gap,
+    split_inline_comments,
+    trim_leading_layout_trivia,
+)
 
 
 @dataclass(slots=True, repr=False)
@@ -38,7 +42,9 @@ class WithStatement(TypedExpression):
 
         environment_node = node.child_by_field_name("environment")
         body_node = node.child_by_field_name("body")
-        with_node = next((child for child in node.children if child.type == "with"), None)
+        with_node = next(
+            (child for child in node.children if child.type == "with"), None
+        )
         from nix_manipulator.mapping import tree_sitter_node_to_expression
 
         environment = tree_sitter_node_to_expression(environment_node)
@@ -92,7 +98,9 @@ class WithStatement(TypedExpression):
 
         after_with_layout = layout_from_gap(self.after_with_gap)
         if self.after_with_comments:
-            after_with_layout = after_with_layout.model_copy(update={"blank_line": False})
+            after_with_layout = after_with_layout.model_copy(
+                update={"blank_line": False}
+            )
         force_env_newline = any(
             item in (linebreak, empty_line)
             or (isinstance(item, Comment) and not item.inline)
@@ -102,7 +110,9 @@ class WithStatement(TypedExpression):
             after_with_layout = after_with_layout.model_copy(
                 update={
                     "on_newline": True,
-                    "blank_line": any(item is empty_line for item in self.after_with_comments),
+                    "blank_line": any(
+                        item is empty_line for item in self.after_with_comments
+                    ),
                 }
             )
 
@@ -118,19 +128,15 @@ class WithStatement(TypedExpression):
                 if after_with_layout.indent is not None
                 else indent
             )
-            environment_str = environment_expr.rebuild(
-                indent=env_indent, inline=False
-            )
+            environment_str = environment_expr.rebuild(indent=env_indent, inline=False)
         else:
             environment_str = environment_expr.rebuild(indent=indent, inline=True)
-        after_with_comments_str, env_prefix = (
-            format_interstitial_trivia_with_separator(
-                self.after_with_comments,
-                after_with_layout,
-                indent=indent,
-                include_indent=False,
-                drop_blank_line_if_items=False,
-            )
+        after_with_comments_str, env_prefix = format_interstitial_trivia_with_separator(
+            self.after_with_comments,
+            after_with_layout,
+            indent=indent,
+            include_indent=False,
+            drop_blank_line_if_items=False,
         )
 
         def is_absorbable_term(expr: NixExpression) -> bool:
@@ -167,7 +173,7 @@ class WithStatement(TypedExpression):
             if body_sep == " " and indent:
                 indent_prefix = " " * indent
                 if body_str.startswith(indent_prefix):
-                    body_str = body_str[len(indent_prefix):]
+                    body_str = body_str[len(indent_prefix) :]
         else:
             inline_body = self.body.rebuild(indent=indent, inline=True)
             if body_force_newline or "\n" in inline_body:

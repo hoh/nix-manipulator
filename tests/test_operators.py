@@ -20,11 +20,11 @@ def test_get_values():
   };
 }
 """)
-    assert source['a'] == 1
-    assert source['b'] == "test"
-    assert source['c'] == None  # noqa: E711
-    assert source['c'].value is None
-    assert source['d']['e'] == 2
+    assert source["a"] == 1
+    assert source["b"] == "test"
+    assert source["c"] == None  # noqa: E711
+    assert source["c"].value is None
+    assert source["d"]["e"] == 2
 
 
 def test_modify_values():
@@ -38,22 +38,22 @@ def test_modify_values():
       };
     }
     """)
-    source['a'] += 1
-    assert source['a'] == 2
-    source['b'] += "test"
-    assert source['b'] == "testtest"
-    source['c']['d'] += 1
-    source['c']['e'] = 3
-    assert source['c']['d'] == 3
-    assert source['c']['e'] == 3
+    source["a"] += 1
+    assert source["a"] == 2
+    source["b"] += "test"
+    assert source["b"] == "testtest"
+    source["c"]["d"] += 1
+    source["c"]["e"] = 3
+    assert source["c"]["d"] == 3
+    assert source["c"]["e"] == 3
 
 
 def test_set_add_value():
     """Ensure set_value correctly updates attribute values."""
     source = parse("{ foo = 1; }")
-    assert source['foo'] == 1
+    assert source["foo"] == 1
     source["bar"] = 2
-    assert source['bar'] == 2
+    assert source["bar"] == 2
     assert source.rebuild() == "{ foo = 1; bar = 2; }"
 
 
@@ -120,10 +120,10 @@ in
 }
 """)
     expr = source.expr
-    assert expr.scope['a'] == 1
-    assert expr.scope['b'] == "test"
-    assert expr['c'] == Identifier("a")
-    assert expr['d'] == Identifier("b")
+    assert expr.scope["a"] == 1
+    assert expr.scope["b"] == "test"
+    assert expr["c"] == Identifier("a")
+    assert expr["d"] == Identifier("b")
 
 
 def test_top_level_with_operator_access():

@@ -22,6 +22,7 @@ def parse_binding_sequence(
     close_token: str | None = None,
 ) -> tuple[list[Binding | Inherit], list[Any]]:
     """Parse binding/inherit sequences with consistent inline-comment handling."""
+
     def parse_item(child: Node, before_trivia: list[Any]) -> Binding | Inherit:
         """Normalize bindings/inherits to avoid invalid members."""
         if child.type == "binding":
@@ -30,9 +31,7 @@ def parse_binding_sequence(
             return Inherit.from_cst(child, before=before_trivia)
         raise ValueError(f"Unsupported child node: {child} {child.type}")
 
-    def can_inline_comment(
-        prev: Node | None, comment_node: Node, items: list
-    ) -> bool:
+    def can_inline_comment(prev: Node | None, comment_node: Node, items: list) -> bool:
         """Inline only when comments share a line with the preceding item."""
         return (
             prev is not None

@@ -38,7 +38,7 @@ python.buildPythonPackage rec {
 
   checkPhase = ''
     ruff check nix_manipulator tests
-    isort --check-only nix_manipulator tests
+    ruff format --check nix_manipulator tests
     mypy --ignore-missing-imports nix_manipulator
     pytest -v --cov=nix_manipulator --cov-report=term-missing --cov-fail-under=98 -m "not nixpkgs"
   '';

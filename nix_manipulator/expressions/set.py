@@ -10,18 +10,22 @@ from tree_sitter import Node
 from nix_manipulator.exceptions import NixSyntaxError
 from nix_manipulator.expressions.binding import Binding, _split_attrpath
 from nix_manipulator.expressions.binding_parser import parse_binding_sequence
-from nix_manipulator.expressions.expression import (NixExpression,
-                                                    TypedExpression)
+from nix_manipulator.expressions.expression import NixExpression, TypedExpression
 from nix_manipulator.expressions.identifier import Identifier
 from nix_manipulator.expressions.inherit import Inherit
 from nix_manipulator.expressions.layout import empty_line
 from nix_manipulator.expressions.scope import Scope
 from nix_manipulator.expressions.trivia import (
-    apply_trailing_trivia, format_trivia, gap_has_empty_line_from_offsets)
-from nix_manipulator.resolution import (attach_resolution_context,
-                                        clear_resolution_context,
-                                        scopes_for_owner,
-                                        set_resolution_context)
+    apply_trailing_trivia,
+    format_trivia,
+    gap_has_empty_line_from_offsets,
+)
+from nix_manipulator.resolution import (
+    attach_resolution_context,
+    clear_resolution_context,
+    scopes_for_owner,
+    set_resolution_context,
+)
 
 
 @dataclass(slots=True)
@@ -163,9 +167,7 @@ def _expand_attrpath_binding(binding: Binding) -> list[Binding]:
                 raise ValueError("Attrpath binding contains non-binding item")
             if item.nested:
                 if not isinstance(item.value, AttributeSet):
-                    raise ValueError(
-                        f"Attrpath binding missing attrset: {item.name}"
-                    )
+                    raise ValueError(f"Attrpath binding missing attrset: {item.name}")
                 walk(prefix + [item.name], item.value)
                 continue
             full_name = ".".join(prefix + [item.name])
@@ -209,6 +211,7 @@ def _render_bindings(
 @dataclass(slots=True, repr=False)
 class AttributeSet(TypedExpression):
     """Nix attribute set with trivia-aware formatting."""
+
     tree_sitter_types: ClassVar[set[str]] = {
         "attrset_expression",
         "rec_attrset_expression",
@@ -351,9 +354,7 @@ class AttributeSet(TypedExpression):
 
         if self.multiline:
             before_str = format_trivia(self.before, indent=indent)
-            render_values = (
-                self.attrpath_order if self.attrpath_order else self.values
-            )
+            render_values = self.attrpath_order if self.attrpath_order else self.values
             bindings_str = "\n".join(
                 _render_bindings(render_values, indent=indented, inline=False)
             )
@@ -370,9 +371,7 @@ class AttributeSet(TypedExpression):
             )
             return apply_trailing_trivia(set_str, self.after, indent=indent)
         else:
-            render_values = (
-                self.attrpath_order if self.attrpath_order else self.values
-            )
+            render_values = self.attrpath_order if self.attrpath_order else self.values
             bindings_str = " ".join(
                 _render_bindings(render_values, indent=indented, inline=True)
             )
@@ -414,7 +413,9 @@ class AttributeSet(TypedExpression):
                 ),
                 None,
             )
-            target = name_expr.model_copy() if name_expr is not None else Identifier(key)
+            target = (
+                name_expr.model_copy() if name_expr is not None else Identifier(key)
+            )
             self_scope = Scope(self.values, owner=self)
             context_scopes = tuple(list(scopes_for_owner(self)) + [self_scope])
             set_resolution_context(target, context_scopes)

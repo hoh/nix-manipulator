@@ -10,16 +10,18 @@ from tree_sitter import Node
 from nix_manipulator.expressions.binding import Binding
 from nix_manipulator.expressions.binding_parser import parse_binding_sequence
 from nix_manipulator.expressions.comment import Comment
-from nix_manipulator.expressions.expression import (NixExpression,
-                                                    TypedExpression)
+from nix_manipulator.expressions.expression import NixExpression, TypedExpression
 from nix_manipulator.expressions.inherit import Inherit
 from nix_manipulator.expressions.layout import empty_line, linebreak
 from nix_manipulator.expressions.scope import ScopeLayer, ScopeState
-from nix_manipulator.expressions.set import (_collect_attrpath_order,
-                                             _render_bindings)
+from nix_manipulator.expressions.set import _collect_attrpath_order, _render_bindings
 from nix_manipulator.expressions.trivia import (
-    append_gap_between_offsets, collect_comment_trivia_between, format_trivia,
-    gap_has_empty_line_from_offsets, gap_has_newline_from_offsets)
+    append_gap_between_offsets,
+    collect_comment_trivia_between,
+    format_trivia,
+    gap_has_empty_line_from_offsets,
+    gap_has_newline_from_offsets,
+)
 
 
 @dataclass(slots=True, repr=False)
@@ -92,7 +94,11 @@ class LetExpression(TypedExpression):
 
         if binding_set is not None:
             for comment_node in list(outer_comments):
-                if not (let_symbol.end_byte <= comment_node.start_byte < binding_set.start_byte):
+                if not (
+                    let_symbol.end_byte
+                    <= comment_node.start_byte
+                    < binding_set.start_byte
+                ):
                     continue
                 if comment_node.start_point.row != let_symbol.end_point.row:
                     continue
@@ -197,9 +203,7 @@ class LetExpression(TypedExpression):
         if self.after_let_comment is not None:
             let_line += f" {self.after_let_comment.rebuild(indent=0)}"
 
-        def ensure_inline_comment_space(
-            body: str, trailing: list[Any]
-        ) -> str:
+        def ensure_inline_comment_space(body: str, trailing: list[Any]) -> str:
             """Ensure inline trailing comments keep a separating space."""
             if not trailing:
                 return body
@@ -264,7 +268,9 @@ class LetExpression(TypedExpression):
                 "after_let_comment": value_state.after_let_comment,
             }
             scope_stack.append(layer)
-        scope_stack.extend([layer for layer in list(value_state.stack) if layer.get("scope")])
+        scope_stack.extend(
+            [layer for layer in list(value_state.stack) if layer.get("scope")]
+        )
         if not self.local_variables:
             return self.value.model_copy(
                 update={

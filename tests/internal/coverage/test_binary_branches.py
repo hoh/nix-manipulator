@@ -8,11 +8,13 @@ import pytest
 
 from nix_manipulator import mapping, parser
 from nix_manipulator.expressions import binary as binary_module
-from nix_manipulator.expressions.binary import (BinaryExpression,
-                                                _clone_with_trivia,
-                                                _ensure_indent,
-                                                _format_chained_binary,
-                                                _rebuild_operand)
+from nix_manipulator.expressions.binary import (
+    BinaryExpression,
+    _clone_with_trivia,
+    _ensure_indent,
+    _format_chained_binary,
+    _rebuild_operand,
+)
 from nix_manipulator.expressions.binding import Binding
 from nix_manipulator.expressions.comment import Comment
 from nix_manipulator.expressions.operator import Operator
@@ -206,9 +208,9 @@ def test_binary_absorbable_helpers():
 
     list_expr = NixList(value=[Primitive(value=1), Primitive(value=2)])
     assert binary_module._is_absorbable_term(list_expr) is False
-    assert binary_module._is_absorbable_term(
-        NixList(value=[Primitive(value=1)])
-    ) is True
+    assert (
+        binary_module._is_absorbable_term(NixList(value=[Primitive(value=1)])) is True
+    )
 
     parenthesized = Parenthesis(value=list_expr)
     assert binary_module._is_absorbable_term(parenthesized) is False
@@ -237,23 +239,49 @@ def test_binary_absorbable_helpers():
 
 def test_binary_from_cst_comment_routing_stub(monkeypatch):
     """Route comments to right-side trivia branches via stubs."""
-    monkeypatch.setattr(mapping, "tree_sitter_node_to_expression", lambda node: Primitive(value=1))
+    monkeypatch.setattr(
+        mapping, "tree_sitter_node_to_expression", lambda node: Primitive(value=1)
+    )
 
     point = SimpleNamespace(row=0, column=0)
-    left = SimpleNamespace(type="integer_expression", text=b"1", start_byte=0, end_byte=1)
+    left = SimpleNamespace(
+        type="integer_expression", text=b"1", start_byte=0, end_byte=1
+    )
     operator = SimpleNamespace(type="operator", text=b"+", start_byte=2, end_byte=3)
-    right = SimpleNamespace(type="integer_expression", text=b"2", start_byte=6, end_byte=7)
-    comment_between = SimpleNamespace(type="comment", text=b"# c", start_byte=4, end_byte=5)
-    edge_comment = SimpleNamespace(type="comment", text=b"# e", start_byte=7, end_byte=8)
-    trailing_comment = SimpleNamespace(type="comment", text=b"# t", start_byte=9, end_byte=10)
-    for node in (left, operator, right, comment_between, edge_comment, trailing_comment):
+    right = SimpleNamespace(
+        type="integer_expression", text=b"2", start_byte=6, end_byte=7
+    )
+    comment_between = SimpleNamespace(
+        type="comment", text=b"# c", start_byte=4, end_byte=5
+    )
+    edge_comment = SimpleNamespace(
+        type="comment", text=b"# e", start_byte=7, end_byte=8
+    )
+    trailing_comment = SimpleNamespace(
+        type="comment", text=b"# t", start_byte=9, end_byte=10
+    )
+    for node in (
+        left,
+        operator,
+        right,
+        comment_between,
+        edge_comment,
+        trailing_comment,
+    ):
         node.start_point = point
         node.end_point = point
 
     node = SimpleNamespace(
         type="binary_expression",
         text=b" " * 20,
-        children=[left, operator, comment_between, right, edge_comment, trailing_comment],
+        children=[
+            left,
+            operator,
+            comment_between,
+            right,
+            edge_comment,
+            trailing_comment,
+        ],
         start_byte=0,
         end_byte=10,
         start_point=point,
@@ -265,12 +293,18 @@ def test_binary_from_cst_comment_routing_stub(monkeypatch):
 
 def test_binary_from_cst_operator_missing(monkeypatch):
     """Cover error when an operator node has no text."""
-    monkeypatch.setattr(mapping, "tree_sitter_node_to_expression", lambda node: Primitive(value=1))
+    monkeypatch.setattr(
+        mapping, "tree_sitter_node_to_expression", lambda node: Primitive(value=1)
+    )
 
     point = SimpleNamespace(row=0, column=0)
-    left = SimpleNamespace(type="integer_expression", text=b"1", start_byte=0, end_byte=1)
+    left = SimpleNamespace(
+        type="integer_expression", text=b"1", start_byte=0, end_byte=1
+    )
     operator = SimpleNamespace(type="operator", text=None, start_byte=2, end_byte=3)
-    right = SimpleNamespace(type="integer_expression", text=b"2", start_byte=4, end_byte=5)
+    right = SimpleNamespace(
+        type="integer_expression", text=b"2", start_byte=4, end_byte=5
+    )
     for node in (left, operator, right):
         node.start_point = point
         node.end_point = point

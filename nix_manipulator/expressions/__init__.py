@@ -10,8 +10,13 @@ from .identifier import Identifier
 from .inherit import Inherit
 from .layout import comma, empty_line, linebreak
 from .path import NixPath
-from .primitive import (BooleanPrimitive, IntegerPrimitive, NullPrimitive,
-                        Primitive, StringPrimitive)
+from .primitive import (
+    BooleanPrimitive,
+    IntegerPrimitive,
+    NullPrimitive,
+    Primitive,
+    StringPrimitive,
+)
 from .raw import RawExpression
 from .scope import Scope, ScopeState
 from .select import Select

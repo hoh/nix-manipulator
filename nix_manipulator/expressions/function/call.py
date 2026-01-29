@@ -8,13 +8,15 @@ from typing import Any, ClassVar
 from tree_sitter import Node
 
 from nix_manipulator.expressions.comment import Comment
-from nix_manipulator.expressions.expression import (NixExpression,
-                                                    TypedExpression)
+from nix_manipulator.expressions.expression import NixExpression, TypedExpression
 from nix_manipulator.expressions.identifier import Identifier
 from nix_manipulator.expressions.set import AttributeSet
 from nix_manipulator.expressions.trivia import (
-    collect_comments_between_with_gap, gap_between, layout_from_gap,
-    trim_leading_layout_trivia)
+    collect_comments_between_with_gap,
+    gap_between,
+    layout_from_gap,
+    trim_leading_layout_trivia,
+)
 
 
 @dataclass(slots=True, repr=False)
@@ -34,8 +36,7 @@ class FunctionCall(TypedExpression):
         if self.argument is not None and isinstance(
             self.argument, (str, int, bool, float)
         ):
-            from nix_manipulator.expressions.expression import \
-                coerce_expression
+            from nix_manipulator.expressions.expression import coerce_expression
 
             self.argument = coerce_expression(self.argument)
 
@@ -158,8 +159,7 @@ class FunctionCall(TypedExpression):
             argument_layout = layout_from_gap(self.argument_gap)
             arg_indent = (
                 argument_layout.indent
-                if argument_layout.on_newline
-                and argument_layout.indent is not None
+                if argument_layout.on_newline and argument_layout.indent is not None
                 else (indent + 2 if argument_layout.on_newline else indent)
             )
             if argument_layout.on_newline:
@@ -181,7 +181,10 @@ class FunctionCall(TypedExpression):
 
         rec_str = ""
         if self.recursive:
-            if not isinstance(self.argument, AttributeSet) or not self.argument.recursive:
+            if (
+                not isinstance(self.argument, AttributeSet)
+                or not self.argument.recursive
+            ):
                 rec_str = " rec"
 
         core = f"{function_str}{rec_str}{sep}{args_str}"

@@ -6,13 +6,18 @@ from typing import Any, ClassVar
 from tree_sitter import Node
 
 from nix_manipulator.expressions.comment import Comment
-from nix_manipulator.expressions.expression import (NixExpression,
-                                                    TypedExpression,
-                                                    coerce_expression)
+from nix_manipulator.expressions.expression import (
+    NixExpression,
+    TypedExpression,
+    coerce_expression,
+)
 from nix_manipulator.expressions.operator import Operator
 from nix_manipulator.expressions.trivia import (
-    collect_comment_trivia_between, collect_trailing_comment_trivia,
-    gap_line_info, split_inline_comments)
+    collect_comment_trivia_between,
+    collect_trailing_comment_trivia,
+    gap_line_info,
+    split_inline_comments,
+)
 
 _CHAINABLE_OPERATORS = {"++", "//", "+", "&&", "||", "->"}
 
@@ -137,9 +142,7 @@ def _collect_binary_comment_trivia(
         include_linebreak=False,
         inline_requires_gap=True,
     )
-    comments_before_right, operator_after = split_inline_comments(
-        comments_before_right
-    )
+    comments_before_right, operator_after = split_inline_comments(comments_before_right)
     edge_comments = [
         comment
         for comment in comment_nodes
@@ -190,9 +193,9 @@ def _format_chained_binary(
             right_start, right_end = collect(cur.right)
             if include_trivia:
                 if cur.before:
-                    operands[left_start].extra_before = list(
-                        cur.before
-                    ) + operands[left_start].extra_before
+                    operands[left_start].extra_before = (
+                        list(cur.before) + operands[left_start].extra_before
+                    )
                 if cur.after:
                     operands[right_end].extra_after.extend(cur.after)
             return left_start, right_end
@@ -265,9 +268,7 @@ def _format_chained_binary(
     return expr.add_trivia(rebuilt, indent, inline)
 
 
-def _resolve_right_operand(
-    expr: "BinaryExpression", *, indent: int
-) -> tuple[str, int]:
+def _resolve_right_operand(expr: "BinaryExpression", *, indent: int) -> tuple[str, int]:
     """Resolve right operand indentation for multiline operators."""
     if _is_chainable_operator(expr.operator.name):
         if (
@@ -314,7 +315,6 @@ class BinaryExpression(TypedExpression):
         from nix_manipulator.mapping import tree_sitter_node_to_expression
 
         if node.type == "binary_expression":
-
             # Associate comments to the components (left, operator or right) of the binary expression.
             children = [child for child in node.children if child.type != "comment"]
             left_node, operator_node, right_node = children
@@ -382,9 +382,7 @@ class BinaryExpression(TypedExpression):
         operator_str = self.operator.rebuild(indent=indent)
 
         if operator_newline:
-            op_sep = (
-                "\n" * self.operator_gap_lines if self.operator_gap_lines else "\n"
-            )
+            op_sep = "\n" * self.operator_gap_lines if self.operator_gap_lines else "\n"
             if self.right_gap_lines:
                 right_sep = (
                     "\n" * self.right_gap_lines if self.right_gap_lines else "\n"
@@ -402,9 +400,7 @@ class BinaryExpression(TypedExpression):
         if self.right_gap_lines:
             if not operator_str.startswith("\n"):
                 operator_str = " " + operator_str.lstrip()
-            right_sep = (
-                "\n" * self.right_gap_lines if self.right_gap_lines else "\n"
-            )
+            right_sep = "\n" * self.right_gap_lines if self.right_gap_lines else "\n"
             right_str, _ = _resolve_right_operand(self, indent=indent)
             return self.add_trivia(
                 f"{left_str}{operator_str}{right_sep}{right_str}", indent, inline
@@ -413,9 +409,7 @@ class BinaryExpression(TypedExpression):
         if not operator_str.startswith("\n"):
             # Ensure exactly one space before the operator (avoid double spaces)
             operator_str = " " + operator_str.lstrip()
-        return self.add_trivia(
-            f"{left_str}{operator_str} {right_str}", indent, inline
-        )
+        return self.add_trivia(f"{left_str}{operator_str} {right_str}", indent, inline)
 
 
 __all__ = ["BinaryExpression"]

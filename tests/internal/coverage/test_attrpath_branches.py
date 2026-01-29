@@ -2,28 +2,30 @@
 
 import pytest
 
-from nix_manipulator.cli.manipulations import (_parse_npath,
-                                               _remove_attrpath_value,
-                                               _set_attrpath_value)
+from nix_manipulator.cli.manipulations import (
+    _parse_npath,
+    _remove_attrpath_value,
+    _set_attrpath_value,
+)
 from nix_manipulator.expressions.binding import Binding, _split_attrpath
 from nix_manipulator.expressions.identifier import Identifier
 from nix_manipulator.expressions.inherit import Inherit
-from nix_manipulator.expressions.set import (AttributeSet,
-                                             _expand_attrpath_binding,
-                                             _merge_attrpath_bindings)
+from nix_manipulator.expressions.set import (
+    AttributeSet,
+    _expand_attrpath_binding,
+    _merge_attrpath_bindings,
+)
 from nix_manipulator.parser import parse
 
 
 def test_split_attrpath_handles_escapes():
-    segments = _split_attrpath('"foo\\\"bar".baz')
-    assert segments == ['"foo\\\"bar"', "baz"]
+    segments = _split_attrpath('"foo\\"bar".baz')
+    assert segments == ['"foo\\"bar"', "baz"]
     assert _split_attrpath('foo."bar.baz"') == ["foo", '"bar.baz"']
 
 
 def test_split_attrpath_handles_interpolation():
-    segments = _split_attrpath(
-        "foo.${toString ../meta-maintainers.nix}.bar"
-    )
+    segments = _split_attrpath("foo.${toString ../meta-maintainers.nix}.bar")
     assert segments == [
         "foo",
         "${toString ../meta-maintainers.nix}",
@@ -32,8 +34,8 @@ def test_split_attrpath_handles_interpolation():
 
 
 def test_split_attrpath_interpolation_with_quotes_and_braces():
-    segments = _split_attrpath('foo.${"a\\\"b"}.bar')
-    assert segments == ['foo', '${"a\\\"b"}', "bar"]
+    segments = _split_attrpath('foo.${"a\\"b"}.bar')
+    assert segments == ["foo", '${"a\\"b"}', "bar"]
     assert _split_attrpath("foo.${{}}.bar") == ["foo", "${{}}", "bar"]
 
 
@@ -61,7 +63,7 @@ def test_split_attrpath_unterminated_interpolation():
 
 
 def test_parse_npath_escape_sequences():
-    segments = _parse_npath('foo."bar\\n\\r\\t\\\"\\\\\\x"')
+    segments = _parse_npath('foo."bar\\n\\r\\t\\"\\\\\\x"')
     assert segments[0].name == "foo"
     assert segments[1].quoted is True
     assert "\n" in segments[1].name
@@ -181,9 +183,7 @@ def test_set_attrpath_value_errors_and_adds_leaf():
         nested=True,
     )
     with pytest.raises(ValueError, match="Mixed explicit"):
-        _set_attrpath_value(
-            AttributeSet(values=[root]), root, ["a", "b"], value_expr
-        )
+        _set_attrpath_value(AttributeSet(values=[root]), root, ["a", "b"], value_expr)
 
 
 def test_remove_attrpath_value_errors_and_prunes():

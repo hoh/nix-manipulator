@@ -90,6 +90,7 @@ def test_rebuild_explicit_nested_set():
 """.strip("\n")
     assert source == parse_and_rebuild(source)
 
+
 def test_rebuild_invalid_nested_combination():
     """Attrpath and explicit attrsets are merged when both are attribute sets."""
     source = """
@@ -103,6 +104,7 @@ def test_rebuild_invalid_nested_combination():
 }
 """.strip("\n")
     assert source == parse_and_rebuild(source)
+
 
 def test_rebuild_multi_level_nested_set():
     source = """
@@ -957,7 +959,9 @@ def test_rebuild_function_arg_list():
 
 def test_rebuild_complex_string():
     """Why: lock in rebuild complex string behavior to prevent regressions."""
-    source = '"--with-pinentry-pgm=${pinentry}/${pinentry.binaryPath or "bin/pinentry"}"'
+    source = (
+        '"--with-pinentry-pgm=${pinentry}/${pinentry.binaryPath or "bin/pinentry"}"'
+    )
     print(parse(source))
     assert validate_nixfmt_rfc(source)
     assert parse_and_rebuild(source) == source

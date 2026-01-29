@@ -9,12 +9,22 @@ import pytest
 from nix_manipulator.expressions.comment import Comment
 from nix_manipulator.expressions.layout import comma, empty_line, linebreak
 from nix_manipulator.expressions.trivia import (
-    Layout, _collect_comment_trivia, _gap_has_empty_line_offsets,
-    _gap_line_info_from_offsets, _gap_span, append_gap_between,
-    append_gap_trivia, format_interstitial_trivia,
-    format_interstitial_trivia_with_separator, format_trivia, gap_from_offsets,
-    indent_from_gap, parse_delimited_sequence, separator_from_layout,
-    separator_from_layout_with_comments)
+    Layout,
+    _collect_comment_trivia,
+    _gap_has_empty_line_offsets,
+    _gap_line_info_from_offsets,
+    _gap_span,
+    append_gap_between,
+    append_gap_trivia,
+    format_interstitial_trivia,
+    format_interstitial_trivia_with_separator,
+    format_trivia,
+    gap_from_offsets,
+    indent_from_gap,
+    parse_delimited_sequence,
+    separator_from_layout,
+    separator_from_layout_with_comments,
+)
 
 
 @dataclass
@@ -48,7 +58,10 @@ def test_gap_span_and_line_info_edges():
     """Cover gap helpers for missing text and invalid offsets."""
     assert _gap_span(DummyNode(type="root", text=None), 0, 1) is None
     assert _gap_span(DummyNode(type="root", text=b"abc", start_byte=5), 1, 2) is None
-    assert _gap_line_info_from_offsets(DummyNode(type="root", text=None), 0, 1) == (0, None)
+    assert _gap_line_info_from_offsets(DummyNode(type="root", text=None), 0, 1) == (
+        0,
+        None,
+    )
 
 
 def test_gap_empty_line_offsets():

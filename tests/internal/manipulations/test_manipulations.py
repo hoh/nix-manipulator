@@ -62,9 +62,7 @@ def test_remove_value_multiple_expressions_raises():
 def test_let_expression_delete_missing_key_raises():
     """Match AttributeSet behavior so deletion errors are consistent."""
     root = parse_to_ast("let foo = 1; in foo")
-    let_node = next(
-        child for child in root.children if child.type == "let_expression"
-    )
+    let_node = next(child for child in root.children if child.type == "let_expression")
     let_expr = LetExpression.from_cst(let_node)
     with pytest.raises(KeyError):
         del let_expr["bar"]
@@ -98,10 +96,7 @@ def test_set_value_prefers_direct_attrpath_match():
 def test_set_value_prefers_explicit_leaf():
     """Prefer explicit attrpath leaves when nested branches also exist."""
     source = parse("{ a.b.c = 1; a.b = { d = 2; }; }")
-    assert (
-        set_value(source, "a.b", "{ d = 3; }")
-        == "{ a.b.c = 1; a.b = { d = 3; }; }"
-    )
+    assert set_value(source, "a.b", "{ d = 3; }") == "{ a.b.c = 1; a.b = { d = 3; }; }"
 
 
 def test_set_value_attrpath_adds_leaf():
@@ -115,6 +110,7 @@ def test_set_value_attrpath_root_rejects_overwrite():
     source = parse("{ foo.bar = 1; }")
     with pytest.raises(ValueError, match="attrpath-derived"):
         set_value(source, "foo", "2")
+
 
 def test_set_value_resolves_identifier_body():
     """set_value should follow identifier references to the target attrset."""
@@ -165,7 +161,7 @@ def test_remove_value_attrpath_root_raises():
 
 def test_remove_value_prefers_explicit_leaf():
     """Prefer explicit leaves when a nested attrpath branch also exists."""
-    source = parse('{ a.b.c = 1; a.b = { d = 2; }; }')
+    source = parse("{ a.b.c = 1; a.b = { d = 2; }; }")
     assert remove_value(source, "a.b") == "{ a.b.c = 1; }"
 
 
@@ -186,10 +182,7 @@ def test_remove_value_attrpath_missing_leaf_raises():
 def test_set_scope_auto_creates_layer():
     """Auto-create a single scope when addressing the innermost layer."""
     source = parse("{ foo = 1; }")
-    assert (
-        set_value(source, "@bar", "2")
-        == "let\n  bar = 2;\nin\n{ foo = 1; }"
-    )
+    assert set_value(source, "@bar", "2") == "let\n  bar = 2;\nin\n{ foo = 1; }"
 
 
 def test_scope_set_rm_round_trip_preserves_trivia():
@@ -331,10 +324,7 @@ in
 def test_npath_quoted_segment_updates():
     """Allow quoted segments to target names with dots."""
     source = parse('{ foo = { "bar.baz" = 1; }; }')
-    assert (
-        set_value(source, 'foo."bar.baz"', "2")
-        == '{ foo = { "bar.baz" = 2; }; }'
-    )
+    assert set_value(source, 'foo."bar.baz"', "2") == '{ foo = { "bar.baz" = 2; }; }'
 
 
 def test_set_value_empty_npath_raises():
@@ -506,10 +496,7 @@ def test_set_value_accepts_quoted_hyphenated_identifier():
 def test_set_value_escapes_interpolation_in_quoted_npath():
     """Quoted NPaths with ${...} should stay literal and avoid interpolation."""
     source = parse("{ foo = { }; }")
-    assert (
-        set_value(source, 'foo."${bar}"', "1")
-        == '{ foo = { "\\${bar}" = 1; }; }'
-    )
+    assert set_value(source, 'foo."${bar}"', "1") == '{ foo = { "\\${bar}" = 1; }; }'
 
 
 def test_set_value_handles_recursive_attrset():

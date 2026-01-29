@@ -12,6 +12,7 @@ from nix_manipulator.expressions.scope import Scope, ScopeLayer, ScopeState
 try:
     from nix_manipulator.color import colorize_nix
 except ImportError:
+
     def colorize_nix(code: str) -> str:
         return code
 
@@ -31,8 +32,7 @@ class NixExpression:
             from nix_manipulator.expressions.binding import Binding
 
             bindings = [
-                Binding(name=key, value=value)
-                for key, value in self.scope.items()
+                Binding(name=key, value=value) for key, value in self.scope.items()
             ]
             self.scope = Scope(bindings, owner=self)
         elif not isinstance(self.scope, Scope):
@@ -83,7 +83,10 @@ class NixExpression:
     ) -> str:
         """Centralize trivia handling so all nodes format consistently."""
         from nix_manipulator.expressions.trivia import (
-            apply_trailing_trivia, format_trivia, trim_trailing_layout_newline)
+            apply_trailing_trivia,
+            format_trivia,
+            trim_trailing_layout_newline,
+        )
 
         before_str = format_trivia(self.before, indent=indent) if self.before else ""
         indentation = " " * indent if not inline else ""
@@ -102,9 +105,8 @@ class NixExpression:
     def has_scope(self) -> bool:
         """Signal scope metadata so rebuild can wrap in lets when needed."""
         state = cast(ScopeState, self.scope_state)
-        return (
-            bool(self.scope)
-            or any(bool(layer.get("scope")) for layer in state.stack)
+        return bool(self.scope) or any(
+            bool(layer.get("scope")) for layer in state.stack
         )
 
     def rebuild_scoped(self, indent: int = 0, inline: bool = False) -> str:
@@ -192,4 +194,10 @@ def coerce_expression(value: Any) -> NixExpression:
     raise ValueError(f"Unsupported expression type: {type(value)}")
 
 
-__all__ = ["NixExpression", "ScopeLayer", "ScopeState", "TypedExpression", "coerce_expression"]
+__all__ = [
+    "NixExpression",
+    "ScopeLayer",
+    "ScopeState",
+    "TypedExpression",
+    "coerce_expression",
+]

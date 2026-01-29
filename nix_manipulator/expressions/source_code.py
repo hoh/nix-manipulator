@@ -17,27 +17,34 @@ from nix_manipulator.expressions.let import LetExpression
 from nix_manipulator.expressions.parenthesis import Parenthesis
 from nix_manipulator.expressions.raw import RawExpression
 from nix_manipulator.expressions.set import AttributeSet
-from nix_manipulator.expressions.trivia import (append_gap_trivia,
-                                                append_gap_trivia_from_offsets,
-                                                format_trivia,
-                                                gap_from_offsets,
-                                                parse_delimited_sequence,
-                                                source_bytes_context,
-                                                trim_trailing_layout_newline)
+from nix_manipulator.expressions.trivia import (
+    append_gap_trivia,
+    append_gap_trivia_from_offsets,
+    format_trivia,
+    gap_from_offsets,
+    parse_delimited_sequence,
+    source_bytes_context,
+    trim_trailing_layout_newline,
+)
 from nix_manipulator.expressions.with_statement import WithStatement
 from nix_manipulator.mapping import tree_sitter_node_to_expression
-from nix_manipulator.resolution import (attach_resolution_context,
-                                        scopes_for_owner,
-                                        set_resolution_context)
+from nix_manipulator.resolution import (
+    attach_resolution_context,
+    scopes_for_owner,
+    set_resolution_context,
+)
+
 try:
     from nix_manipulator.color import colorize_nix
 except ImportError:
+
     def colorize_nix(code: str) -> str:
         return code
 
 
 class NixSourceCode:
     """Represent a whole Nix file as a sequence of expressions and trivia."""
+
     tree_sitter_types: ClassVar[set[str]] = {"source_code"}
     node: Node
     expressions: list[Any]
@@ -70,6 +77,7 @@ class NixSourceCode:
         if has_error_attr is not None:
             contains_error = node.has_error
         else:
+
             def has_error(cur: Node) -> bool:
                 """Scan CST nodes to decide when to preserve raw text."""
                 if cur.type == "ERROR":
@@ -198,11 +206,15 @@ class NixSourceCode:
                         if isinstance(argument, AttributeSet):
                             return argument
                     if output is None:
-                        raise ValueError("Top-level expression must be an attribute set")
+                        raise ValueError(
+                            "Top-level expression must be an attribute set"
+                        )
                     try:
                         return resolve_nested(output, scopes=scopes)
                     except ValueError as exc:
-                        raise ValueError("Top-level expression must be an attribute set") from exc
+                        raise ValueError(
+                            "Top-level expression must be an attribute set"
+                        ) from exc
                 case WithStatement():
                     body_scopes = scopes_for_owner(target) or scopes
                     attach_resolution_context(target.body, owner=target)

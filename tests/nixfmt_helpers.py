@@ -8,17 +8,22 @@ import pytest
 
 logger = logging.getLogger(__name__)
 
+
 def validate_nixfmt_rfc(code: str) -> str:
     """
     Validate that Nix code is RFC-0166 compliant or raise an error.
     """
     if os.getenv("NIXFMT_UNAVAILABLE") in ("true", "1"):
         logger.debug("Nixfmt not available, skipping Nixfmt validation.")
-        pytest.skip("nixfmt unavailable; unset NIXFMT_UNAVAILABLE to run formatting validation.")
+        pytest.skip(
+            "nixfmt unavailable; unset NIXFMT_UNAVAILABLE to run formatting validation."
+        )
 
     nixfmt_bin = shutil.which("nixfmt")
     if not nixfmt_bin:
-        raise RuntimeError("nixfmt binary not found in PATH. Set NIXFMT_UNAVAILABLE=1 to disable validation.")
+        raise RuntimeError(
+            "nixfmt binary not found in PATH. Set NIXFMT_UNAVAILABLE=1 to disable validation."
+        )
 
     result = subprocess.run(
         [nixfmt_bin, "--strict", "--verify"],

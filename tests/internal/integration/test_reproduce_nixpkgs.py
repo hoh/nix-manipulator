@@ -34,6 +34,7 @@ RFC_0166_INDENT_NONCOMPLIANT = {
     "pkgs/tools/package-management/nix/modular/packaging/components.nix",
 }
 
+
 def _patch_indentation_only(source: str, rebuilt: str) -> str | None:
     """Patch indentation-only diffs where indentation changes by 0 or 2 spaces.
 
@@ -49,9 +50,7 @@ def _patch_indentation_only(source: str, rebuilt: str) -> str | None:
         return None
 
     patched_lines: list[str] = []
-    for idx, (source_line, rebuilt_line) in enumerate(
-        zip(source_lines, rebuilt_lines)
-    ):
+    for idx, (source_line, rebuilt_line) in enumerate(zip(source_lines, rebuilt_lines)):
         if source_line == rebuilt_line:
             patched_lines.append(source_line)
             continue
@@ -171,9 +170,7 @@ def _assert_reproduced(path: Path) -> None:
     else:
         rel_path = str(path)
     if rebuilt_code != source:
-        if _collapse_empty_multiline(rebuilt_code) == _collapse_empty_multiline(
-            source
-        ):
+        if _collapse_empty_multiline(rebuilt_code) == _collapse_empty_multiline(source):
             return
         if rel_path in RFC_0166_INDENT_NONCOMPLIANT:
             patched = _patch_indentation_only(source, rebuilt_code)

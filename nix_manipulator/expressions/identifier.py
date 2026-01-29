@@ -8,12 +8,10 @@ from tree_sitter import Node
 from nix_manipulator.exceptions import ResolutionError
 from nix_manipulator.expressions.binding import Binding
 from nix_manipulator.expressions.comment import Comment
-from nix_manipulator.expressions.expression import (NixExpression,
-                                                    coerce_expression)
+from nix_manipulator.expressions.expression import NixExpression, coerce_expression
 from nix_manipulator.expressions.scope import Scope
 from nix_manipulator.expressions.trivia import trim_leading_layout_trivia
-from nix_manipulator.resolution import (get_resolution_context,
-                                        set_resolution_context)
+from nix_manipulator.resolution import get_resolution_context, set_resolution_context
 
 
 @dataclass(slots=True, repr=False)
@@ -70,7 +68,7 @@ class Identifier(NixExpression):
                 f"{self.name} ?{after_question} {self.default_value.rebuild(indent=indent, inline=True)}{comma}",
                 indent,
                 inline,
-                )
+            )
         else:
             return target.add_trivia(f"{self.name}{comma}", indent, inline)
 
@@ -125,7 +123,9 @@ def _resolve_identifier(
     ordered_scopes = [scope for scope in reversed(scopes) if isinstance(scope, Scope)]
     total_scopes = len(ordered_scopes)
 
-    def _resolve_binding(binding: Binding, scope_chain: tuple[Scope, ...]) -> tuple[NixExpression, Binding]:
+    def _resolve_binding(
+        binding: Binding, scope_chain: tuple[Scope, ...]
+    ) -> tuple[NixExpression, Binding]:
         if id(binding) in visited:
             raise ResolutionError(
                 f"Cyclic reference detected while resolving {identifier.name}"
@@ -149,7 +149,11 @@ def _resolve_identifier(
         for name_expr in inherit_expr.names:
             if isinstance(name_expr, Identifier) and name_expr.name == target:
                 return True
-            if not isinstance(name_expr, Identifier) and hasattr(name_expr, "value") and name_expr.value == target:
+            if (
+                not isinstance(name_expr, Identifier)
+                and hasattr(name_expr, "value")
+                and name_expr.value == target
+            ):
                 return True
         return False
 
@@ -207,7 +211,11 @@ def _resolve_identifier(
 
     for index, scope in enumerate(ordered_scopes):
         scope_chain = tuple(reversed(ordered_scopes[index:]))
-        outer_chain = tuple(reversed(ordered_scopes[index + 1 :])) if index + 1 < total_scopes else ()
+        outer_chain = (
+            tuple(reversed(ordered_scopes[index + 1 :]))
+            if index + 1 < total_scopes
+            else ()
+        )
         try:
             binding = scope.get_binding(identifier.name)
             return _resolve_binding(binding, scope_chain)

@@ -75,7 +75,9 @@ def test_binding_dict_coercion():
     """Dict values should become AttributeSets."""
     binding = Binding(name="a", value={"b": 1})
     assert isinstance(binding.value, AttributeSet)
-    assert any(item.name == "b" for item in binding.value.values if isinstance(item, Binding))
+    assert any(
+        item.name == "b" for item in binding.value.values if isinstance(item, Binding)
+    )
 
 
 def test_gap_has_newline_from_offsets_with_source():
@@ -239,8 +241,7 @@ def test_inherit_from_cst_with_comments_and_strings():
     assert isinstance(inherit, Inherit)
     assert len(inherit.names) == 2
     assert any(
-        isinstance(item, Comment) and item.inline
-        for item in inherit.names[0].after
+        isinstance(item, Comment) and item.inline for item in inherit.names[0].after
     )
 
 
@@ -338,6 +339,7 @@ def test_inherit_from_cst_leading_and_trailing_comments():
 
 def test_inherit_from_cst_rejects_unknown_attr_type():
     """Reject unsupported inherit attribute types."""
+
     class ShiftyNode:
         def __init__(self):
             self._calls = 0

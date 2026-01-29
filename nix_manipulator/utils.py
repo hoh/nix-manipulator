@@ -12,9 +12,7 @@ def pretty_print_cst(node, indent_level=0) -> str:
         case NixList():
             return f"{indent}{node.__class__.__name__}({node.value})"
         case NixSourceCode():
-            children = "\n".join(
-                f"{indent}    {child}" for child in node.node.children
-            )
+            children = "\n".join(f"{indent}    {child}" for child in node.node.children)
             if children:
                 return f"{indent}{node.__class__.__name__}({node.node}\n{children})"
             return f"{indent}{node.__class__.__name__}({node.node})"

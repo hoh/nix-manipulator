@@ -15,9 +15,7 @@ from nix_manipulator.expressions.layout import comma, empty_line, linebreak
 
 _EMPTY_LINE_RE = re.compile(r"\n[ \t]*\n")
 _GAP_WHITESPACE_BYTES = (32, 9)
-_SOURCE_BYTES: ContextVar[bytes | None] = ContextVar(
-    "nix_source_bytes", default=None
-)
+_SOURCE_BYTES: ContextVar[bytes | None] = ContextVar("nix_source_bytes", default=None)
 
 
 @contextmanager
@@ -122,9 +120,7 @@ def layout_from_gap(gap: str) -> Layout:
     return Layout.from_gap(gap)
 
 
-def separator_from_layout(
-    layout: Layout, *, indent: int, inline_sep: str = " "
-) -> str:
+def separator_from_layout(layout: Layout, *, indent: int, inline_sep: str = " ") -> str:
     """Render a gap separator from a layout, defaulting to inline_sep."""
     if not layout.on_newline:
         return inline_sep
@@ -178,9 +174,7 @@ def format_trivia(trivia_list: list[Any], indent: int = 0) -> str:
                     ends_with_newline = False
             parts.append(",")
             ends_with_newline = False
-            next_item = (
-                trivia_list[index + 1] if index + 1 < len(trivia_list) else None
-            )
+            next_item = trivia_list[index + 1] if index + 1 < len(trivia_list) else None
             if isinstance(next_item, Comment) and next_item.inline:
                 parts.append(" ")
                 ends_with_newline = False
@@ -429,9 +423,7 @@ def collect_trailing_comment_trivia(
     inline_requires_gap: bool = False,
 ) -> list[Any]:
     """Collect comment trivia after a node without trailing-gap tracking."""
-    selected = [
-        comment for comment in comments if comment.start_byte > start.end_byte
-    ]
+    selected = [comment for comment in comments if comment.start_byte > start.end_byte]
     selected.sort(key=lambda comment: comment.start_byte)
     return _collect_comment_trivia(
         parent,
@@ -560,9 +552,8 @@ def gap_between(parent: Node, start: Node, end: Node) -> str:
     """Return the source text between two nodes from their shared parent."""
     return gap_from_offsets(parent, start.end_byte, end.start_byte)
 
-def gap_line_info(
-    parent: Node, start: Node, end: Node
-) -> tuple[int, int | None]:
+
+def gap_line_info(parent: Node, start: Node, end: Node) -> tuple[int, int | None]:
     """Return newline count and trailing indent for the gap between nodes."""
     return _gap_line_info_from_offsets(parent, start.end_byte, end.start_byte)
 
@@ -587,9 +578,7 @@ def gap_has_empty_line_from_offsets(
     return _gap_has_empty_line_offsets(source_bytes, start, end)
 
 
-def gap_has_newline_from_offsets(
-    parent: Node, start_byte: int, end_byte: int
-) -> bool:
+def gap_has_newline_from_offsets(parent: Node, start_byte: int, end_byte: int) -> bool:
     """True when whitespace between offsets contains a newline."""
     span = _gap_span(parent, start_byte, end_byte)
     if span is None:

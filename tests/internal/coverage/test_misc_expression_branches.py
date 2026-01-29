@@ -24,9 +24,11 @@ from nix_manipulator.expressions.primitive import Primitive
 from nix_manipulator.expressions.select import Select
 from nix_manipulator.expressions.set import AttributeSet
 from nix_manipulator.expressions.source_code import NixSourceCode
-from nix_manipulator.expressions.trivia import (_gap_has_empty_line_offsets,
-                                                format_interstitial_trivia,
-                                                gap_from_offsets)
+from nix_manipulator.expressions.trivia import (
+    _gap_has_empty_line_offsets,
+    format_interstitial_trivia,
+    gap_from_offsets,
+)
 from nix_manipulator.expressions.with_statement import WithStatement
 
 
@@ -106,7 +108,9 @@ def test_list_auto_multiline_and_scoped():
 
 def test_parenthesis_inline_and_leading_comments(monkeypatch):
     """Exercise comment attachment inside parenthesis parsing."""
-    monkeypatch.setattr(mapping, "tree_sitter_node_to_expression", lambda node: Primitive(value=1))
+    monkeypatch.setattr(
+        mapping, "tree_sitter_node_to_expression", lambda node: Primitive(value=1)
+    )
 
     open_paren = StubNode(
         type="(",
@@ -273,7 +277,9 @@ def test_attribute_set_empty_line_and_trailing_newline():
     assert isinstance(expr, AttributeSet)
     assert expr.inner_trivia
 
-    binding = BinaryExpression(operator="+", left=Primitive(value=1), right=Primitive(value=2))
+    binding = BinaryExpression(
+        operator="+", left=Primitive(value=1), right=Primitive(value=2)
+    )
     attr_binding = AttributeSet.from_dict({"a": binding}).values[0]
     attr_binding.after = [Comment(text="note"), linebreak]
     attrset = AttributeSet(values=[attr_binding], multiline=True)

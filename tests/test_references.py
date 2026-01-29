@@ -16,11 +16,13 @@ from nix_manipulator.expressions.primitive import Primitive
 from nix_manipulator.expressions.scope import Scope
 from nix_manipulator.expressions.set import AttributeSet
 from nix_manipulator.expressions.with_statement import WithStatement
-from nix_manipulator.resolution import (attach_resolution_context,
-                                        function_call_scope,
-                                        get_resolution_context,
-                                        scopes_for_owner,
-                                        set_resolution_context)
+from nix_manipulator.resolution import (
+    attach_resolution_context,
+    function_call_scope,
+    get_resolution_context,
+    scopes_for_owner,
+    set_resolution_context,
+)
 
 
 def nix(src: str):
@@ -322,7 +324,9 @@ def test_reference_with_scope_rejects_non_attr_environment():
         { foo = a; }
         """
     ).expr
-    with pytest.raises(ResolutionError, match="environment must resolve to an attribute set"):
+    with pytest.raises(
+        ResolutionError, match="environment must resolve to an attribute set"
+    ):
         _ = expr["foo"].value
 
 
@@ -334,7 +338,9 @@ def test_reference_with_scope_rejects_literal_environment():
         { foo = a; }
         """
     ).expr
-    with pytest.raises(ResolutionError, match="environment must resolve to an attribute set"):
+    with pytest.raises(
+        ResolutionError, match="environment must resolve to an attribute set"
+    ):
         _ = expr["foo"].value
 
 
@@ -385,6 +391,7 @@ def test_function_call_scope_requires_attrset_argument():
     with pytest.raises(ResolutionError):
         function_call_scope(call)
 
+
 def test_function_call_scope_accepts_identifier_argument():
     """Identifiers resolving to attrsets should be accepted as call arguments."""
     call = nix(
@@ -411,7 +418,9 @@ def test_function_call_scope_accepts_parenthesized_attrset_argument():
 def test_function_call_scope_uses_scope_stack_for_identifier_argument():
     """Scope stacks on the call should provide context for identifier arguments."""
     binding = Binding(name="args", value=AttributeSet({"x": 1}))
-    function = FunctionDefinition(argument_set=[Identifier("x")], output=Identifier("x"))
+    function = FunctionDefinition(
+        argument_set=[Identifier("x")], output=Identifier("x")
+    )
     call = FunctionCall(name=function, argument=Identifier("args"))
     call.scope_state.stack = [
         {

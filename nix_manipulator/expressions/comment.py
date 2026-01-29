@@ -52,8 +52,8 @@ class Comment(TypedExpression):
                     if not line.strip():
                         continue
                     leading = len(line) - len(line.lstrip(" "))
-                    inner_indent = leading if inner_indent is None else min(
-                        inner_indent, leading
+                    inner_indent = (
+                        leading if inner_indent is None else min(inner_indent, leading)
                     )
                 if inner_indent is None:
                     inner_indent = 0
@@ -66,9 +66,7 @@ class Comment(TypedExpression):
                     inner = "\n".join(trimmed)
                 else:
                     inner = "\n".join(normalized)
-                return MultilineComment(
-                    text=inner, doc=doc, inner_indent=inner_indent
-                )
+                return MultilineComment(text=inner, doc=doc, inner_indent=inner_indent)
             inner = inner.strip()
             return MultilineComment(text=inner, doc=doc)
         if text.startswith("#!"):

@@ -103,9 +103,7 @@ nixpkgs_trl_default = FunctionDefinition(
                     ),
                     before=[
                         empty_line,
-                        MultilineComment(
-                            text="\nWe love\nmultiline comments\nhere\n"
-                        ),
+                        MultilineComment(text="\nWe love\nmultiline comments\nhere\n"),
                         empty_line,
                     ],
                 ),

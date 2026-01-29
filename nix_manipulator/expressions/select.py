@@ -8,11 +8,13 @@ from typing import Any, ClassVar
 from tree_sitter import Node
 
 from nix_manipulator.expressions.comment import Comment
-from nix_manipulator.expressions.expression import (NixExpression,
-                                                    TypedExpression)
+from nix_manipulator.expressions.expression import NixExpression, TypedExpression
 from nix_manipulator.expressions.trivia import (
     collect_comments_between_with_gap,
-    format_interstitial_trivia_with_separator, format_trivia, layout_from_gap)
+    format_interstitial_trivia_with_separator,
+    format_trivia,
+    layout_from_gap,
+)
 
 
 @dataclass(slots=True, repr=False)
@@ -98,21 +100,17 @@ class Select(TypedExpression):
             if attr_layout.on_newline and attr_layout.indent is not None
             else indent
         )
-        attr_before_str, attr_sep = (
-            format_interstitial_trivia_with_separator(
-                self.attr_before,
-                attr_layout,
-                indent=attr_indent,
-                drop_blank_line_if_items=False,
-                inline_sep="",
-                strip_leading_newline_after=expression_str,
-            )
+        attr_before_str, attr_sep = format_interstitial_trivia_with_separator(
+            self.attr_before,
+            attr_layout,
+            indent=attr_indent,
+            drop_blank_line_if_items=False,
+            inline_sep="",
+            strip_leading_newline_after=expression_str,
         )
         if expression_str.endswith("\n") and attr_sep.startswith("\n"):
             attr_sep = attr_sep[1:]
-        rebuild_string = (
-            f"{expression_str}{attr_before_str}{attr_sep}.{self.attribute}"
-        )
+        rebuild_string = f"{expression_str}{attr_before_str}{attr_sep}.{self.attribute}"
         if self.default is not None:
             default_layout = layout_from_gap(self.default_gap)
             if default_layout.on_newline:
@@ -122,9 +120,7 @@ class Select(TypedExpression):
                     else indent + 2
                 )
                 default_sep = "\n\n" if default_layout.blank_line else "\n"
-                default_str = self.default.rebuild(
-                    indent=default_indent, inline=True
-                )
+                default_str = self.default.rebuild(indent=default_indent, inline=True)
                 default_before = list(self.default_before)
                 inline_comment = ""
                 if default_before:

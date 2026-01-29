@@ -50,7 +50,9 @@ def _get_context(expr: NixExpression) -> ResolutionContext | None:
     return None
 
 
-def _as_scope(value: Scope | Iterable[Any], *, owner: NixExpression | None = None) -> Scope:
+def _as_scope(
+    value: Scope | Iterable[Any], *, owner: NixExpression | None = None
+) -> Scope:
     if isinstance(value, Scope):
         if owner is not None:
             value.owner = owner
@@ -103,10 +105,8 @@ def scopes_for_owner(owner: NixExpression) -> tuple[Scope, ...]:
     if isinstance(owner, AttributeSet) and owner.recursive:
         scopes.append(_scope_from_attrset(owner, base=tuple(scopes)))
 
-    from nix_manipulator.expressions.identifier import \
-        Identifier  # type: ignore
-    from nix_manipulator.expressions.with_statement import \
-        WithStatement  # type: ignore
+    from nix_manipulator.expressions.identifier import Identifier  # type: ignore
+    from nix_manipulator.expressions.with_statement import WithStatement  # type: ignore
 
     if isinstance(owner, WithStatement):
         env_scope: Scope | None = None
@@ -127,14 +127,11 @@ def scopes_for_owner(owner: NixExpression) -> tuple[Scope, ...]:
         elif isinstance(environment, Scope):
             env_scope = environment
         else:
-            raise ResolutionError(
-                "with environment must resolve to an attribute set"
-            )
+            raise ResolutionError("with environment must resolve to an attribute set")
         if env_scope is not None:
             scopes.append(env_scope)
 
-    from nix_manipulator.expressions.function.call import \
-        FunctionCall  # type: ignore
+    from nix_manipulator.expressions.function.call import FunctionCall  # type: ignore
 
     if isinstance(owner, FunctionCall):
         param_scope = function_call_scope(owner, inherited_scopes=tuple(scopes))
@@ -149,16 +146,11 @@ def function_call_scope(
 ) -> Scope | None:
     """Construct a scope for function parameters when applying a call (internal helper; surface may change)."""
     from nix_manipulator.expressions.binding import Binding  # type: ignore
-    from nix_manipulator.expressions.expression import \
-        NixExpression  # type: ignore
-    from nix_manipulator.expressions.function.call import \
-        FunctionCall  # type: ignore
-    from nix_manipulator.expressions.function.definition import \
-        FunctionDefinition  # type: ignore
-    from nix_manipulator.expressions.identifier import \
-        Identifier  # type: ignore
-    from nix_manipulator.expressions.parenthesis import \
-        Parenthesis  # type: ignore
+    from nix_manipulator.expressions.expression import NixExpression  # type: ignore
+    from nix_manipulator.expressions.function.call import FunctionCall  # type: ignore
+    from nix_manipulator.expressions.function.definition import FunctionDefinition  # type: ignore
+    from nix_manipulator.expressions.identifier import Identifier  # type: ignore
+    from nix_manipulator.expressions.parenthesis import Parenthesis  # type: ignore
     from nix_manipulator.expressions.set import AttributeSet  # type: ignore
 
     if not isinstance(call, FunctionCall):
@@ -186,7 +178,9 @@ def function_call_scope(
             )
         base_scopes = tuple(call_scopes)
 
-    def _resolve_argument_to_attrset(argument: Any, *, scope_chain: tuple[Scope, ...]) -> AttributeSet:
+    def _resolve_argument_to_attrset(
+        argument: Any, *, scope_chain: tuple[Scope, ...]
+    ) -> AttributeSet:
         """Accept identifiers/parentheses that resolve to attrsets."""
         if argument is None:
             raise ResolutionError("Function call requires an attribute set argument")
@@ -251,7 +245,9 @@ def function_call_scope(
     return param_scope
 
 
-def attach_resolution_context(expr: NixExpression, *, owner: NixExpression | None = None) -> NixExpression:
+def attach_resolution_context(
+    expr: NixExpression, *, owner: NixExpression | None = None
+) -> NixExpression:
     """Attach a scope chain to *expr* so Identifier.value can resolve bindings (internal helper).
 
     The chain is derived from the owner's scopes and any previously inherited

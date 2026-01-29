@@ -10,15 +10,19 @@ from tree_sitter import Node
 
 from nix_manipulator.expressions.comment import Comment
 from nix_manipulator.expressions.ellipses import Ellipses
-from nix_manipulator.expressions.expression import (NixExpression,
-                                                    TypedExpression)
+from nix_manipulator.expressions.expression import NixExpression, TypedExpression
 from nix_manipulator.expressions.identifier import Identifier
 from nix_manipulator.expressions.layout import comma, empty_line, linebreak
 from nix_manipulator.expressions.set import AttributeSet
 from nix_manipulator.expressions.trivia import (
-    apply_trailing_trivia, collect_comment_trivia_between,
-    format_interstitial_trivia_with_separator, format_trivia, gap_between,
-    gap_from_offsets, layout_from_gap)
+    apply_trailing_trivia,
+    collect_comment_trivia_between,
+    format_interstitial_trivia_with_separator,
+    format_trivia,
+    gap_between,
+    gap_from_offsets,
+    layout_from_gap,
+)
 
 
 def _parse_named_argument_set(node: Node) -> tuple[Identifier | None, bool]:
@@ -35,15 +39,11 @@ def _parse_named_argument_set(node: Node) -> tuple[Identifier | None, bool]:
         children_types[:2] in (["formals", ":"], ["identifier", ":"])
         or supports_named_args
     ):
-        raise ValueError(
-            f"Unsupported function definition signature: {children_types}"
-        )
+        raise ValueError(f"Unsupported function definition signature: {children_types}")
 
     if supports_named_args:
         if len(children_types) < 3:
-            raise ValueError(
-                f"Named argument set is incomplete: {children_types}"
-            )
+            raise ValueError(f"Named argument set is incomplete: {children_types}")
         if children_types[0] == "identifier":
             if children_types[2] != "formals":
                 raise ValueError(
@@ -85,8 +85,7 @@ def _parse_formal_default(
             gap = gap_between(node, prev_default, default_value_node)
             comment = Comment.from_cst(default_value_node)
             inline_comment = (
-                default_value_node.start_point.row
-                == question_node.start_point.row
+                default_value_node.start_point.row == question_node.start_point.row
             )
             if inline_comment:
                 comment.inline = True
@@ -157,9 +156,7 @@ def _parse_argument_set(
             raise ValueError("Function definition formals are empty")
         previous_child = formals_node.children[0]
         if previous_child.type != "{":
-            raise ValueError(
-                "Function definition formals are missing an opening brace"
-            )
+            raise ValueError("Function definition formals are missing an opening brace")
         for child in formals_node.children:
             if child.type in ("{", "}"):
                 continue
@@ -302,8 +299,8 @@ def _parse_function_signature(
     int | None,
 ]:
     """Parse the function signature into named args and formals metadata."""
-    named_attribute_set, named_attribute_set_before_formals = (
-        _parse_named_argument_set(node)
+    named_attribute_set, named_attribute_set_before_formals = _parse_named_argument_set(
+        node
     )
     (
         argument_set,
@@ -413,9 +410,7 @@ def _collect_colon_trivia(
     if leading_newlines:
         breaks_after_semicolon = 1
         if leading_newlines > 1:
-            before_body_trivia.extend(
-                [empty_line] * (leading_newlines - 1)
-            )
+            before_body_trivia.extend([empty_line] * (leading_newlines - 1))
 
     for index, comment_node in enumerate(between_comment_nodes):
         before_body_trivia.append(Comment.from_cst(comment_node))
@@ -539,13 +534,7 @@ class FunctionDefinition(TypedExpression):
                         inner_str += "\n"
                     inner_str += "\n" * self.argument_set_trailing_empty_lines
                 closing_sep = "" if inner_str.endswith("\n") else "\n"
-                args_str = (
-                    "{\n"
-                    + inner_str
-                    + closing_sep
-                    + " " * base_indent
-                    + "}"
-                )
+                args_str = "{\n" + inner_str + closing_sep + " " * base_indent + "}"
             if self.named_attribute_set:
                 if self.named_attribute_set_before_formals:
                     args_str = f"{self.named_attribute_set.rebuild()}@{args_str}"
@@ -571,16 +560,15 @@ class FunctionDefinition(TypedExpression):
                             return True
                     return False
 
-                args_multiline = any(
-                    argument_needs_multiline(arg) for arg in self.argument_set
-                ) or len(self.argument_set) > 2
+                args_multiline = (
+                    any(argument_needs_multiline(arg) for arg in self.argument_set)
+                    or len(self.argument_set) > 2
+                )
             args = []
             for i, arg in enumerate(self.argument_set):
                 is_last_argument: bool = i == len(self.argument_set) - 1
                 next_arg = (
-                    self.argument_set[i + 1]
-                    if i + 1 < len(self.argument_set)
-                    else None
+                    self.argument_set[i + 1] if i + 1 < len(self.argument_set) else None
                 )
                 next_has_leading_comma = (
                     next_arg is not None
@@ -654,9 +642,7 @@ class FunctionDefinition(TypedExpression):
         )
         output_multiline = False
         if self.output is not None:
-            output_inline_preview = self.output.rebuild(
-                indent=base_indent, inline=True
-            )
+            output_inline_preview = self.output.rebuild(indent=base_indent, inline=True)
             output_multiline = "\n" in output_inline_preview
 
         auto_breaks_after_semicolon = 1 if output_has_scope else 0
@@ -707,14 +693,12 @@ class FunctionDefinition(TypedExpression):
             )
 
         inline_sep = " " if self.before_colon_comments else ""
-        before_colon_str, colon_prefix = (
-            format_interstitial_trivia_with_separator(
-                self.before_colon_comments,
-                colon_layout,
-                indent=base_indent,
-                inline_sep=inline_sep,
-                drop_blank_line_if_items=False,
-            )
+        before_colon_str, colon_prefix = format_interstitial_trivia_with_separator(
+            self.before_colon_comments,
+            colon_layout,
+            indent=base_indent,
+            inline_sep=inline_sep,
+            drop_blank_line_if_items=False,
         )
         if not line_break:
             return f"{before_colon_str}{colon_prefix}:{comment_str} "

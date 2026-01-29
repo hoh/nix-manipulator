@@ -8,17 +8,22 @@ from typing import Any, ClassVar
 from tree_sitter import Node
 
 from nix_manipulator.expressions.comment import Comment
-from nix_manipulator.expressions.expression import (NixExpression,
-                                                    TypedExpression)
+from nix_manipulator.expressions.expression import NixExpression, TypedExpression
 from nix_manipulator.expressions.trivia import (
-    collect_comments_between_with_gap, format_inline_comment_suffix,
-    format_interstitial_trivia_with_separator, gap_between, layout_from_gap,
-    split_inline_comments)
+    collect_comments_between_with_gap,
+    format_inline_comment_suffix,
+    format_interstitial_trivia_with_separator,
+    gap_between,
+    layout_from_gap,
+    split_inline_comments,
+)
 
 
 @dataclass(slots=True, repr=False)
 class IfExpression(TypedExpression):
-    tree_sitter_types: ClassVar[set[str]] = {"if_expression",}
+    tree_sitter_types: ClassVar[set[str]] = {
+        "if_expression",
+    }
     condition: NixExpression
     consequence: NixExpression
     alternative: NixExpression
@@ -125,26 +130,22 @@ class IfExpression(TypedExpression):
         before_then_comments: list[Any] = []
         before_then_gap = ""
         if then_node is not None and condition is not None:
-            before_then_comments, before_then_gap = (
-                collect_comments_between_with_gap(
-                    node,
-                    comment_nodes,
-                    condition,
-                    then_node,
-                    allow_inline=True,
-                )
+            before_then_comments, before_then_gap = collect_comments_between_with_gap(
+                node,
+                comment_nodes,
+                condition,
+                then_node,
+                allow_inline=True,
             )
 
         before_else_comments: list[Any] = []
         if else_node is not None and consequence is not None:
-            before_else_comments, before_else_gap = (
-                collect_comments_between_with_gap(
-                    node,
-                    comment_nodes,
-                    consequence,
-                    else_node,
-                    allow_inline=True,
-                )
+            before_else_comments, before_else_gap = collect_comments_between_with_gap(
+                node,
+                comment_nodes,
+                consequence,
+                else_node,
+                allow_inline=True,
             )
 
         return cls(
@@ -169,9 +170,7 @@ class IfExpression(TypedExpression):
         if self.has_scope():
             return self.rebuild_scoped(indent=indent, inline=inline)
 
-        def layout_without_blank_line(
-            layout, *, has_comments: bool
-        ):
+        def layout_without_blank_line(layout, *, has_comments: bool):
             """Drop blank-line intent when comments occupy the gap."""
             if has_comments:
                 return layout.model_copy(update={"blank_line": False})
@@ -181,9 +180,7 @@ class IfExpression(TypedExpression):
             """Render then/else branches with consistent spacing rules."""
             if layout.on_newline:
                 sep = "\n\n" if layout.blank_line else "\n"
-                branch_indent = (
-                    layout.indent if layout.indent is not None else indent
-                )
+                branch_indent = layout.indent if layout.indent is not None else indent
                 return sep, expr.rebuild(indent=branch_indent, inline=False)
             return " ", expr.rebuild(indent=indent, inline=True)
 

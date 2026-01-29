@@ -6,13 +6,18 @@ from typing import Any, ClassVar
 from tree_sitter import Node
 
 from nix_manipulator.expressions.comment import Comment
-from nix_manipulator.expressions.expression import (NixExpression,
-                                                    TypedExpression,
-                                                    coerce_expression)
+from nix_manipulator.expressions.expression import (
+    NixExpression,
+    TypedExpression,
+    coerce_expression,
+)
 from nix_manipulator.expressions.layout import empty_line, linebreak
 from nix_manipulator.expressions.trivia import (
-    collect_comment_trivia_between, format_interstitial_trivia_with_separator,
-    gap_between, layout_from_gap)
+    collect_comment_trivia_between,
+    format_interstitial_trivia_with_separator,
+    gap_between,
+    layout_from_gap,
+)
 
 
 @dataclass(slots=True, repr=False)
@@ -95,9 +100,7 @@ class UnaryExpression(TypedExpression):
 
         if operand_layout.on_newline:
             operand_indent = (
-                operand_layout.indent
-                if operand_layout.indent is not None
-                else indent
+                operand_layout.indent if operand_layout.indent is not None else indent
             )
             expression_str = self.expression.rebuild(
                 indent=operand_indent, inline=False

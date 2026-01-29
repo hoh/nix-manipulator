@@ -5,8 +5,7 @@ from typing import Any, ClassVar
 
 from tree_sitter import Node
 
-from nix_manipulator.expressions.expression import (NixExpression,
-                                                    TypedExpression)
+from nix_manipulator.expressions.expression import NixExpression, TypedExpression
 from nix_manipulator.expressions.identifier import Identifier
 
 
@@ -23,15 +22,20 @@ def _escape_nix_string(value: str, *, escape_interpolation: bool = False) -> str
         ch = value[index]
         if ch == "\\":
             escaped.append("\\\\")
-        elif ch == "\"":
-            escaped.append("\\\"")
+        elif ch == '"':
+            escaped.append('\\"')
         elif ch == "\n":
             escaped.append("\\n")
         elif ch == "\r":
             escaped.append("\\r")
         elif ch == "\t":
             escaped.append("\\t")
-        elif escape_interpolation and ch == "$" and index + 1 < len(value) and value[index + 1] == "{":
+        elif (
+            escape_interpolation
+            and ch == "$"
+            and index + 1 < len(value)
+            and value[index + 1] == "{"
+        ):
             escaped.append("\\${")
             index += 2
             continue
@@ -44,6 +48,7 @@ def _escape_nix_string(value: str, *, escape_interpolation: bool = False) -> str
 @dataclass(slots=True, eq=False, repr=False)
 class Primitive(TypedExpression):
     """Base class for primitive literals with shared operator helpers."""
+
     tree_sitter_types: ClassVar[set[str]] = {
         "integer_expression",
         "string_expression",
@@ -131,6 +136,7 @@ class Primitive(TypedExpression):
 @dataclass(slots=True, eq=False, repr=False)
 class IntegerPrimitive(Primitive):
     """Integer literal with operator support."""
+
     value: int
 
     def _coerce_int(self, other: Any) -> int:
@@ -163,6 +169,7 @@ class IntegerPrimitive(Primitive):
 @dataclass(slots=True, eq=False, repr=False)
 class BooleanPrimitive(Primitive):
     """Boolean literal."""
+
     value: bool
 
     def _render_value(self) -> str:
@@ -172,6 +179,7 @@ class BooleanPrimitive(Primitive):
 @dataclass(slots=True, eq=False, repr=False)
 class StringPrimitive(Primitive):
     """String literal with concatenation helpers."""
+
     value: str
 
     def _coerce_str(self, other: Any) -> str:
@@ -206,6 +214,7 @@ class StringPrimitive(Primitive):
 @dataclass(slots=True, eq=False, repr=False)
 class NullPrimitive(Primitive):
     """Null literal."""
+
     value: None = None
 
     def _render_value(self) -> str:

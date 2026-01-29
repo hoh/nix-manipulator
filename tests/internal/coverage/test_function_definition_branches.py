@@ -14,8 +14,13 @@ from nix_manipulator.expressions.expression import NixExpression
 from nix_manipulator.expressions.function import definition as func_def
 from nix_manipulator.expressions.function.call import FunctionCall
 from nix_manipulator.expressions.function.definition import (
-    FunctionDefinition, _collect_colon_trivia, _parse_argument_set,
-    _parse_formal_default, _parse_function_body, _parse_named_argument_set)
+    FunctionDefinition,
+    _collect_colon_trivia,
+    _parse_argument_set,
+    _parse_formal_default,
+    _parse_function_body,
+    _parse_named_argument_set,
+)
 from nix_manipulator.expressions.identifier import Identifier
 from nix_manipulator.expressions.layout import comma, empty_line, linebreak
 from nix_manipulator.expressions.primitive import Primitive
@@ -103,12 +108,16 @@ def test_parse_named_argument_set_errors():
 def test_parse_argument_set_errors_and_edges():
     """Cover error paths in argument parsing."""
     formals = StubNode(type="formals", text=None)
-    node = StubNode(type="function_expression", children=[formals], field_map={"formals": formals})
+    node = StubNode(
+        type="function_expression", children=[formals], field_map={"formals": formals}
+    )
     with pytest.raises(ValueError, match="Function definition has no formals text"):
         _parse_argument_set(node)
 
     formals = StubNode(type="formals", text=b"{}", children=[])
-    node = StubNode(type="function_expression", children=[formals], field_map={"formals": formals})
+    node = StubNode(
+        type="function_expression", children=[formals], field_map={"formals": formals}
+    )
     with pytest.raises(ValueError, match="Function definition formals are empty"):
         _parse_argument_set(node)
 
@@ -117,8 +126,12 @@ def test_parse_argument_set_errors_and_edges():
         text=b"x",
         children=[StubNode(type="identifier")],
     )
-    node = StubNode(type="function_expression", children=[formals], field_map={"formals": formals})
-    with pytest.raises(ValueError, match="Function definition formals are missing an opening brace"):
+    node = StubNode(
+        type="function_expression", children=[formals], field_map={"formals": formals}
+    )
+    with pytest.raises(
+        ValueError, match="Function definition formals are missing an opening brace"
+    ):
         _parse_argument_set(node)
 
     formal_child = StubNode(type="formal", children=[StubNode(type="number")])
@@ -127,7 +140,9 @@ def test_parse_argument_set_errors_and_edges():
         text=b"{x}",
         children=[StubNode(type="{"), formal_child, StubNode(type="}")],
     )
-    node = StubNode(type="function_expression", children=[formals], field_map={"formals": formals})
+    node = StubNode(
+        type="function_expression", children=[formals], field_map={"formals": formals}
+    )
     with pytest.raises(ValueError, match="Unsupported child node"):
         _parse_argument_set(node)
 
@@ -136,16 +151,24 @@ def test_parse_argument_set_errors_and_edges():
         text=b"{x}",
         children=[StubNode(type="{"), StubNode(type="oops"), StubNode(type="}")],
     )
-    node = StubNode(type="function_expression", children=[formals], field_map={"formals": formals})
+    node = StubNode(
+        type="function_expression", children=[formals], field_map={"formals": formals}
+    )
     with pytest.raises(ValueError, match="Unsupported child node"):
         _parse_argument_set(node)
 
     formals = StubNode(
         type="formals",
         text=b"{,}",
-        children=[StubNode(type="{"), StubNode(type="ERROR", text=b","), StubNode(type="}")],
+        children=[
+            StubNode(type="{"),
+            StubNode(type="ERROR", text=b","),
+            StubNode(type="}"),
+        ],
     )
-    node = StubNode(type="function_expression", children=[formals], field_map={"formals": formals})
+    node = StubNode(
+        type="function_expression", children=[formals], field_map={"formals": formals}
+    )
     parsed = _parse_argument_set(node)
     assert parsed[0] == []
 
@@ -158,7 +181,9 @@ def test_parse_argument_set_errors_and_edges():
             StubNode(type="}"),
         ],
     )
-    node = StubNode(type="function_expression", children=[formals], field_map={"formals": formals})
+    node = StubNode(
+        type="function_expression", children=[formals], field_map={"formals": formals}
+    )
     parsed = _parse_argument_set(node)
     assert parsed[0] == []
 
@@ -199,7 +224,9 @@ def test_parse_formal_default_with_comments(monkeypatch):
         start_point=DummyPoint(row=2, column=4),
     )
     identifier = Identifier(name="a")
-    _parse_formal_default(parent, iter([inline_comment, block_comment, value]), question, identifier)
+    _parse_formal_default(
+        parent, iter([inline_comment, block_comment, value]), question, identifier
+    )
     assert identifier.default_value is not None
     assert identifier.after_question
     assert identifier.default_value_on_newline
@@ -242,9 +269,7 @@ def test_function_definition_pending_commas_and_comments():
     expr = FunctionDefinition.from_cst(parse_function_node(source))
     assert isinstance(expr.argument_set, list)
     assert expr.argument_set_trailing_empty_lines >= 1
-    assert any(
-        isinstance(arg, Identifier) and arg.after for arg in expr.argument_set
-    )
+    assert any(isinstance(arg, Identifier) and arg.after for arg in expr.argument_set)
 
     source = """
 { a
@@ -278,7 +303,9 @@ def test_function_definition_pending_commas_and_comments():
     expr = FunctionDefinition.from_cst(parse_function_node(source))
     assert isinstance(expr.argument_set, list)
     b_arg = next(
-        arg for arg in expr.argument_set if isinstance(arg, Identifier) and arg.name == "b"
+        arg
+        for arg in expr.argument_set
+        if isinstance(arg, Identifier) and arg.name == "b"
     )
     assert empty_line in b_arg.before
 
@@ -292,12 +319,12 @@ def test_function_definition_pending_commas_and_comments():
 """.strip()
     expr = FunctionDefinition.from_cst(parse_function_node(source))
     b_arg = next(
-        arg for arg in expr.argument_set if isinstance(arg, Identifier) and arg.name == "b"
+        arg
+        for arg in expr.argument_set
+        if isinstance(arg, Identifier) and arg.name == "b"
     )
     assert any(item is comma for item in b_arg.before)
-    assert any(
-        isinstance(item, Comment) and item.inline for item in b_arg.before
-    )
+    assert any(isinstance(item, Comment) and item.inline for item in b_arg.before)
 
     source = """
 { a,
@@ -343,7 +370,13 @@ def test_collect_colon_trivia_with_inline_and_between_comments():
     node = parse_function_node(source)
     body_node = node.child_by_field_name("body")
     assert body_node is not None
-    before_colon_comments, before_colon_gap, after_colon_comment, breaks, before_body = _collect_colon_trivia(
+    (
+        before_colon_comments,
+        before_colon_gap,
+        after_colon_comment,
+        breaks,
+        before_body,
+    ) = _collect_colon_trivia(
         node,
         body_node,
     )
@@ -560,7 +593,9 @@ def test_function_call_from_cst_errors():
 
 def test_function_call_from_cst_with_comments(monkeypatch):
     """Parse inline and block comments between function and argument."""
-    monkeypatch.setattr(mapping, "tree_sitter_node_to_expression", lambda node: Primitive(value=1))
+    monkeypatch.setattr(
+        mapping, "tree_sitter_node_to_expression", lambda node: Primitive(value=1)
+    )
 
     function_node = StubNode(
         type="identifier",

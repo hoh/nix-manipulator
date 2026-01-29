@@ -21,85 +21,69 @@ def test_rebuild_nix_identifier():
     assert Identifier(name="foo").rebuild() == "foo"
     assert Identifier(name="foo-bar").rebuild() == "foo-bar"
     assert Identifier(name="foo.bar").rebuild() == "foo.bar"
-    assert (
-        Identifier(
-            name="accelerate",
-            before=[
-                empty_line,
-                Comment(text="dependencies"),
-            ],
-        ).rebuild()
-        == validate_nixfmt_rfc("""# dependencies\naccelerate""")
-    )
+    assert Identifier(
+        name="accelerate",
+        before=[
+            empty_line,
+            Comment(text="dependencies"),
+        ],
+    ).rebuild() == validate_nixfmt_rfc("""# dependencies\naccelerate""")
 
 
 def test_rebuild_nix_list():
     """Why: lock in rebuild nix list behavior to prevent regressions."""
-    assert (
-        NixList(
-            value=[
-                Identifier(name="foo"),
-                Identifier(name="bar"),
-            ],
-        ).rebuild()
-        == validate_nixfmt_rfc("[\n  foo\n  bar\n]")
-    )
+    assert NixList(
+        value=[
+            Identifier(name="foo"),
+            Identifier(name="bar"),
+        ],
+    ).rebuild() == validate_nixfmt_rfc("[\n  foo\n  bar\n]")
 
 
 def test_rebuild_nix_list_multiline():
     """Why: lock in rebuild nix list multiline behavior to prevent regressions."""
-    assert (
-        NixList(
-            value=[
-                Identifier(name="foo"),
-                Identifier(name="bar"),
-                Identifier(name="baz"),
-                Identifier(name="qux"),
-                Identifier(name="quux"),
-            ],
-        ).rebuild()
-        == validate_nixfmt_rfc("""[\n  foo\n  bar\n  baz\n  qux\n  quux\n]""")
-    )
+    assert NixList(
+        value=[
+            Identifier(name="foo"),
+            Identifier(name="bar"),
+            Identifier(name="baz"),
+            Identifier(name="qux"),
+            Identifier(name="quux"),
+        ],
+    ).rebuild() == validate_nixfmt_rfc("""[\n  foo\n  bar\n  baz\n  qux\n  quux\n]""")
 
 
 def test_rebuild_nix_list_multiline_not_specified():
     """Why: lock in rebuild nix list multiline not specified behavior to prevent regressions."""
     # Long lists should expand by default.
-    assert (
-        NixList(
-            value=[
-                Identifier(name="foo"),
-                Identifier(name="bar"),
-                Identifier(name="baz"),
-                Identifier(name="qux"),
-                Identifier(name="quux"),
-            ]
-        ).rebuild()
-        == validate_nixfmt_rfc("""[\n  foo\n  bar\n  baz\n  qux\n  quux\n]""")
-    )
+    assert NixList(
+        value=[
+            Identifier(name="foo"),
+            Identifier(name="bar"),
+            Identifier(name="baz"),
+            Identifier(name="qux"),
+            Identifier(name="quux"),
+        ]
+    ).rebuild() == validate_nixfmt_rfc("""[\n  foo\n  bar\n  baz\n  qux\n  quux\n]""")
 
 
 def test_nix_with():
     """Why: lock in nix with behavior to prevent regressions."""
-    assert (
-        WithStatement(
-            environment=Identifier(name="lib.maintainers"),
-            body=NixList(value=[Identifier(name="hoh")]),
-        ).rebuild()
-        == validate_nixfmt_rfc("""with lib.maintainers; [ hoh ]""")
-    )
+    assert WithStatement(
+        environment=Identifier(name="lib.maintainers"),
+        body=NixList(value=[Identifier(name="hoh")]),
+    ).rebuild() == validate_nixfmt_rfc("""with lib.maintainers; [ hoh ]""")
 
 
 def test_nix_with_multiple_attributes():
     """Why: lock in nix with multiple attributes behavior to prevent regressions."""
-    assert (
-        WithStatement(
-            environment=Identifier(name="lib.maintainers"),
-            body=NixList(
-                value=[Identifier(name="hoh"), Identifier(name="mic92")],
-            ),
-        ).rebuild()
-        == validate_nixfmt_rfc("""with lib.maintainers;\n[\n  hoh\n  mic92\n]""")
+    assert WithStatement(
+        environment=Identifier(name="lib.maintainers"),
+        body=NixList(
+            value=[Identifier(name="hoh"), Identifier(name="mic92")],
+        ),
+    ).rebuild() == validate_nixfmt_rfc(
+        """with lib.maintainers;\n[\n  hoh\n  mic92\n]"""
     )
 
 
@@ -117,25 +101,23 @@ def test_if_expression_inline():
 
 def test_if_expression_multiline_condition():
     """Why: lock in multiline if/else expression formatting."""
-    assert (
-        IfExpression(
-            condition=BinaryExpression(
-                left=Identifier(name="cond1"),
-                right=Identifier(name="cond2"),
-                operator=Operator(name="&&", before=[Comment(text="note")]),
-                operator_gap_lines=1,
-            ),
-            consequence=Identifier(name="foo"),
-            alternative=Identifier(name="bar"),
-            condition_gap="\n  ",
-            after_if_gap="\n",
-            before_then_gap="\n",
-            then_gap="\n  ",
-            before_else_gap="\n",
-            else_gap="\n  ",
-        ).rebuild()
-        == validate_nixfmt_rfc(
-            """
+    assert IfExpression(
+        condition=BinaryExpression(
+            left=Identifier(name="cond1"),
+            right=Identifier(name="cond2"),
+            operator=Operator(name="&&", before=[Comment(text="note")]),
+            operator_gap_lines=1,
+        ),
+        consequence=Identifier(name="foo"),
+        alternative=Identifier(name="bar"),
+        condition_gap="\n  ",
+        after_if_gap="\n",
+        before_then_gap="\n",
+        then_gap="\n  ",
+        before_else_gap="\n",
+        else_gap="\n  ",
+    ).rebuild() == validate_nixfmt_rfc(
+        """
 if
   cond1
   # note
@@ -145,7 +127,6 @@ then
 else
   bar
 """.strip("\n")
-        )
     )
 
 
@@ -183,15 +164,14 @@ def test_nix_comment():
     """Why: lock in nix comment behavior to prevent regressions."""
     assert Comment(text="foo").rebuild() == "# foo"
     assert Comment(text="foo\nbar").rebuild() == "# foo\n# bar"
-    assert (
-        Primitive(
-            value=True,
-            before=[
-                Comment(text="Many tests require internet access."),
-                empty_line,
-            ],
-        ).rebuild()
-        == validate_nixfmt_rfc("""# Many tests require internet access.\n\ntrue""")
+    assert Primitive(
+        value=True,
+        before=[
+            Comment(text="Many tests require internet access."),
+            empty_line,
+        ],
+    ).rebuild() == validate_nixfmt_rfc(
+        """# Many tests require internet access.\n\ntrue"""
     )
 
     assert (
@@ -209,8 +189,7 @@ def test_nix_string_escaping():
         value='quote "hi" ${name} backslash \\ end\n\t',
     )
     assert (
-        binding.rebuild()
-        == 'foo = "quote \\"hi\\" ${name} backslash \\\\ end\\n\\t";'
+        binding.rebuild() == 'foo = "quote \\"hi\\" ${name} backslash \\\\ end\\n\\t";'
     )
 
 
@@ -235,21 +214,19 @@ def test_binding_comment_before_value_forces_newline():
 
 def test_nix_comment_after_identifier():
     """Why: lock in nix comment after identifier behavior to prevent regressions."""
-    assert (
-        Identifier(name="alice", after=[Comment(text="This is a comment")]).rebuild()
-        == validate_nixfmt_rfc("alice\n# This is a comment")
-    )
+    assert Identifier(
+        name="alice", after=[Comment(text="This is a comment")]
+    ).rebuild() == validate_nixfmt_rfc("alice\n# This is a comment")
 
 
 def test_nix_comment_before_and_after_identifier():
     """Why: lock in nix comment before and after identifier behavior to prevent regressions."""
-    assert (
-        Identifier(
-            name="alice",
-            before=[Comment(text="A first comment"), empty_line],
-            after=[empty_line, Comment(text="This is a comment")],
-        ).rebuild()
-        == validate_nixfmt_rfc("""# A first comment\n\nalice\n\n# This is a comment""")
+    assert Identifier(
+        name="alice",
+        before=[Comment(text="A first comment"), empty_line],
+        after=[empty_line, Comment(text="This is a comment")],
+    ).rebuild() == validate_nixfmt_rfc(
+        """# A first comment\n\nalice\n\n# This is a comment"""
     )
 
 
@@ -260,29 +237,30 @@ def test_nix_expression():
 
 def test_nix_set():
     """Why: lock in nix set behavior to prevent regressions."""
-    assert (
-        AttributeSet(
-            values=[
-                Binding(name="foo", value=Identifier(name="bar")),
-                Binding(
-                    name="baz",
-                    value=NixList(
-                        value=[
-                            Identifier(name="qux"),
-                            Identifier(name="quux"),
-                        ],
-                    ),
+    assert AttributeSet(
+        values=[
+            Binding(name="foo", value=Identifier(name="bar")),
+            Binding(
+                name="baz",
+                value=NixList(
+                    value=[
+                        Identifier(name="qux"),
+                        Identifier(name="quux"),
+                    ],
                 ),
-            ],
-        ).rebuild()
-        == validate_nixfmt_rfc("{\n  foo = bar;\n  baz = [\n    qux\n    quux\n  ];\n}")
+            ),
+        ],
+    ).rebuild() == validate_nixfmt_rfc(
+        "{\n  foo = bar;\n  baz = [\n    qux\n    quux\n  ];\n}"
     )
 
 
 def test_nix_set_from_dict():
     assert AttributeSet(
         {"foo": "bar", "baz": ["qux", "quux"]}
-    ).rebuild() == validate_nixfmt_rfc('{\n  foo = "bar";\n  baz = [\n    "qux"\n    "quux"\n  ];\n}')
+    ).rebuild() == validate_nixfmt_rfc(
+        '{\n  foo = "bar";\n  baz = [\n    "qux"\n    "quux"\n  ];\n}'
+    )
 
 
 def test_nix_set_attrpath_binding_style():
@@ -299,10 +277,9 @@ def test_nix_set_attrpath_binding_style():
         ),
         nested=True,
     )
-    assert (
-        AttributeSet(values=[attrpath_binding], multiline=False).rebuild()
-        == validate_nixfmt_rfc("{ foo.bar = 1; }")
-    )
+    assert AttributeSet(
+        values=[attrpath_binding], multiline=False
+    ).rebuild() == validate_nixfmt_rfc("{ foo.bar = 1; }")
 
 
 def test_nix_set_attrpath_binding_style_deep():
@@ -327,10 +304,9 @@ def test_nix_set_attrpath_binding_style_deep():
         ),
         nested=True,
     )
-    assert (
-        AttributeSet(values=[deep_attrpath_binding], multiline=False).rebuild()
-        == validate_nixfmt_rfc("{ foo.bar.baz = 1; }")
-    )
+    assert AttributeSet(
+        values=[deep_attrpath_binding], multiline=False
+    ).rebuild() == validate_nixfmt_rfc("{ foo.bar.baz = 1; }")
 
 
 def test_nix_set_attrpath_binding_style_intermediate_explicit():
@@ -348,17 +324,14 @@ def test_nix_set_attrpath_binding_style_intermediate_explicit():
         ),
         nested=True,
     )
-    assert (
-        AttributeSet(values=[explicit_binding]).rebuild()
-        == validate_nixfmt_rfc(
-            """
+    assert AttributeSet(values=[explicit_binding]).rebuild() == validate_nixfmt_rfc(
+        """
 {
   foo.bar = {
     baz = 1;
   };
 }
 """.strip("\n")
-        )
     )
 
 
@@ -368,9 +341,8 @@ def test_nix_set_explicit_nested_binding_style():
         name="foo",
         value=AttributeSet(values=[Binding(name="bar", value=1)]),
     )
-    assert (
-        AttributeSet(values=[explicit_binding]).rebuild()
-        == validate_nixfmt_rfc("{\n  foo = {\n    bar = 1;\n  };\n}")
+    assert AttributeSet(values=[explicit_binding]).rebuild() == validate_nixfmt_rfc(
+        "{\n  foo = {\n    bar = 1;\n  };\n}"
     )
 
 
@@ -401,10 +373,8 @@ def test_nix_set_nested_explicit_and_attrpath_mix():
             ],
         ),
     )
-    assert (
-        AttributeSet(values=[nested]).rebuild()
-        == validate_nixfmt_rfc(
-            """
+    assert AttributeSet(values=[nested]).rebuild() == validate_nixfmt_rfc(
+        """
 {
   a = {
     b = 1;
@@ -416,35 +386,28 @@ def test_nix_set_nested_explicit_and_attrpath_mix():
   };
 }
 """.strip("\n")
-        )
     )
 
 
 def test_nix_function_definition_empty_set():
     """Why: lock in nix function definition empty set behavior to prevent regressions."""
     # Empty sets as input and output
-    assert (
-        FunctionDefinition(
-            argument_set=[],
-            output=AttributeSet(values=[]),
-        ).rebuild()
-        == validate_nixfmt_rfc("{ }: { }")
-    )
+    assert FunctionDefinition(
+        argument_set=[],
+        output=AttributeSet(values=[]),
+    ).rebuild() == validate_nixfmt_rfc("{ }: { }")
 
 
 def test_nix_function_definition_one_binding():
     """Why: lock in nix function definition one binding behavior to prevent regressions."""
-    assert (
-        FunctionDefinition(
-            argument_set=[Identifier(name="pkgs")],
-            output=AttributeSet(
-                values=[
-                    Binding(name="pkgs", value=Identifier(name="pkgs")),
-                ],
-            ),
-        ).rebuild()
-        == validate_nixfmt_rfc("{ pkgs }:\n{\n  pkgs = pkgs;\n}")
-    )
+    assert FunctionDefinition(
+        argument_set=[Identifier(name="pkgs")],
+        output=AttributeSet(
+            values=[
+                Binding(name="pkgs", value=Identifier(name="pkgs")),
+            ],
+        ),
+    ).rebuild() == validate_nixfmt_rfc("{ pkgs }:\n{\n  pkgs = pkgs;\n}")
 
 
 def test_nix_function_with_named_attribute_set():
@@ -481,30 +444,29 @@ def test_nix_function_with_named_attribute_set_after():
 
 def test_nix_function_definition_empty_lines_in_argument_set():
     """Why: lock in nix function definition empty lines in argument set behavior to prevent regressions."""
-    assert (
-        FunctionDefinition(
-            argument_set=[
-                Identifier(name="pkgs", before=[empty_line]),
-                Identifier(
-                    name="pkgs-2",
-                    before=[Comment(text="This is a comment"), empty_line],
-                ),
-                Identifier(
-                    name="pkg-3",
-                    before=[
-                        empty_line,
-                        Comment(text="Another comment"),
-                    ],
-                    after=[empty_line, Comment(text="A final comment")],
-                ),
-            ],
-            output=AttributeSet(
-                values=[
-                    Binding(name="pkgs", value=Identifier(name="pkgs")),
-                ],
+    assert FunctionDefinition(
+        argument_set=[
+            Identifier(name="pkgs", before=[empty_line]),
+            Identifier(
+                name="pkgs-2",
+                before=[Comment(text="This is a comment"), empty_line],
             ),
-        ).rebuild()
-        == validate_nixfmt_rfc("""
+            Identifier(
+                name="pkg-3",
+                before=[
+                    empty_line,
+                    Comment(text="Another comment"),
+                ],
+                after=[empty_line, Comment(text="A final comment")],
+            ),
+        ],
+        output=AttributeSet(
+            values=[
+                Binding(name="pkgs", value=Identifier(name="pkgs")),
+            ],
+        ),
+    ).rebuild() == validate_nixfmt_rfc(
+        """
 {
 
   pkgs,
@@ -521,188 +483,172 @@ def test_nix_function_definition_empty_lines_in_argument_set():
   pkgs = pkgs;
 }
 """.strip("\n")
-    ))
+    )
 
 
 def test_nix_function_definition_let_bindings():
     """Why: lock in nix function definition let bindings behavior to prevent regressions."""
-    assert (
-        FunctionDefinition(
-            argument_set=[],
-            output=AttributeSet(
-                values=[],
-                scope=[
-                    Binding(name="foo", value=Identifier(name="bar")),
-                    Binding(name="alice", value="bob"),
-                ],
-            ),
-        ).rebuild()
-        == validate_nixfmt_rfc('{ }:\nlet\n  foo = bar;\n  alice = "bob";\nin\n{ }')
+    assert FunctionDefinition(
+        argument_set=[],
+        output=AttributeSet(
+            values=[],
+            scope=[
+                Binding(name="foo", value=Identifier(name="bar")),
+                Binding(name="alice", value="bob"),
+            ],
+        ),
+    ).rebuild() == validate_nixfmt_rfc(
+        '{ }:\nlet\n  foo = bar;\n  alice = "bob";\nin\n{ }'
     )
 
 
 def test_nix_function_definition_let_bindings_from_dict():
-    assert (
-            FunctionDefinition(
-                argument_set=[],
-                output=AttributeSet(
-                    values=[],
-                    scope={
-                        "foo": Identifier(name="bar"),
-                        "alice": "bob",
-                    }
-                ),
-            ).rebuild()
-            == validate_nixfmt_rfc('{ }:\nlet\n  foo = bar;\n  alice = "bob";\nin\n{ }')
+    assert FunctionDefinition(
+        argument_set=[],
+        output=AttributeSet(
+            values=[],
+            scope={
+                "foo": Identifier(name="bar"),
+                "alice": "bob",
+            },
+        ),
+    ).rebuild() == validate_nixfmt_rfc(
+        '{ }:\nlet\n  foo = bar;\n  alice = "bob";\nin\n{ }'
     )
 
 
 def test_nix_function_definition_multiple_let_bindings():
     """Why: lock in nix function definition multiple let bindings behavior to prevent regressions."""
     # Let statement with comments
-    assert (
-        FunctionDefinition(
-            argument_set=[],
-            output=AttributeSet(
-                scope=[
-                    Binding(name="foo", value=Identifier(name="bar")),
-                    Binding(
-                        name="alice",
-                        value="bob",
-                        before=[Comment(text="This is a comment")],
-                    ),
-                ],
-                values=[],
-            ),
-        ).rebuild()
-        == validate_nixfmt_rfc('{ }:\nlet\n  foo = bar;\n  # This is a comment\n  alice = "bob";\nin\n{ }')
+    assert FunctionDefinition(
+        argument_set=[],
+        output=AttributeSet(
+            scope=[
+                Binding(name="foo", value=Identifier(name="bar")),
+                Binding(
+                    name="alice",
+                    value="bob",
+                    before=[Comment(text="This is a comment")],
+                ),
+            ],
+            values=[],
+        ),
+    ).rebuild() == validate_nixfmt_rfc(
+        '{ }:\nlet\n  foo = bar;\n  # This is a comment\n  alice = "bob";\nin\n{ }'
     )
 
 
 def test_nix_function_definition_let_statements_with_comment():
     """Why: lock in nix function definition let statements with comment behavior to prevent regressions."""
-    assert (
-        FunctionDefinition(
-            argument_set=[],
-            output=AttributeSet(
-                values=[],
-                scope=[
-                    Binding(name="foo", value=Identifier(name="bar")),
-                    Binding(
-                        name="alice",
-                        value="bob",
-                        before=[Comment(text="This is a comment")],
-                    ),
-                ],
-            ),
-        ).rebuild()
-        == validate_nixfmt_rfc('{ }:\nlet\n  foo = bar;\n  # This is a comment\n  alice = "bob";\nin\n{ }')
+    assert FunctionDefinition(
+        argument_set=[],
+        output=AttributeSet(
+            values=[],
+            scope=[
+                Binding(name="foo", value=Identifier(name="bar")),
+                Binding(
+                    name="alice",
+                    value="bob",
+                    before=[Comment(text="This is a comment")],
+                ),
+            ],
+        ),
+    ).rebuild() == validate_nixfmt_rfc(
+        '{ }:\nlet\n  foo = bar;\n  # This is a comment\n  alice = "bob";\nin\n{ }'
     )
 
 
 def test_nix_function_definition_multiple_let_bindings_complex():
     """Why: lock in nix function definition multiple let bindings complex behavior to prevent regressions."""
-    assert (
-        FunctionDefinition(
-            argument_set=[Identifier(name="pkgs")],
-            output=AttributeSet(
-                values=[
-                    Binding(name="pkgs-again", value=Identifier(name="pkgs-copy")),
-                ],
-                scope=[
-                    Binding(name="pkgs-copy", value=Identifier(name="pkgs")),
-                    Binding(name="alice", value="bob"),
-                ],
-            ),
-        ).rebuild()
-        == validate_nixfmt_rfc('{ pkgs }:\nlet\n  pkgs-copy = pkgs;\n  alice = "bob";\nin\n{\n  pkgs-again = pkgs-copy;\n}')
+    assert FunctionDefinition(
+        argument_set=[Identifier(name="pkgs")],
+        output=AttributeSet(
+            values=[
+                Binding(name="pkgs-again", value=Identifier(name="pkgs-copy")),
+            ],
+            scope=[
+                Binding(name="pkgs-copy", value=Identifier(name="pkgs")),
+                Binding(name="alice", value="bob"),
+            ],
+        ),
+    ).rebuild() == validate_nixfmt_rfc(
+        '{ pkgs }:\nlet\n  pkgs-copy = pkgs;\n  alice = "bob";\nin\n{\n  pkgs-again = pkgs-copy;\n}'
     )
 
 
 def test_function_call():
     """Why: lock in function call behavior to prevent regressions."""
-    assert (
-        FunctionCall(
-            name="foo",
-            argument=AttributeSet(
-                values=[
-                    Binding(name="foo", value=Identifier(name="bar")),
-                    Binding(name="alice", value="bob"),
-                ],
-            ),
-        ).rebuild()
-        == validate_nixfmt_rfc('foo {\n  foo = bar;\n  alice = "bob";\n}')
-    )
+    assert FunctionCall(
+        name="foo",
+        argument=AttributeSet(
+            values=[
+                Binding(name="foo", value=Identifier(name="bar")),
+                Binding(name="alice", value="bob"),
+            ],
+        ),
+    ).rebuild() == validate_nixfmt_rfc('foo {\n  foo = bar;\n  alice = "bob";\n}')
 
 
 def test_function_with_comments():
     """Why: lock in function with comments behavior to prevent regressions."""
-    assert (
-        FunctionCall(
-            name="foo",
-            argument=AttributeSet(
-                values=[
-                    Binding(
-                        name="foo",
-                        value=Identifier(name="bar"),
-                        before=[Comment(text="This is a comment")],
-                    ),
-                    Binding(name="alice", value="bob"),
-                ]
-            ),
-        ).rebuild()
-        == validate_nixfmt_rfc('foo {\n  # This is a comment\n  foo = bar;\n  alice = "bob";\n}')
+    assert FunctionCall(
+        name="foo",
+        argument=AttributeSet(
+            values=[
+                Binding(
+                    name="foo",
+                    value=Identifier(name="bar"),
+                    before=[Comment(text="This is a comment")],
+                ),
+                Binding(name="alice", value="bob"),
+            ]
+        ),
+    ).rebuild() == validate_nixfmt_rfc(
+        'foo {\n  # This is a comment\n  foo = bar;\n  alice = "bob";\n}'
     )
 
 
 def test_function_definition_with_function_call():
     """Why: lock in function definition with function call behavior to prevent regressions."""
-    assert (
-        FunctionDefinition(
-            argument_set=[Identifier(name="pkgs")],
-            output=FunctionCall(
-                name="buildPythonPackage",
-                recursive=True,
-                argument=AttributeSet(
-                    values=[
-                        Binding(name="pkgs", value=Identifier(name="pkgs")),
-                        Binding(name="alice", value="bob"),
-                    ],
-                ),
+    assert FunctionDefinition(
+        argument_set=[Identifier(name="pkgs")],
+        output=FunctionCall(
+            name="buildPythonPackage",
+            recursive=True,
+            argument=AttributeSet(
+                values=[
+                    Binding(name="pkgs", value=Identifier(name="pkgs")),
+                    Binding(name="alice", value="bob"),
+                ],
             ),
-        ).rebuild()
-        == validate_nixfmt_rfc('{ pkgs }:\nbuildPythonPackage rec {\n  pkgs = pkgs;\n  alice = "bob";\n}')
+        ),
+    ).rebuild() == validate_nixfmt_rfc(
+        '{ pkgs }:\nbuildPythonPackage rec {\n  pkgs = pkgs;\n  alice = "bob";\n}'
     )
 
 
 def test_function_call_recursive():
     """Why: lock in function call recursive behavior to prevent regressions."""
-    assert (
-        FunctionCall(
-            name="foo",
-            recursive=True,
-            argument=AttributeSet(
-                values=[
-                    Binding(name="foo", value=Identifier(name="bar")),
-                    Binding(name="alice", value="bob"),
-                ],
-            ),
-        ).rebuild()
-        == validate_nixfmt_rfc('foo rec {\n  foo = bar;\n  alice = "bob";\n}')
-    )
+    assert FunctionCall(
+        name="foo",
+        recursive=True,
+        argument=AttributeSet(
+            values=[
+                Binding(name="foo", value=Identifier(name="bar")),
+                Binding(name="alice", value="bob"),
+            ],
+        ),
+    ).rebuild() == validate_nixfmt_rfc('foo rec {\n  foo = bar;\n  alice = "bob";\n}')
 
 
 def test_list():
     """Why: lock in list behavior to prevent regressions."""
-    assert (
-        NixList(
-            value=[
-                Identifier(name="setuptools"),
-                Identifier(name="setuptools-scm"),
-            ],
-        ).rebuild()
-        == validate_nixfmt_rfc("[\n  setuptools\n  setuptools-scm\n]")
-    )
+    assert NixList(
+        value=[
+            Identifier(name="setuptools"),
+            Identifier(name="setuptools-scm"),
+        ],
+    ).rebuild() == validate_nixfmt_rfc("[\n  setuptools\n  setuptools-scm\n]")
 
 
 def test_binding_list():
@@ -723,51 +669,48 @@ def test_binding_list():
 
 def test_indented_function_call():
     """Why: lock in indented function call behavior to prevent regressions."""
-    assert (
-        NixList(
-            value=[
-                FunctionCall(name="fetchFromGitHub"),
-            ],
-        ).rebuild()
-        == validate_nixfmt_rfc("[ fetchFromGitHub ]")
-    )
+    assert NixList(
+        value=[
+            FunctionCall(name="fetchFromGitHub"),
+        ],
+    ).rebuild() == validate_nixfmt_rfc("[ fetchFromGitHub ]")
 
-    assert (
-        NixList(
-            value=[
-                FunctionCall(
-                    name="fetchFromGitHub",
-                    argument=AttributeSet(
-                        values=[
-                            Binding(
-                                name="owner",
-                                value="huggingface",
+    assert NixList(
+        value=[
+            FunctionCall(
+                name="fetchFromGitHub",
+                argument=AttributeSet(
+                    values=[
+                        Binding(
+                            name="owner",
+                            value="huggingface",
+                        ),
+                        Binding(
+                            name="repo",
+                            value="trl",
+                        ),
+                        Binding(
+                            name="meta",
+                            value=AttributeSet(
+                                values=[
+                                    Binding(
+                                        name="homepage",
+                                        value="https://example.invalid",
+                                    ),
+                                ]
                             ),
-                            Binding(
-                                name="repo",
-                                value="trl",
-                            ),
-                            Binding(
-                                name="meta",
-                                value=AttributeSet(
-                                    values=[
-                                        Binding(
-                                            name="homepage",
-                                            value="https://example.invalid",
-                                        ),
-                                    ]
-                                ),
-                            ),
-                        ]
-                    ),
+                        ),
+                    ]
                 ),
-            ],
-        ).rebuild()
-        == validate_nixfmt_rfc('[\n  fetchFromGitHub\n  {\n    owner = "huggingface";\n    repo = "trl";\n    meta = {\n      homepage = "https://example.invalid";\n    };\n  }\n]')
+            ),
+        ],
+    ).rebuild() == validate_nixfmt_rfc(
+        '[\n  fetchFromGitHub\n  {\n    owner = "huggingface";\n    repo = "trl";\n    meta = {\n      homepage = "https://example.invalid";\n    };\n  }\n]'
     )
 
 
-expected_function_argument_set = validate_nixfmt_rfc("""
+expected_function_argument_set = validate_nixfmt_rfc(
+    """
 {
   lib,
   buildPythonPackage,
@@ -784,7 +727,8 @@ expected_function_argument_set = validate_nixfmt_rfc("""
   transformers,
 }:
 { }
-""".strip("\n"))
+""".strip("\n")
+)
 
 
 def test_function_argument_set():
@@ -819,7 +763,8 @@ def test_function_argument_set():
     )
 
 
-expected_from_test_issue = validate_nixfmt_rfc("""
+expected_from_test_issue = validate_nixfmt_rfc(
+    """
 
 {
   pname = "trl";
@@ -832,7 +777,8 @@ expected_from_test_issue = validate_nixfmt_rfc("""
 
   dependencies = [ acc ];
 }
-""".strip("\n"))
+""".strip("\n")
+)
 
 
 def test_issue():
@@ -862,30 +808,29 @@ def test_issue():
 
 def test_nested_list():
     """Why: lock in nested list behavior to prevent regressions."""
-    assert (
-        NixList(
-            value=[
-                NixList(
-                    value=[
-                        Identifier(name="acc"),
-                        Identifier(name="datasets"),
-                        Identifier(name="rich"),
-                        Identifier(name="transformers"),
-                        Identifier(name="torch"),
-                    ],
-                ),
-                NixList(
-                    value=[
-                        Identifier(name="setuptools"),
-                        Identifier(name="setuptools-scm"),
-                        Identifier(name="wheel"),
-                        Identifier(name="pip"),
-                        Identifier(name="build"),
-                    ],
-                ),
-            ]
-        ).rebuild()
-        == validate_nixfmt_rfc("""
+    assert NixList(
+        value=[
+            NixList(
+                value=[
+                    Identifier(name="acc"),
+                    Identifier(name="datasets"),
+                    Identifier(name="rich"),
+                    Identifier(name="transformers"),
+                    Identifier(name="torch"),
+                ],
+            ),
+            NixList(
+                value=[
+                    Identifier(name="setuptools"),
+                    Identifier(name="setuptools-scm"),
+                    Identifier(name="wheel"),
+                    Identifier(name="pip"),
+                    Identifier(name="build"),
+                ],
+            ),
+        ]
+    ).rebuild() == validate_nixfmt_rfc(
+        """
 [
   [
     acc
@@ -902,7 +847,7 @@ def test_nested_list():
     build
   ]
 ]
-""".strip("\n"))
+""".strip("\n")
     )
 
 
@@ -965,23 +910,21 @@ inherit
 
 def test_if_expression_else_if_chain():
     """Why: lock in else-if chain formatting to prevent regressions."""
-    assert (
-        IfExpression(
-            condition=Identifier(name="cond1"),
-            consequence=Identifier(name="foo"),
-            alternative=IfExpression(
-                condition=Identifier(name="cond2"),
-                consequence=Identifier(name="bar"),
-                alternative=Identifier(name="baz"),
-                then_gap="\n  ",
-                before_else_gap="\n",
-                else_gap="\n  ",
-            ),
+    assert IfExpression(
+        condition=Identifier(name="cond1"),
+        consequence=Identifier(name="foo"),
+        alternative=IfExpression(
+            condition=Identifier(name="cond2"),
+            consequence=Identifier(name="bar"),
+            alternative=Identifier(name="baz"),
             then_gap="\n  ",
             before_else_gap="\n",
-        ).rebuild()
-        == validate_nixfmt_rfc(
-            """
+            else_gap="\n  ",
+        ),
+        then_gap="\n  ",
+        before_else_gap="\n",
+    ).rebuild() == validate_nixfmt_rfc(
+        """
 if cond1 then
   foo
 else if cond2 then
@@ -989,7 +932,6 @@ else if cond2 then
 else
   baz
 """.strip("\n")
-        )
     )
 
 
@@ -1051,29 +993,31 @@ def test_operator_with_comment():
 
     assert (
         AttributeSet(
-            values=[Binding(
-                name="foo",
-                value=BinaryExpression(
-                    left=NixList(
-                        value=[
-                            Primitive(value=1),
-                            Primitive(value=2),
-                            Primitive(value=3),
-                            Primitive(value=4),
-                            Primitive(value=5),
-                        ]
+            values=[
+                Binding(
+                    name="foo",
+                    value=BinaryExpression(
+                        left=NixList(
+                            value=[
+                                Primitive(value=1),
+                                Primitive(value=2),
+                                Primitive(value=3),
+                                Primitive(value=4),
+                                Primitive(value=5),
+                            ]
+                        ),
+                        right=NixList(
+                            value=[
+                                Primitive(value=6),
+                            ],
+                        ),
+                        operator=Operator(
+                            name="++", before=[Comment(text="This is a comment")]
+                        ),
+                        operator_gap_lines=1,
                     ),
-                    right=NixList(
-                        value=[
-                            Primitive(value=6),
-                        ],
-                    ),
-                    operator=Operator(
-                        name="++", before=[Comment(text="This is a comment")]
-                    ),
-                    operator_gap_lines=1,
-                ),
-            )]
+                )
+            ]
         )
     ).rebuild() == validate_nixfmt_rfc("""{
   foo = [
@@ -1085,5 +1029,4 @@ def test_operator_with_comment():
   ]
   # This is a comment
   ++ [ 6 ];
-}"""
-    )
+}""")

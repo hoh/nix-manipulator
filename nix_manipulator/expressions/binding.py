@@ -8,16 +8,21 @@ from typing import Any, ClassVar, cast
 from tree_sitter import Node
 
 from nix_manipulator.expressions.comment import Comment
-from nix_manipulator.expressions.expression import (NixExpression,
-                                                    TypedExpression,
-                                                    coerce_expression)
+from nix_manipulator.expressions.expression import (
+    NixExpression,
+    TypedExpression,
+    coerce_expression,
+)
 from nix_manipulator.expressions.layout import linebreak
 from nix_manipulator.expressions.list import NixList
 from nix_manipulator.expressions.scope import ScopeState
-from nix_manipulator.expressions.trivia import (append_gap_trivia_from_offsets,
-                                                apply_trailing_trivia,
-                                                format_trivia, gap_between,
-                                                layout_from_gap)
+from nix_manipulator.expressions.trivia import (
+    append_gap_trivia_from_offsets,
+    apply_trailing_trivia,
+    format_trivia,
+    gap_between,
+    layout_from_gap,
+)
 
 
 def _split_attrpath(text: str) -> list[str]:
@@ -107,18 +112,10 @@ def _split_attrpath(text: str) -> list[str]:
 @dataclass(slots=True, repr=False)
 class Binding(TypedExpression):
     """Single `name = value;` binding with preserved trivia."""
+
     tree_sitter_types: ClassVar[set[str]] = {"binding"}
     name: str
-    value: (
-        NixExpression
-        | str
-        | int
-        | bool
-        | float
-        | None
-        | list[Any]
-        | dict[str, Any]
-    )
+    value: NixExpression | str | int | bool | float | None | list[Any] | dict[str, Any]
     value_gap: str = " "
     nested: bool = field(default=False, compare=False)
 
@@ -266,9 +263,7 @@ class Binding(TypedExpression):
         value_layout = layout_from_gap(self.value_gap)
         if value_layout.on_newline:
             val_indent = (
-                value_layout.indent
-                if value_layout.indent is not None
-                else indent + 2
+                value_layout.indent if value_layout.indent is not None else indent + 2
             )
         else:
             val_indent = indent

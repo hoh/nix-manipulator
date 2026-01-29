@@ -41,7 +41,9 @@ class IndentedString(TypedExpression):
         if self.has_scope():
             return self.rebuild_scoped(indent=indent, inline=inline)
 
-        raw_value = self.value if self.raw_string else _escape_indented_string(self.value)
+        raw_value = (
+            self.value if self.raw_string else _escape_indented_string(self.value)
+        )
         value_str = f"''{raw_value}''"
 
         return self.add_trivia(value_str, indent, inline)

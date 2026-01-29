@@ -8,13 +8,17 @@ from typing import Any, ClassVar
 from tree_sitter import Node
 
 from nix_manipulator.expressions.comment import Comment
-from nix_manipulator.expressions.expression import (NixExpression,
-                                                    TypedExpression)
+from nix_manipulator.expressions.expression import NixExpression, TypedExpression
 from nix_manipulator.expressions.layout import empty_line, linebreak
 from nix_manipulator.expressions.trivia import (
-    Layout, append_gap_trivia, collect_comments_between_with_gap,
-    format_interstitial_trivia_with_separator, gap_has_empty_line,
-    split_inline_comments, trim_leading_layout_trivia)
+    Layout,
+    append_gap_trivia,
+    collect_comments_between_with_gap,
+    format_interstitial_trivia_with_separator,
+    gap_has_empty_line,
+    split_inline_comments,
+    trim_leading_layout_trivia,
+)
 
 
 @dataclass(slots=True, repr=False)
@@ -52,34 +56,28 @@ class Assertion(TypedExpression):
         semicolon_node = next(
             (child for child in node.children if child.type == ";"), None
         )
-        comment_nodes = [
-            child for child in node.children if child.type == "comment"
-        ]
+        comment_nodes = [child for child in node.children if child.type == "comment"]
         after_assert_comments: list[Any] = []
         before_semicolon_comments: list[Any] = []
         if assert_node is not None and condition_node is not None:
-            after_assert_comments, trailing_gap = (
-                collect_comments_between_with_gap(
-                    node,
-                    comment_nodes,
-                    assert_node,
-                    condition_node,
-                    allow_inline=True,
-                )
+            after_assert_comments, trailing_gap = collect_comments_between_with_gap(
+                node,
+                comment_nodes,
+                assert_node,
+                condition_node,
+                allow_inline=True,
             )
             if not after_assert_comments:
                 append_gap_trivia(after_assert_comments, trailing_gap)
             elif "\n" in trailing_gap and not gap_has_empty_line(trailing_gap):
                 after_assert_comments.append(linebreak)
         if semicolon_node is not None and condition_node is not None:
-            before_semicolon_comments, _ = (
-                collect_comments_between_with_gap(
-                    node,
-                    comment_nodes,
-                    condition_node,
-                    semicolon_node,
-                    allow_inline=True,
-                )
+            before_semicolon_comments, _ = collect_comments_between_with_gap(
+                node,
+                comment_nodes,
+                condition_node,
+                semicolon_node,
+                allow_inline=True,
             )
         start_node = semicolon_node if semicolon_node is not None else condition_node
         between, trailing_gap = collect_comments_between_with_gap(
@@ -136,8 +134,7 @@ class Assertion(TypedExpression):
         condition_inline = self.expression.rebuild(indent=indent, inline=True)
         condition_absorbed = inline_is_absorbed(condition_inline)
         condition_on_newline = (
-            trivia_forces_newline(self.after_assert_comments)
-            or not condition_absorbed
+            trivia_forces_newline(self.after_assert_comments) or not condition_absorbed
         )
         condition_expr = self.expression
         if condition_on_newline:

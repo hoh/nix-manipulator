@@ -8,13 +8,18 @@ from typing import Any, ClassVar
 from tree_sitter import Node
 
 from nix_manipulator.expressions.comment import Comment
-from nix_manipulator.expressions.expression import (NixExpression,
-                                                    TypedExpression,
-                                                    coerce_expression)
+from nix_manipulator.expressions.expression import (
+    NixExpression,
+    TypedExpression,
+    coerce_expression,
+)
 from nix_manipulator.expressions.layout import empty_line
 from nix_manipulator.expressions.trivia import (
-    apply_trailing_trivia, format_trivia, gap_has_empty_line_from_offsets,
-    parse_delimited_sequence)
+    apply_trailing_trivia,
+    format_trivia,
+    gap_has_empty_line_from_offsets,
+    parse_delimited_sequence,
+)
 
 MAX_INLINE_LIST_WIDTH = 100
 
@@ -31,9 +36,7 @@ def process_list(node: Node):
         child_expression.before = before_trivia
         return child_expression
 
-    def can_inline_comment(
-        prev: Node | None, comment_node: Node, items: list
-    ) -> bool:
+    def can_inline_comment(prev: Node | None, comment_node: Node, items: list) -> bool:
         """Allow inline comments only when they remain on the same line."""
         return (
             prev is not None
@@ -61,6 +64,7 @@ def process_list(node: Node):
 @dataclass(slots=True, repr=False)
 class NixList(TypedExpression):
     """Nix list expression that preserves original multiline structure."""
+
     tree_sitter_types: ClassVar[set[str]] = {"list_expression"}
     value: list[NixExpression | str | int | bool | float | None] = field(
         default_factory=list
@@ -191,9 +195,7 @@ class NixList(TypedExpression):
             items_str = "\n".join(items)
             indentor = "" if inline else (" " * indent)
             closing_sep = "" if items_str.endswith("\n") else "\n"
-            list_str = (
-                indentor + f"[\n{items_str}{closing_sep}" + " " * indent + "]"
-            )
+            list_str = indentor + f"[\n{items_str}{closing_sep}" + " " * indent + "]"
         else:
             items_str = " ".join(items)
             indentor = "" if inline else " " * indent

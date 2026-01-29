@@ -7,15 +7,18 @@ import pytest
 
 import nix_manipulator.cli.manipulations as manipulations_module
 from nix_manipulator import parser
-from nix_manipulator.cli.manipulations import (_remove_value_in_attrset,
-                                               _resolve_inherited_binding,
-                                               _resolve_npath_parent,
-                                               _resolve_target_set,
-                                               _resolve_target_set_from_expr,
-                                               _set_attrpath_value,
-                                               _set_value_in_attrset,
-                                               _walk_attrpath_stack,
-                                               remove_value, set_value)
+from nix_manipulator.cli.manipulations import (
+    _remove_value_in_attrset,
+    _resolve_inherited_binding,
+    _resolve_npath_parent,
+    _resolve_target_set,
+    _resolve_target_set_from_expr,
+    _set_attrpath_value,
+    _set_value_in_attrset,
+    _walk_attrpath_stack,
+    remove_value,
+    set_value,
+)
 from nix_manipulator.expressions.assertion import Assertion
 from nix_manipulator.expressions.binding import Binding
 from nix_manipulator.expressions.function.call import FunctionCall
@@ -62,7 +65,9 @@ def test_resolve_target_set_rejects_multiple_expressions():
         node=SimpleNamespace(),
         expressions=[Primitive(value=1), Primitive(value=2)],
     )
-    with pytest.raises(ValueError, match="Source must contain exactly one top-level expression"):
+    with pytest.raises(
+        ValueError, match="Source must contain exactly one top-level expression"
+    ):
         _resolve_target_set(source)
 
 
@@ -101,7 +106,10 @@ def test_resolve_target_set_rejects_empty_and_invalid_top_level():
         _resolve_target_set(empty)
 
     invalid = NixSourceCode(node=SimpleNamespace(), expressions=[Primitive(value=1)])
-    with pytest.raises(ValueError, match="Top-level expression must be an attribute set or function definition"):
+    with pytest.raises(
+        ValueError,
+        match="Top-level expression must be an attribute set or function definition",
+    ):
         _resolve_target_set(invalid)
 
 
@@ -111,7 +119,9 @@ def test_walk_attrpath_stack_errors_and_type_checks():
     with pytest.raises(KeyError):
         _walk_attrpath_stack(target, ["root"], leaf_nested=False, require_root=True)
     with pytest.raises(KeyError):
-        _walk_attrpath_stack(target, ["root", "leaf"], leaf_nested=False, require_root=True)
+        _walk_attrpath_stack(
+            target, ["root", "leaf"], leaf_nested=False, require_root=True
+        )
 
     child_binding = Binding(name="child", value=Primitive(value=1), nested=True)
     root = Binding(
@@ -120,8 +130,12 @@ def test_walk_attrpath_stack_errors_and_type_checks():
         nested=True,
     )
     target = AttributeSet(values=[root], multiline=False)
-    with pytest.raises(ValueError, match="NPath segment does not point to an attribute set: child"):
-        _walk_attrpath_stack(target, ["root", "child", "leaf"], leaf_nested=False, require_root=True)
+    with pytest.raises(
+        ValueError, match="NPath segment does not point to an attribute set: child"
+    ):
+        _walk_attrpath_stack(
+            target, ["root", "child", "leaf"], leaf_nested=False, require_root=True
+        )
 
 
 def test_set_attrpath_value_error_and_update_paths():
@@ -133,8 +147,12 @@ def test_set_attrpath_value_error_and_update_paths():
         nested=True,
     )
     target = AttributeSet(values=[explicit_root], multiline=False)
-    with pytest.raises(ValueError, match="Mixed explicit binding inside attrpath: child"):
-        _set_attrpath_value(target, explicit_root, ["root", "child", "leaf"], Primitive(value=1))
+    with pytest.raises(
+        ValueError, match="Mixed explicit binding inside attrpath: child"
+    ):
+        _set_attrpath_value(
+            target, explicit_root, ["root", "child", "leaf"], Primitive(value=1)
+        )
 
     wrong_type_child = Binding(name="child", value=Primitive(value=0), nested=True)
     wrong_type_root = Binding(
@@ -143,8 +161,12 @@ def test_set_attrpath_value_error_and_update_paths():
         nested=True,
     )
     target = AttributeSet(values=[wrong_type_root], multiline=False)
-    with pytest.raises(ValueError, match="NPath segment does not point to an attribute set: child"):
-        _set_attrpath_value(target, wrong_type_root, ["root", "child", "leaf"], Primitive(value=1))
+    with pytest.raises(
+        ValueError, match="NPath segment does not point to an attribute set: child"
+    ):
+        _set_attrpath_value(
+            target, wrong_type_root, ["root", "child", "leaf"], Primitive(value=1)
+        )
 
     leaf_binding = Binding(name="leaf", value=Primitive(value=0))
     nested_child = Binding(
@@ -158,7 +180,9 @@ def test_set_attrpath_value_error_and_update_paths():
         nested=True,
     )
     target = AttributeSet(values=[update_root], multiline=False)
-    _set_attrpath_value(target, update_root, ["root", "child", "leaf"], Primitive(value=2))
+    _set_attrpath_value(
+        target, update_root, ["root", "child", "leaf"], Primitive(value=2)
+    )
     assert isinstance(leaf_binding.value, Primitive)
     assert leaf_binding.value.value == 2
 
@@ -170,7 +194,9 @@ def test_resolve_npath_parent_errors_on_missing_segments():
         _resolve_npath_parent(target, "foo.bar", create_missing=False)
 
     target = AttributeSet.from_dict({"foo": Primitive(value=1)})
-    with pytest.raises(ValueError, match="NPath segment does not point to an attribute set: foo"):
+    with pytest.raises(
+        ValueError, match="NPath segment does not point to an attribute set: foo"
+    ):
         _resolve_npath_parent(target, "foo.bar", create_missing=True)
 
 
@@ -193,7 +219,10 @@ def test_resolve_inherited_binding_prefers_local_then_outer():
             ),
         ]
     )
-    assert _resolve_inherited_binding(target_set, root_key="src", leaf_key="version") is local_version
+    assert (
+        _resolve_inherited_binding(target_set, root_key="src", leaf_key="version")
+        is local_version
+    )
 
     outer_binding = Binding(name="version", value=Primitive(value="2.0"))
     target_set = AttributeSet(
@@ -226,7 +255,9 @@ def test_set_value_in_attrset_updates_let_binding():
     )
     let_binding = Binding(name="ref", value=Primitive(value="1.0"))
     new_value = Primitive(value="2.0")
-    _set_value_in_attrset(target_set, "pkgVersion", new_value, let_bindings=[let_binding])
+    _set_value_in_attrset(
+        target_set, "pkgVersion", new_value, let_bindings=[let_binding]
+    )
     assert let_binding.value is new_value
     assert isinstance(target_set.values[0].value, Identifier)
 
@@ -264,7 +295,9 @@ def test_set_value_in_attrset_updates_inherited_identifier():
 
 def test_remove_value_in_attrset_attrpath_errors():
     """Surface attrpath-root and missing-key errors for removals."""
-    nested = AttributeSet(values=[Binding(name="leaf", value=Primitive(value=1))], multiline=False)
+    nested = AttributeSet(
+        values=[Binding(name="leaf", value=Primitive(value=1))], multiline=False
+    )
     attrpath_root = Binding(name="root", value=nested, nested=True)
     attrpath_target = AttributeSet(values=[attrpath_root], multiline=False)
     with pytest.raises(KeyError):
@@ -273,7 +306,9 @@ def test_remove_value_in_attrset_attrpath_errors():
     with pytest.raises(KeyError):
         _remove_value_in_attrset(AttributeSet(values=[], multiline=False), "missing")
 
-    populated_nested = AttributeSet(values=[Binding(name="leaf", value=Primitive(value=1))], multiline=False)
+    populated_nested = AttributeSet(
+        values=[Binding(name="leaf", value=Primitive(value=1))], multiline=False
+    )
     removable_root = Binding(name="root", value=populated_nested, nested=True)
     removable = AttributeSet(values=[removable_root], multiline=False)
     _remove_value_in_attrset(removable, "root.leaf")
@@ -290,7 +325,10 @@ def test_set_value_guards_and_let_binding_handling():
         node=SimpleNamespace(),
         expressions=[Primitive(value=1), Primitive(value=2)],
     )
-    with pytest.raises(ValueError, match="Top-level expression must be an attribute set or function definition"):
+    with pytest.raises(
+        ValueError,
+        match="Top-level expression must be an attribute set or function definition",
+    ):
         set_value(multi_source, "foo", "1")
 
     source = parser.parse(
@@ -328,13 +366,18 @@ def test_remove_value_top_level_guards():
         node=SimpleNamespace(),
         expressions=[Primitive(value=1), Primitive(value=2)],
     )
-    with pytest.raises(ValueError, match="Top-level expression must be an attribute set or function definition"):
+    with pytest.raises(
+        ValueError,
+        match="Top-level expression must be an attribute set or function definition",
+    ):
         remove_value(multi_source, "foo")
 
 
 def test_resolve_npath_empty_segments_guard(monkeypatch):
     """_resolve_npath should reject empty segments even after formatting."""
-    source = NixSourceCode(node=SimpleNamespace(), expressions=[AttributeSet(values=[])])
+    source = NixSourceCode(
+        node=SimpleNamespace(), expressions=[AttributeSet(values=[])]
+    )
     monkeypatch.setattr(manipulations_module, "_format_npath_segments", lambda _: [])
     with pytest.raises(ValueError, match="NPath cannot be empty"):
         manipulations_module._resolve_npath(source, "ignored")
@@ -400,7 +443,10 @@ def test_resolve_inherited_binding_handles_quoted_names():
             ),
         ]
     )
-    assert _resolve_inherited_binding(target_set, root_key="src", leaf_key="quoted-name") is version_binding
+    assert (
+        _resolve_inherited_binding(target_set, root_key="src", leaf_key="quoted-name")
+        is version_binding
+    )
 
 
 def test_set_value_in_attrset_inherited_binding_without_identifier():
@@ -436,11 +482,15 @@ def test_set_value_in_attrset_updates_identifier_sibling_binding():
         ],
         multiline=False,
     )
-    target_set = AttributeSet(values=[Binding(name="root", value=inner)], multiline=False)
+    target_set = AttributeSet(
+        values=[Binding(name="root", value=inner)], multiline=False
+    )
     new_value = Primitive(value=5)
     _set_value_in_attrset(target_set, "root.target", new_value)
     sibling = next(
-        binding for binding in inner.values if isinstance(binding, Binding) and binding.name == "other"
+        binding
+        for binding in inner.values
+        if isinstance(binding, Binding) and binding.name == "other"
     )
     assert sibling.value is new_value
 

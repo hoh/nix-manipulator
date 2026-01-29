@@ -8,21 +8,24 @@ from typing import Any, ClassVar
 from tree_sitter import Node
 
 from nix_manipulator.expressions.comment import Comment
-from nix_manipulator.expressions.expression import (NixExpression,
-                                                    TypedExpression)
+from nix_manipulator.expressions.expression import NixExpression, TypedExpression
 from nix_manipulator.expressions.identifier import Identifier
 from nix_manipulator.expressions.layout import empty_line, linebreak
 from nix_manipulator.expressions.primitive import Primitive
-from nix_manipulator.expressions.trivia import (append_comment_between,
-                                                append_gap_between_offsets,
-                                                gap_between, layout_from_gap,
-                                                separator_from_layout,
-                                                trim_leading_layout_trivia)
+from nix_manipulator.expressions.trivia import (
+    append_comment_between,
+    append_gap_between_offsets,
+    gap_between,
+    layout_from_gap,
+    separator_from_layout,
+    trim_leading_layout_trivia,
+)
 
 
 @dataclass(slots=True, repr=False)
 class Inherit(TypedExpression):
     """Represent `inherit` statements, keeping their original spacing."""
+
     tree_sitter_types: ClassVar[set[str]] = {"inherit", "inherit_from"}
     names: list[Identifier | Primitive]
     from_expression: NixExpression | None = None
@@ -76,7 +79,11 @@ class Inherit(TypedExpression):
         )
 
         if inherited_attrs is not None and inherit_node is not None:
-            if from_node is not None and open_paren is not None and close_paren is not None:
+            if (
+                from_node is not None
+                and open_paren is not None
+                and close_paren is not None
+            ):
                 after_inherit_gap = gap_between(node, inherit_node, open_paren)
                 parenthesis_open_gap = gap_between(node, open_paren, from_node)
                 after_expression_gap = gap_between(node, close_paren, inherited_attrs)
@@ -98,21 +105,22 @@ class Inherit(TypedExpression):
                 trailing_comments = [
                     comment
                     for comment in outer_comments
-                    if inherited_attrs.end_byte < comment.start_byte < semicolon_node.start_byte
+                    if inherited_attrs.end_byte
+                    < comment.start_byte
+                    < semicolon_node.start_byte
                 ]
 
             prev_outer: Node | None = None
             start_outer = close_paren if close_paren is not None else inherit_node
             for comment_node in leading_comments:
-                prev_gap_node = (
-                    prev_outer if prev_outer is not None else start_outer
-                )
-                append_comment_between(
-                    before_names, node, prev_gap_node, comment_node
-                )
+                prev_gap_node = prev_outer if prev_outer is not None else start_outer
+                append_comment_between(before_names, node, prev_gap_node, comment_node)
                 prev_outer = comment_node
             prev_content: Node | None = prev_outer
-            def parse_name(child: Node, before_names: list[Any]) -> Identifier | Primitive:
+
+            def parse_name(
+                child: Node, before_names: list[Any]
+            ) -> Identifier | Primitive:
                 """Normalize inherit names for consistent rendering rules."""
                 if child.type == "identifier":
                     return Identifier.from_cst(child, before=before_names)
@@ -217,9 +225,7 @@ class Inherit(TypedExpression):
             if not layout.on_newline:
                 sep = separator_from_layout(layout, indent=indent)
                 return f"{sep}{name.rebuild(indent=indent, inline=True)}"
-            target_indent = (
-                layout.indent if layout.indent is not None else indent
-            )
+            target_indent = layout.indent if layout.indent is not None else indent
             sep = "\n\n" if layout.blank_line else "\n"
             trimmed_before = trim_leading_layout_trivia(name.before)
             has_visible_before = any(
@@ -228,11 +234,11 @@ class Inherit(TypedExpression):
             if trimmed_before == name.before:
                 name_to_render = name
             else:
-                name_to_render = name.model_copy(
-                    update={"before": trimmed_before}
-                )
+                name_to_render = name.model_copy(update={"before": trimmed_before})
             if has_visible_before:
-                return f"{sep}{name_to_render.rebuild(indent=target_indent, inline=False)}"
+                return (
+                    f"{sep}{name_to_render.rebuild(indent=target_indent, inline=False)}"
+                )
             if target_indent:
                 sep += " " * target_indent
             return f"{sep}{name_to_render.rebuild(indent=target_indent, inline=True)}"
@@ -273,9 +279,7 @@ class Inherit(TypedExpression):
 
         names_multiline = any(gap_is_multiline(gap) for gap in names_gaps if gap)
         if not names_multiline:
-            names_multiline = any(
-                name_requires_multiline(name) for name in self.names
-            )
+            names_multiline = any(name_requires_multiline(name) for name in self.names)
 
         source_multiline = False
         if self.from_expression is not None:
@@ -284,9 +288,7 @@ class Inherit(TypedExpression):
                 self.parenthesis_open_gap,
                 self.parenthesis_close_gap,
             ]
-            source_multiline = any(
-                gap_is_multiline(gap) for gap in source_gaps if gap
-            )
+            source_multiline = any(gap_is_multiline(gap) for gap in source_gaps if gap)
             if not source_multiline:
                 source_preview = self.from_expression.rebuild(
                     indent=indent, inline=True
@@ -326,9 +328,7 @@ class Inherit(TypedExpression):
                 from_indent = indent + 2
             from_expression = self.from_expression
             if open_paren_layout.on_newline:
-                trimmed_before = trim_leading_layout_trivia(
-                    from_expression.before
-                )
+                trimmed_before = trim_leading_layout_trivia(from_expression.before)
                 if trimmed_before != from_expression.before:
                     from_expression = from_expression.model_copy(
                         update={"before": trimmed_before}
@@ -340,9 +340,7 @@ class Inherit(TypedExpression):
             if open_paren_layout.on_newline:
                 open_sep = "\n\n" if open_paren_layout.blank_line else "\n"
                 expr_inline = False
-            expr_str = from_expression.rebuild(
-                indent=from_indent, inline=expr_inline
-            )
+            expr_str = from_expression.rebuild(indent=from_indent, inline=expr_inline)
             close_sep = separator_from_layout(
                 close_paren_layout, indent=from_indent, inline_sep=""
             )
@@ -356,9 +354,7 @@ class Inherit(TypedExpression):
             name_gap = "\n" + " " * name_indent
 
             force_inherit_newline = source_multiline and not inherit_layout.on_newline
-            rebuild_string = render_inherit_source(
-                force_newline=force_inherit_newline
-            )
+            rebuild_string = render_inherit_source(force_newline=force_inherit_newline)
 
             if self.names:
                 rendered_names = ""
