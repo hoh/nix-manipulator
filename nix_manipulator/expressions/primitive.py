@@ -127,10 +127,6 @@ class Primitive(TypedExpression):
         value_str = self._render_value()
         return self.add_trivia(value_str, indent, inline)
 
-    def __repr__(self):
-        """Render rebuilt Nix code for REPL/debug output."""
-        return self.rebuild()
-
 
 @dataclass(slots=True, eq=False, repr=False)
 class IntegerPrimitive(Primitive):

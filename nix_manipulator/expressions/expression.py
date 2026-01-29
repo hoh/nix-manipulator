@@ -9,6 +9,12 @@ from tree_sitter import Node
 
 from nix_manipulator.expressions.scope import Scope, ScopeLayer, ScopeState
 
+try:
+    from nix_manipulator.color import colorize_nix
+except ImportError:
+    def colorize_nix(code: str) -> str:
+        return code
+
 
 @dataclass(kw_only=True, slots=True, weakref_slot=True)
 class NixExpression:
@@ -53,7 +59,7 @@ class NixExpression:
     def __repr__(self) -> str:
         """Render rebuilt Nix code for REPL/debug output."""
         try:
-            return self.rebuild()
+            return colorize_nix(self.rebuild())
         except Exception as exc:  # pragma: no cover - repr fallback path
             return f"<{self.__class__.__name__} unprintable: {exc!r}>"
 

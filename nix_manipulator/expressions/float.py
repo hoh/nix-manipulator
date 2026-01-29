@@ -27,9 +27,5 @@ class FloatExpression(TypedExpression):
 
         return self.add_trivia(self.value, indent, inline)
 
-    def __repr__(self):
-        """Render rebuilt Nix code for REPL/debug output."""
-        return self.rebuild()
-
 
 __all__ = ["FloatExpression"]

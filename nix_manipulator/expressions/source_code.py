@@ -29,6 +29,11 @@ from nix_manipulator.mapping import tree_sitter_node_to_expression
 from nix_manipulator.resolution import (attach_resolution_context,
                                         scopes_for_owner,
                                         set_resolution_context)
+try:
+    from nix_manipulator.color import colorize_nix
+except ImportError:
+    def colorize_nix(code: str) -> str:
+        return code
 
 
 class NixSourceCode:
@@ -279,7 +284,7 @@ class NixSourceCode:
     def __repr__(self) -> str:
         """Render rebuilt Nix code for REPL/debug output."""
         try:
-            return self.rebuild()
+            return colorize_nix(self.rebuild())
         except Exception as exc:  # pragma: no cover - repr fallback path
             return f"<NixSourceCode unprintable: {exc!r}>"
 

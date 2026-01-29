@@ -24,7 +24,3 @@ class Ellipses(TypedExpression):
 
         comma = "," if trailing_comma else ""
         return self.add_trivia(f"...{comma}", indent, inline)
-
-    def __repr__(self):
-        """Render rebuilt Nix code for REPL/debug output."""
-        return self.rebuild()

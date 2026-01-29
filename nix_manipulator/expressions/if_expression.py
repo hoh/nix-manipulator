@@ -275,9 +275,5 @@ class IfExpression(TypedExpression):
 
         return self.add_trivia(rebuild_string, indent, inline)
 
-    def __repr__(self):
-        """Render rebuilt Nix code for REPL/debug output."""
-        return self.rebuild()
-
 
 __all__ = ["IfExpression"]

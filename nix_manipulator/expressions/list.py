@@ -203,9 +203,5 @@ class NixList(TypedExpression):
             f"{before_str}{list_str}", self.after, indent=indent
         )
 
-    def __repr__(self):
-        """Render rebuilt Nix code for REPL/debug output."""
-        return self.rebuild()
-
 
 __all__ = ["NixList"]

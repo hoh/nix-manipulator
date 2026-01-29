@@ -136,9 +136,5 @@ class Parenthesis(TypedExpression):
         value_str = f"({self.value.rebuild(indent=indent, inline=True)})"
         return self.add_trivia(value_str, indent, inline)
 
-    def __repr__(self):
-        """Render rebuilt Nix code for REPL/debug output."""
-        return self.rebuild()
-
 
 __all__ = ["Parenthesis"]
