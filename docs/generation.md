@@ -7,14 +7,16 @@ Most workflows start by parsing existing Nix, making structured edits, and rebui
 ```python
 from nix_manipulator import parse
 
-src = parse('{ foo = 1; bar = [ "a" ]; }')
-target = src.expr           # top-level AttributeSet
-target["foo"] = 2           # update a binding
-target["bar"].value.append("b")  # extend a list
+src = parse('{ foo = 1; bar = [ 1 "two" ]; }')
+target = src.expr                # top-level AttributeSet
+target["foo"] = 2                # update a binding
+target["bar"].value.append(3)    # extend a list
+first = target["bar"][0]         # list access
+print(first.value)               # 1
 print(src.rebuild())
 # {
 #   foo = 2;
-#   bar = [ "a" "b" ];
+#   bar = [ 1 "two" 3 ];
 # }
 ```
 
@@ -42,11 +44,12 @@ Tip: a Python `str` becomes a Nix **string literal**. Use `Identifier(name="foo"
 
 - Literals: `Primitive("text")`, `Primitive(True)`, `Primitive(42)`, or let containers coerce these automatically.
 - Identifiers: `Identifier("pkg")` for variable/attribute references (do not use `Primitive` if you need a bare name).
-- Paths: `NixPath("/nix/store/…")` for path literals.
-- Lists: `NixList([...])` with elements that can be expressions or primitives (`None` becomes `null`).
+- Paths: `NixPath("/nix/store/…")` for path literals. When parsing from disk, paths resolve relative to the source file; otherwise relative paths resolve against the current working directory. `NixPath.value` returns bytes, and `NixPath.text` reads UTF-8.
+- Lists: `NixList([...])` with elements that can be expressions or primitives (`None` becomes `null`). `NixList` supports list-style indexing/slicing for convenience.
 
 ```python
-from nix_manipulator.expressions import Identifier, NixList, NixPath, Primitive
+from nix_manipulator.expressions import Identifier, NixPath, Primitive
+from nix_manipulator.expressions.list import NixList
 
 print(Primitive("hi").rebuild())             # "hi"
 print(Identifier("version").rebuild())       # version
@@ -57,7 +60,8 @@ print(NixList([1, True, None]).rebuild())    # [ 1 true null ]
 - List layout: small/simple lists stay inline; longer ones expand automatically. Override with `multiline=True/False`.
 
 ```python
-from nix_manipulator.expressions import NixList, Identifier
+from nix_manipulator.expressions import Identifier
+from nix_manipulator.expressions.list import NixList
 
 print(NixList([Identifier("a"), Identifier("b")]).rebuild())
 # [ a b ]

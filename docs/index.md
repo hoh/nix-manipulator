@@ -7,6 +7,7 @@ Safely edit Nix code while keeping RFC-166 formatting, comments, and layout inta
 - Preserves RFC-166-friendly formatting and comments; normalizes eccentric layouts.
 - Works against parsed syntax trees instead of regex so edits stay structural.
 - Understands scoped bindings (`let … in`) and attrpath-derived bindings.
+- Treats `import` as a first-class expression and can follow path-literal imports when indexing.
 - Shares semantics between the CLI and Python API.
 
 ## Install

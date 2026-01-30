@@ -52,6 +52,33 @@ print(src.rebuild())
 # { foo = { bar = 2; }; }
 ```
 
+## Imports and paths
+
+`import` expressions are modeled as `Import` nodes. When the single argument is a path literal (`NixPath`), mapping access follows the import by parsing the referenced file.
+
+```python
+from nix_manipulator import parse_file
+from nix_manipulator.expressions import Import
+
+src = parse_file("tests/imports/simple.nix")
+assert isinstance(src["b"], Import)
+assert src["b"]["c"] == 3
+```
+
+Only path-literal imports are followed. Non-path arguments (for example `import "foo.nix"` or `import (builtins.fetchTarball …)`) raise `TypeError` on lookup. Angle-bracket paths (`<nixpkgs>`) are not resolved and raise `ValueError` when accessed.
+
+`NixPath` resolves relative paths against the source file when you use `parse_file`; if you parse from a string, relative paths resolve against the current working directory.
+
+```python
+from nix_manipulator import parse_file
+from nix_manipulator.expressions import Import, NixPath
+
+src = parse_file("tests/imports/simple.nix")
+path = src["b"].argument  # NixPath
+print(path.resolved_path())
+print(path.text)  # UTF-8 file contents
+```
+
 Attrpath-derived bindings are preserved: updating `src["foo"]["bar"]` respects existing attrpath layout, and deleting the final attrpath leaf prunes its root.
 
 When you need to reference a name instead of a string literal, use `Identifier`:
