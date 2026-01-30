@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, ClassVar
+from typing import Any, ClassVar, SupportsIndex
 
 from tree_sitter import Node
 
@@ -153,6 +153,10 @@ class NixList(TypedExpression):
         if "\n" in preview or len(preview) > max_width:
             return None
         return preview
+
+    def __getitem__(self, key: SupportsIndex | slice):
+        """Allow list-style indexing into list values."""
+        return self.value[key]
 
     def rebuild(self, indent: int = 0, inline: bool = False) -> str:
         """Reconstruct list."""
