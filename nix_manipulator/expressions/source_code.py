@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, ClassVar
 
 from tree_sitter import Node
@@ -50,6 +51,7 @@ class NixSourceCode:
     expressions: list[Any]
     trailing: list[Any]
     contains_error: bool  # internal diagnostic; not part of the stable API
+    source_path: Path | None
 
     def __init__(
         self,
@@ -58,12 +60,14 @@ class NixSourceCode:
         trailing: list[Any] | None = None,
         *,
         contains_error: bool = False,
+        source_path: Path | None = None,
     ):
         """Track CST root and trivia so rebuild can preserve formatting."""
         self.node = node
         self.expressions = expressions
         self.trailing = trailing or []
         self.contains_error = contains_error
+        self.source_path = source_path
 
     @classmethod
     def from_cst(cls, node: Node) -> NixSourceCode:
@@ -165,6 +169,14 @@ class NixSourceCode:
         if self.trailing and self.trailing[-1] in (linebreak, empty_line):
             return rebuilt + ("\n" if not rebuilt.endswith("\n") else "")
         return rebuilt
+
+    def save(self, path: Path | str | None = None) -> Path:
+        """Persist rebuilt source to disk."""
+        target = Path(path) if path else self.source_path
+        if not target:
+            raise ValueError("No path provided; use save(path=...)")
+        target.write_text(self.rebuild(), encoding="utf-8")
+        return target
 
     def _resolve_target_set(self, *, _visited: set[int] | None = None):
         """Locate the top-level attribute set for operator-style access (internal helper)."""

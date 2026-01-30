@@ -51,10 +51,15 @@ def parse_to_ast(source_code: bytes | str) -> Node:
     return tree.root_node
 
 
-def parse(source_code: bytes | str) -> NixSourceCode:
+def parse(
+    source_code: bytes | str, source_path: Path | str | None = None
+) -> NixSourceCode:
     """Parse Nix source code and return the root of its AST."""
     node = parse_to_ast(source_code=source_code)
-    return NixSourceCode.from_cst(node)
+    source = NixSourceCode.from_cst(node)
+    if source_path:
+        source.source_path = Path(source_path)
+    return source
 
 
 def parse_file(path: Path | str) -> NixSourceCode:
@@ -62,4 +67,5 @@ def parse_file(path: Path | str) -> NixSourceCode:
     path = Path(path)
     source_code = path.read_text(encoding="utf-8")
     with source_path_context(path):
-        return parse(source_code)
+        source = parse(source_code, source_path=path)
+    return source
