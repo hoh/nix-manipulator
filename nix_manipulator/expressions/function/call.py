@@ -190,5 +190,31 @@ class FunctionCall(TypedExpression):
         core = f"{function_str}{rec_str}{sep}{args_str}"
         return self.add_trivia(core, indent, inline)
 
+    def _resolve_argument_for_access(self) -> NixExpression:
+        """Normalize the argument for operator-style access."""
+        if self.argument is None:
+            raise TypeError("Function call has no argument")
+
+        from nix_manipulator.expressions.parenthesis import Parenthesis
+        from nix_manipulator.resolution import attach_resolution_context
+
+        argument: NixExpression = self.argument
+        while isinstance(argument, Parenthesis):
+            argument = argument.value
+
+        if isinstance(argument, Identifier):
+            attach_resolution_context(argument, owner=self)
+            argument = argument.value
+
+        attach_resolution_context(argument, owner=self)
+        return argument
+
+    def __getitem__(self, key: str):
+        """Delegate item access to the argument when supported."""
+        argument = self._resolve_argument_for_access()
+        if hasattr(argument, "__getitem__"):
+            return argument[key]  # type: ignore[index]
+        raise TypeError("FunctionCall argument does not support item access")
+
 
 __all__ = ["FunctionCall"]

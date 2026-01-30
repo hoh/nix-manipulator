@@ -211,3 +211,27 @@ def test_operator_identifier_requires_value_resolution():
     assert version.name == "package_version"
     resolved = version.value
     assert getattr(resolved, "value", None) == "1.0.0"
+
+
+def test_get_attribute_from_function():
+    source = parse(
+        """
+        {
+          lib,
+          buildPythonPackage,
+        }:
+        let
+          owner = "bob";
+        in
+        buildPythonPackage rec {
+          owner = owner;
+
+          src = fetchFromGitHub {
+            owner = owner;
+            repo = "trl";
+          };
+        }
+        """
+    )
+    assert source.expr.output.scope["owner"] == "bob"
+    assert source["src"]["repo"] == "trl"
