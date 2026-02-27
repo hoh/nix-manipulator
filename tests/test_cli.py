@@ -56,6 +56,27 @@ def test_cli_test_mismatch_exit_code(tmp_path, capsys):
     assert out == "Fail"
 
 
+def test_cli_test_issue_13_leading_comment_regression(tmp_path, capsys):
+    """Issue #13: leading comments must not break CLI round-trip checks."""
+    path = tmp_path / "issue-13-leading-comment.nix"
+    path.write_text(
+        dedent(
+            """\
+            # hi
+            {
+              a = 1;
+            }
+
+            """
+        ),
+        encoding="utf-8",
+    )
+    result = main(["test", "-f", str(path)])
+    out = capsys.readouterr().out.rstrip("\n")
+    assert result == 0
+    assert out == "OK"
+
+
 def test_cli_set_scope_adds_layer():
     """Create a scope via @ selector and preserve body layout."""
     out = transform_with_cli("{ foo = 1; }\n", ["set", "@bar", "2"])
