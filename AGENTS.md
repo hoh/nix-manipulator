@@ -34,6 +34,7 @@ Never create virtualenv or use other software than Nix to fetch or install softw
 - Target Python 3.13.
 - Prefer parser/manipulation APIs over ad-hoc string edits to keep formatting stable.
 - Keep code simple. No import magic, limit the use of complex patterns but take advantage of syntax like `match`, comprehensions and generators.
+- All functions have docstings explaining the business motivations (why). Comments explain motivation where necessary.
 
 ## Agent notes
 - When making changes in the code, use `./agent-notes/README.md` to track current/prior tasks, plans, todos, and notes; agents own these files.
