@@ -208,6 +208,58 @@ def test_cli_set_follows_inherit_reference():
     assert out == expected
 
 
+def test_cli_set_handles_asserted_parenthesized_select_call():
+    """CLI set should edit attrsets inside asserted parenthesized select calls."""
+    original = dedent(
+        """\
+        { lib, stdenv }:
+        assert stdenv.isLinux;
+        (stdenv.mkDerivation {
+          pname = "x";
+          meta = { broken = false; };
+        })
+        """
+    )
+    expected = original.replace("broken = false;", "broken = true;").rstrip("\n")
+    out = transform_with_cli(original, ["set", "meta.broken", "true"])
+    assert out == expected
+
+
+def test_cli_set_meta_broken_in_buildgo_lambda_argument():
+    """CLI set should update nested meta attrs in constructor lambda arguments."""
+    original = dedent(
+        """\
+        {
+          lib,
+          buildGo124Module,
+        }:
+
+        buildGo124Module (finalAttrs: {
+          meta = {
+            maintainers = with lib.maintainers; [ maintainer ];
+          };
+        })
+        """
+    )
+    expected = dedent(
+        """\
+        {
+          lib,
+          buildGo124Module,
+        }:
+
+        buildGo124Module (finalAttrs: {
+          meta = {
+            maintainers = with lib.maintainers; [ maintainer ];
+            broken = true;
+          };
+        })
+        """
+    ).rstrip("\n")
+    out = transform_with_cli(original, ["set", "meta.broken", "true"])
+    assert out == expected
+
+
 def test_cli_scope_set_rm_restores_trivia():
     """Creating then removing a scope should keep leading/trailing comments."""
     original = "# heading\n\n{ foo = 1; }\n\n# footer\n"

@@ -12,6 +12,7 @@ from nix_manipulator.expressions import (
     Inherit,
     NixExpression,
     NixSourceCode,
+    Select,
     Scope,
     WithStatement,
 )
@@ -31,13 +32,66 @@ from nix_manipulator.resolution import (
 )
 
 
+def _strip_parentheses(expression: NixExpression) -> NixExpression:
+    """Ignore formatting-only parentheses so target resolution works on semantics."""
+    while isinstance(expression, Parenthesis):
+        expression = expression.value
+    return expression
+
+
+def _supports_attrset_argument(callee: NixExpression | str) -> bool:
+    """Allow edits only for function-like callees to avoid unsafe rewrites."""
+    while True:
+        if isinstance(callee, str):
+            return True
+        callee = _strip_parentheses(callee)
+        if isinstance(callee, FunctionCall):
+            callee = callee.name
+            continue
+        return isinstance(callee, (FunctionDefinition, Identifier, Select))
+
+
+def _resolve_identifier_target(
+    identifier: Identifier,
+    *,
+    preferred_scopes: tuple[Scope, ...] | None = None,
+    owners: tuple[NixExpression, ...] = (),
+) -> tuple[NixExpression, tuple[Scope, ...] | None]:
+    """Resolve an identifier using the scope where it was defined.
+
+    The same name can point to different bindings in different scopes.
+    We attach scope context first so `nima set/rm` updates the real source
+    binding instead of replacing the identifier token itself.
+
+    Example: in `{ version = pkgVersion; pkgVersion = "1.0"; }`,
+    editing `version` should update `pkgVersion`.
+    """
+    resolved_scopes = preferred_scopes
+    if resolved_scopes is None:
+        for owner in owners:
+            owner_scopes = scopes_for_owner(owner)
+            if owner_scopes:
+                resolved_scopes = owner_scopes
+                break
+    if resolved_scopes:
+        set_resolution_context(identifier, resolved_scopes)
+    return identifier.value, resolved_scopes
+
+
 def _resolve_target_set_from_expr(
     target: NixExpression,
     *,
     scope_chain: tuple[Scope, ...] | None = None,
     _visited: set[int] | None = None,
 ) -> AttributeSet:
-    """Find the editable attribute set so CLI edits land in the expected scope."""
+    """Resolve the one attrset the CLI is allowed to mutate.
+
+    `nima set/rm` must update the canonical package/body attrs users intend,
+    not incidental wrapper syntax (`assert`, `let`, `with`, call plumbing).
+
+    Returning exactly one target keeps behavior deterministic and lets the tool fail fast
+    when intent is ambiguous, which avoids unsafe rewrites and preserves formatting.
+    """
     visited = _visited or set()
     if id(target) in visited:
         raise ValueError("Unexpected expression type")
@@ -47,6 +101,31 @@ def _resolve_target_set_from_expr(
         expr: NixExpression, *, scopes: tuple[Scope, ...] | None = scope_chain
     ) -> AttributeSet:
         return _resolve_target_set_from_expr(expr, scope_chain=scopes, _visited=visited)
+
+    def _resolve_call_argument(
+        call: FunctionCall, *, scopes: tuple[Scope, ...] | None = scope_chain
+    ) -> AttributeSet | None:
+        """Target package-constructor call arguments without rewriting call structure."""
+        if not _supports_attrset_argument(call.name):
+            return None
+        argument = call.argument
+        if argument is None:
+            return None
+        argument = _strip_parentheses(argument)
+        if isinstance(argument, Identifier):
+            argument, scopes = _resolve_identifier_target(
+                argument,
+                preferred_scopes=scopes,
+                owners=(call, argument),
+            )
+            argument = _strip_parentheses(argument)
+        if isinstance(argument, AttributeSet):
+            return argument
+        try:
+            return _resolve_nested(argument, scopes=scopes)
+        except ValueError:
+            # Keep searching parent branches when this call argument is not a usable target.
+            return None
 
     if scope_chain is None:
         scope_chain = scopes_for_owner(target)
@@ -60,14 +139,14 @@ def _resolve_target_set_from_expr(
             return _resolve_nested(target.value)
         case FunctionDefinition():
             output = target.output
-            if isinstance(output, FunctionCall) and isinstance(
-                output.argument, AttributeSet
-            ):
-                return output.argument
-            if isinstance(output, AttributeSet):
-                return output
             if output is None:
                 raise ValueError("Unexpected function output type")
+            if isinstance(output, FunctionCall):
+                output_argument = _resolve_call_argument(output)
+                if output_argument is not None:
+                    return output_argument
+            if isinstance(output, AttributeSet):
+                return output
             try:
                 return _resolve_nested(output)
             except ValueError as exc:
@@ -81,53 +160,33 @@ def _resolve_target_set_from_expr(
                 _visited=visited,
             )
         case Identifier():
-            identifier_scopes = scope_chain or scopes_for_owner(target)
-            if identifier_scopes:
-                set_resolution_context(target, identifier_scopes)
-            resolved = target.value
+            resolved, identifier_scopes = _resolve_identifier_target(
+                target,
+                preferred_scopes=scope_chain,
+                owners=(target,),
+            )
             return _resolve_nested(resolved, scopes=identifier_scopes)
         case Parenthesis():
             return _resolve_nested(target.value)
         case AttributeSet():
             return target
         case FunctionCall():
-            callee = target.name
-            while isinstance(callee, Parenthesis):
-                callee = callee.value
-            if isinstance(callee, (FunctionDefinition, Identifier)) and isinstance(
-                target.argument, AttributeSet
-            ):
-                return target.argument
+            argument = _resolve_call_argument(target)
+            if argument is not None:
+                return argument
             raise ValueError("Unexpected expression type")
         case _:
             raise ValueError("Unexpected expression type")
 
 
 def _resolve_target_set(source: NixSourceCode) -> AttributeSet:
-    """Require a single top-level target to keep edits deterministic (internal CLI helper)."""
+    """Enforce one top-level edit target so CLI errors are explicit and deterministic."""
     if not source.expressions:
         raise ValueError("Source contains no expressions")
     if len(source.expressions) != 1:
         raise ValueError("Source must contain exactly one top-level expression")
-    top_level = source.expressions[0]
-    if not isinstance(
-        top_level,
-        (
-            Assertion,
-            FunctionDefinition,
-            AttributeSet,
-            WithStatement,
-            Identifier,
-            Parenthesis,
-            LetExpression,
-            FunctionCall,
-        ),
-    ):
-        raise ValueError(
-            "Top-level expression must be an attribute set or function definition"
-        )
     try:
-        return _resolve_target_set_from_expr(top_level)
+        return _resolve_target_set_from_expr(source.expressions[0])
     except ValueError as exc:
         raise ValueError(
             "Top-level expression must be an attribute set or function definition"
