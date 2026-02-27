@@ -87,6 +87,60 @@ def test_resolve_target_set_variants():
     assert _resolve_target_set_from_expr(call) is call.argument
 
 
+def test_resolve_target_set_function_call_nested_and_string_callee():
+    """Nested call callees and string names should still resolve attrset arguments."""
+    # nixpkgs-style call sites can use higher-order wrappers: (f 1) { ... }.
+    # We still need to target the attrset argument for `nima set`.
+    nested_source = parser.parse("(f 1) { }")
+    nested = nested_source.expressions[0]
+    assert isinstance(nested, FunctionCall)
+    assert _resolve_target_set_from_expr(nested) is nested.argument
+
+    # Some parser/manipulation paths can expose the callee as a raw string.
+    # Treating it like an identifier keeps edits resilient to representation drift.
+    call_source = parser.parse("f { }")
+    call = call_source.expressions[0]
+    assert isinstance(call, FunctionCall)
+    call.name = "f"
+    assert _resolve_target_set_from_expr(call) is call.argument
+
+
+def test_resolve_target_set_function_call_identifier_argument_resolution():
+    """Function-call identifier arguments should unwrap and resolve through scopes."""
+    # Real package files often pass a named binding, e.g. `f (body)`,
+    # and `body` contains the attrset that `nima set` must update.
+    resolved_scope_source = parser.parse("{ body = { }; }")
+    resolved_target = resolved_scope_source.expressions[0]
+    assert isinstance(resolved_target, AttributeSet)
+    resolved_scope = Scope(resolved_target.values)
+    resolved_binding = next(
+        binding
+        for binding in resolved_target.values
+        if isinstance(binding, Binding) and binding.name == "body"
+    )
+    assert isinstance(resolved_binding.value, AttributeSet)
+
+    call_source = parser.parse("f (body)")
+    call = call_source.expressions[0]
+    assert isinstance(call, FunctionCall)
+    assert (
+        _resolve_target_set_from_expr(call, scope_chain=(resolved_scope,))
+        is resolved_binding.value
+    )
+
+    # If the identifier resolves to a non-attrset, the edit target is ambiguous.
+    # Failing fast here avoids silently mutating the wrong expression.
+    unresolved_scope_source = parser.parse("{ body = 1; }")
+    unresolved_target = unresolved_scope_source.expressions[0]
+    assert isinstance(unresolved_target, AttributeSet)
+    unresolved_scope = Scope(unresolved_target.values)
+    failing_source = parser.parse("f (body)")
+    failing = failing_source.expressions[0]
+    assert isinstance(failing, FunctionCall)
+    with pytest.raises(ValueError, match="Unexpected expression type"):
+        _resolve_target_set_from_expr(failing, scope_chain=(unresolved_scope,))
+
+
 def test_resolve_target_set_cycle_detection_and_empty_output():
     """Raise on unexpected recursion and missing function outputs."""
     assertion = Assertion(expression=Primitive(value=True), body=None)
